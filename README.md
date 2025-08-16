@@ -8,7 +8,7 @@ This project is inspired by:
 - "Typeface design beyond a single script" by Typotheque: https://www.typotheque.com/articles/typeface-design-beyond-a-single-script
 - FitFont by TypeProject: http://typeproject.com/en/service/fitfont
 
-I also use this tool personally to pair Latin with East Asian fonts (e.g., choosing sizes and baseline shifts that harmonize Latin with CJK).
+I also use this tool personally to pair Latin with East Asian fonts (e.g., choosing weights, sizes, and baseline shifts that harmonize Latin with CJK).
 
 All processing happens locally in your browser using opentype.js; fonts are not uploaded.
 
