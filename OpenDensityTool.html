@@ -294,6 +294,7 @@
 						<option value="fit">Fit to View</option>
 						<option value="100">100% Scale</option>
 					</select>
+					<button id="export-png" class="zoom-select">Export PNG</button>
 				</div>
 				<div class="preview-container">
 					<div class="canvas-wrapper">
@@ -348,6 +349,7 @@
 						results: 'results2'
 					})];
 					this.zoomMode = document.getElementById('zoom-mode');
+					this.exportBtn = document.getElementById('export-png');
 					this.fonts = [null, null];
 					this.analyses = [null, null];
 					this.bind();
@@ -367,6 +369,7 @@
 					}
 					);
 					this.zoomMode.addEventListener('change', this.queueScale);
+					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.queueScale);
 				}
 				async loadFont(file, index) {
@@ -600,6 +603,13 @@
 						el.textContent = a ? [`Y Min: ${a.yMin}px`, `Y Max: ${a.yMax}px`, `Density: ${a.density}%`, `Font Size: ${a.fontSize}px`, `Baseline Shift: ${a.baselineShift}px`, `Actual Ascent: ${Math.round(a.metrics.actualAscent)}px`, `Actual Descent: ${Math.round(a.metrics.actualDescent)}px`, `Font Ascent: ${Math.round(a.metrics.fontAscent)}px`, `Font Descent: ${Math.round(a.metrics.fontDescent)}px`].join('\n') : (this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.');
 					}
 					);
+				}
+				exportPNG() {
+					const url = this.canvas.toDataURL('image/png');
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = 'typographic-density.png';
+					link.click();
 				}
 			}
 			document.addEventListener('DOMContentLoaded', () => new TypographicTool());
