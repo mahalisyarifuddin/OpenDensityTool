@@ -20,7 +20,7 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 - Reports yMin/yMax (relative to baseline), density %, actual vs. font ascent/descent, and your inputs (size and baseline shift).
 
 ## Quick Start
-1. Download Typographic-Density-Tool.html.
+1. Download OpenDensityTool.html.
 2. Open it in any modern browser (Chrome, Edge, Firefox, Safari).
 3. Load two font files (OTF/TTF/WOFF).
 4. Enter text, set sizes, and adjust baseline shift to align optical baselines.
