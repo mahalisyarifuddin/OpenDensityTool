@@ -1,7 +1,7 @@
 # OpenDensityTool
 Typography, quantified.
 
-## OpenDensityTool
+## Introduction
 OpenDensityTool is a single‑file, browser‑based utility for visualizing and comparing how letterforms occupy space. It overlays two fonts (cyan and magenta), plots a per‑scanline "ink" density graph, and reports useful vertical metrics so you can judge alignment and texture across scripts.
 
 This project is inspired by:
