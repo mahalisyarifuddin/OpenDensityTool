@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<title>Typographic Density Tool</title>
+		<script defer src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
+		<style>
+			:root {
+				--bg: #f7f7f8;
+				--text: #333;
+				--border: #e0e0e0;
+				--panel: #ffffff;
+				--font1: rgba(0,162,162,0.9);
+				--font2: rgba(255,0,255,0.9);
+				--accent: #0066cc;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: sans-serif;
+				margin: 0;
+				padding: 24px;
+				background: var(--bg);
+				color: var(--text);
+				line-height: 1.6;
+			}
+
+			.header {
+				text-align: center;
+				margin-bottom: 32px;
+			}
+
+			.header h1 {
+				margin: 0;
+				font-size: 2em;
+				font-weight: 600;
+			}
+
+			.container {
+				display: grid;
+				grid-template-columns: 360px 1fr;
+				gap: 24px;
+				max-width: 1500px;
+				margin: 0 auto;
+			}
+
+			.panel {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 24px;
+				min-width: 0;
+			}
+
+			.panel-title {
+				margin: 0 0 24px;
+				font-size: 1.2em;
+				font-weight: 600;
+				border-bottom: 1px solid var(--border);
+				padding-bottom: 12px;
+			}
+
+			.font-section {
+				padding: 16px;
+				margin-bottom: 20px;
+				border-radius: 6px;
+				background: #fdfdfd;
+				border: 1px solid var(--border);
+			}
+
+			.font-header {
+				display: flex;
+				align-items: center;
+				margin: 0 0 16px;
+				font-weight: 600;
+			}
+
+			.color-indicator {
+				width: 16px;
+				height: 16px;
+				border-radius: 4px;
+				margin-right: 10px;
+				flex: 0 0 16px;
+			}
+
+			.font1 .color-indicator {
+				background: var(--font1);
+			}
+
+			.font2 .color-indicator {
+				background: var(--font2);
+			}
+
+			.form-group {
+				margin-bottom: 16px;
+			}
+
+			.form-group:last-child {
+				margin-bottom: 0;
+			}
+
+			.form-label {
+				display: block;
+				font-weight: 500;
+				margin-bottom: 6px;
+				font-size: 0.9em;
+				color: #555;
+			}
+
+			.form-control {
+				width: 100%;
+				padding: 8px 12px;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				font-size: 0.95em;
+				background: #fff;
+				transition: border-color .2s,box-shadow .2s;
+			}
+
+			.form-control:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px rgba(0,102,204,.15);
+			}
+
+			textarea.form-control {
+				min-height: 80px;
+				resize: vertical;
+			}
+
+			.form-row {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+			}
+
+			.controls-bar {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				margin-bottom: 16px;
+			}
+
+			.zoom-label {
+				font-weight: 500;
+				font-size: 0.9em;
+				color: #555;
+			}
+
+			.zoom-select {
+				padding: 6px 10px;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				font-size: 0.9em;
+				background: #fff;
+			}
+
+			.preview-container {
+				background: #fff;
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				overflow: auto;
+			}
+
+			.canvas-wrapper {
+				padding: 20px;
+				display: flex;
+				justify-content: flex-start;
+				align-items: flex-start;
+			}
+
+			#canvas {
+				display: block;
+				transform-origin: top left;
+			}
+
+			.results-section {
+				margin-top: 24px;
+			}
+
+			.results-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+			}
+
+			.result-card {
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				padding: 16px;
+				background: #fdfdfd;
+			}
+
+			.result-header {
+				display: flex;
+				align-items: center;
+				margin: 0 0 10px;
+				font-weight: 600;
+			}
+
+			.result-data {
+				font-family: monospace;
+				font-size: 0.95em;
+				line-height: 1.5;
+				color: #444;
+				background: #f0f0f0;
+				padding: 10px;
+				border-radius: 4px;
+				white-space: pre-wrap;
+			}
+
+			@media (max-width: 900px) {
+				.container {
+					grid-template-columns:1fr;
+				}
+			}
+
+			@media (max-width: 500px) {
+				.results-grid {
+					grid-template-columns:1fr;
+				}
+
+				body {
+					padding: 16px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<h1>Typographic Density Tool</h1>
+		</div>
+		<div class="container">
+			<div class="panel">
+				<h2 class="panel-title">Font Configuration</h2>
+				<div class="font-section font1">
+					<div class="font-header">
+						<div class="color-indicator"></div>
+						Font 1 (Cyan)
+					</div>
+					<div class="form-group">
+						<label class="form-label" for="font1-file">Font File</label>
+						<input type="file" id="font1-file" class="form-control" accept=".otf,.ttf,.woff,.woff2"/>
+					</div>
+					<div class="form-group">
+						<label class="form-label" for="font1-text">Text</label>
+						<textarea id="font1-text" class="form-control" placeholder="Enter text to analyze">Idealogy</textarea>
+					</div>
+					<div class="form-row">
+						<div class="form-group">
+							<label class="form-label" for="font1-size">Size (px)</label>
+							<input type="number" id="font1-size" class="form-control" value="100" min="8" max="500"/>
+						</div>
+						<div class="form-group">
+							<label class="form-label" for="font1-shift">Baseline Shift</label>
+							<input type="number" id="font1-shift" class="form-control" value="0" min="-200" max="200"/>
+						</div>
+					</div>
+				</div>
+				<div class="font-section font2">
+					<div class="font-header">
+						<div class="color-indicator"></div>
+						Font 2 (Magenta)
+					</div>
+					<div class="form-group">
+						<label class="form-label" for="font2-file">Font File</label>
+						<input type="file" id="font2-file" class="form-control" accept=".otf,.ttf,.woff,.woff2"/>
+					</div>
+					<div class="form-group">
+						<label class="form-label" for="font2-text">Text</label>
+						<textarea id="font2-text" class="form-control" placeholder="Enter text to analyze">Идеология</textarea>
+					</div>
+					<div class="form-row">
+						<div class="form-group">
+							<label class="form-label" for="font2-size">Size (px)</label>
+							<input type="number" id="font2-size" class="form-control" value="100" min="8" max="500"/>
+						</div>
+						<div class="form-group">
+							<label class="form-label" for="font2-shift">Baseline Shift</label>
+							<input type="number" id="font2-shift" class="form-control" value="0" min="-200" max="200"/>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="panel">
+				<h2 class="panel-title">Visualization & Analysis</h2>
+				<div class="controls-bar">
+					<span class="zoom-label">Display:</span>
+					<select id="zoom-mode" class="zoom-select">
+						<option value="fit">Fit to View</option>
+						<option value="100">100% Scale</option>
+					</select>
+				</div>
+				<div class="preview-container">
+					<div class="canvas-wrapper">
+						<canvas id="canvas"></canvas>
+					</div>
+				</div>
+				<div class="results-section">
+					<div class="results-grid">
+						<div class="result-card">
+							<div class="result-header">
+								<div class="color-indicator" style="background: var(--font1)"></div>
+								Font 1 Analysis
+							</div>
+							<div id="results1" class="result-data">Load a font to see analysis.</div>
+						</div>
+						<div class="result-card">
+							<div class="result-header">
+								<div class="color-indicator" style="background: var(--font2)"></div>
+								Font 2 Analysis
+							</div>
+							<div id="results2" class="result-data">Load a font to see analysis.</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			class TypographicTool {
+				constructor() {
+					this.canvas = document.getElementById('canvas');
+					this.ctx = this.canvas.getContext('2d');
+					this.tint = document.createElement('canvas');
+					this.tctx = this.tint.getContext('2d', {
+						willReadFrequently: true
+					});
+					const css = getComputedStyle(document.documentElement);
+					this.colors = [css.getPropertyValue('--font1').trim(), css.getPropertyValue('--font2').trim()];
+					this.graphWidth = 150;
+					this.graphPadding = 20;
+					const map = ids => Object.fromEntries(Object.entries(ids).map( ([k,id]) => [k, document.getElementById(id)]));
+					this.ctrls = [map({
+						file: 'font1-file',
+						text: 'font1-text',
+						size: 'font1-size',
+						shift: 'font1-shift',
+						results: 'results1'
+					}), map({
+						file: 'font2-file',
+						text: 'font2-text',
+						size: 'font2-size',
+						shift: 'font2-shift',
+						results: 'results2'
+					})];
+					this.zoomMode = document.getElementById('zoom-mode');
+					this.fonts = [null, null];
+					this.analyses = [null, null];
+					this.bind();
+					this.render();
+				}
+				bind() {
+					const queue = (fn, key) => (...args) => {
+						cancelAnimationFrame(this[key]);
+						this[key] = requestAnimationFrame( () => fn.apply(this, args));
+					}
+					;
+					this.queueAnalyze = queue(this.analyzeAndRender, '_rafAnalyze');
+					this.queueScale = queue(this.updateDisplayScale, '_rafScale');
+					this.ctrls.forEach( (c, i) => {
+						c.file.addEventListener('change', e => this.loadFont(e.target.files && e.target.files[0], i));
+						['input', 'change'].forEach(evt => [c.text, c.size, c.shift].forEach(el => el.addEventListener(evt, this.queueAnalyze)));
+					}
+					);
+					this.zoomMode.addEventListener('change', this.queueScale);
+					window.addEventListener('resize', this.queueScale);
+				}
+				async loadFont(file, index) {
+					if (!file)
+						return;
+					try {
+						const buf = await file.arrayBuffer();
+						this.fonts[index] = opentype.parse(buf);
+					} catch (err) {
+						console.error('Font loading failed:', err);
+						alert(`Failed to load font: ${file.name}`);
+						this.fonts[index] = null;
+					}
+					this.queueAnalyze();
+				}
+				getFontMetrics(font, text, fontSize) {
+					const scale = fontSize / font.unitsPerEm;
+					const path = font.getPath(text, 0, 0, fontSize);
+					const pathBounds = path.getBoundingBox();
+					let actualAscent = 0;
+					let actualDescent = 0;
+					const glyphs = font.stringToGlyphs(text);
+					for (const glyph of glyphs) {
+						if (glyph.path && glyph.path.commands && glyph.path.commands.length > 0) {
+							const glyphBounds = glyph.getBoundingBox();
+							if (isFinite(glyphBounds.y1) && isFinite(glyphBounds.y2)) {
+								const glyphTop = -glyphBounds.y2 * scale;
+								const glyphBottom = -glyphBounds.y1 * scale;
+								actualAscent = Math.max(actualAscent, glyphTop);
+								actualDescent = Math.max(actualDescent, -glyphBottom);
+							}
+						}
+					}
+					if (actualAscent === 0 && actualDescent === 0) {
+						actualAscent = font.ascender * scale;
+						actualDescent = Math.abs(font.descender * scale);
+					}
+					let fontAscent = font.ascender * scale;
+					let fontDescent = Math.abs(font.descender * scale);
+					if (font.tables && font.tables.os2) {
+						const os2 = font.tables.os2;
+						if (os2.sTypoAscender !== undefined && os2.sTypoDescender !== undefined) {
+							fontAscent = Math.max(fontAscent, os2.sTypoAscender * scale);
+							fontDescent = Math.max(fontDescent, Math.abs(os2.sTypoDescender * scale));
+						}
+						if (os2.usWinAscent !== undefined && os2.usWinDescent !== undefined) {
+							fontAscent = Math.max(fontAscent, os2.usWinAscent * scale);
+							fontDescent = Math.max(fontDescent, os2.usWinDescent * scale);
+						}
+					}
+					if (font.tables && font.tables.hhea) {
+						const hhea = font.tables.hhea;
+						if (hhea.ascender !== undefined && hhea.descender !== undefined) {
+							fontAscent = Math.max(fontAscent, hhea.ascender * scale);
+							fontDescent = Math.max(fontDescent, Math.abs(hhea.descender * scale));
+						}
+					}
+					const finalAscent = Math.max(actualAscent, fontAscent);
+					const finalDescent = Math.max(actualDescent, fontDescent);
+					return {
+						ascent: finalAscent,
+						descent: finalDescent,
+						actualAscent,
+						actualDescent,
+						fontAscent,
+						fontDescent
+					};
+				}
+				analyzeFont(font, text, fontSize, baselineShift) {
+					if (!font || !text || !fontSize)
+						return null;
+					const metrics = this.getFontMetrics(font, text, fontSize);
+					const scale = fontSize / font.unitsPerEm;
+					const path = font.getPath(text, 0, 0, fontSize);
+					const bounds = path.getBoundingBox();
+					const width = Math.ceil(bounds.x2 - bounds.x1);
+					if (!isFinite(bounds.x1) || width <= 0)
+						return null;
+					const height = Math.ceil(metrics.ascent + metrics.descent);
+					const baseline = Math.ceil(metrics.ascent);
+					const tempCanvas = document.createElement('canvas');
+					tempCanvas.width = width;
+					tempCanvas.height = height;
+					const tempCtx = tempCanvas.getContext('2d');
+					font.draw(tempCtx, text, -bounds.x1, baseline, fontSize);
+					const {densityMap, inkPixels, minY, maxY} = this.getPixelData(tempCanvas);
+					if (minY > maxY)
+						return null;
+					const boundingHeight = (maxY - minY + 1) || 1;
+					return {
+						yMin: Math.round(baseline - maxY),
+						yMax: Math.round(baseline - minY),
+						density: ((inkPixels / (boundingHeight * width)) * 100).toFixed(1),
+						densityMap,
+						canvas: tempCanvas,
+						scale,
+						baseline,
+						baselineShift,
+						fontSize,
+						font,
+						metrics
+					};
+				}
+				getPixelData(canvas) {
+					const ctx = canvas.getContext('2d', {
+						willReadFrequently: true
+					});
+					const {data, width, height} = ctx.getImageData(0, 0, canvas.width, canvas.height);
+					const densityMap = new Float32Array(height);
+					let inkPixels = 0
+					  , minY = height
+					  , maxY = -1;
+					for (let y = 0; y < height; y++) {
+						let i = ((y * width) << 2) + 3;
+						for (let x = 0; x < width; x++,
+						i += 4) {
+							const a = data[i];
+							if (a > 0) {
+								if (y < minY)
+									minY = y;
+								if (y > maxY)
+									maxY = y;
+								inkPixels++;
+								densityMap[y] += a / 255;
+							}
+						}
+					}
+					return {
+						densityMap,
+						inkPixels,
+						minY,
+						maxY
+					};
+				}
+				analyzeAndRender() {
+					this.analyses = this.ctrls.map( (c, i) => this.analyzeFont(this.fonts[i], c.text.value.trim(), parseInt(c.size.value, 10) || 0, parseInt(c.shift.value, 10) || 0));
+					this.render();
+				}
+				render() {
+					const valid = this.analyses.filter(Boolean);
+					if (!valid.length) {
+						this.renderEmpty();
+						this.updateResults();
+						return;
+					}
+					const {width, height, baseline} = this.calculateDimensions(valid);
+					this.canvas.width = width;
+					this.canvas.height = height;
+					this.ctx.clearRect(0, 0, width, height);
+					const textX = this.graphWidth + this.graphPadding;
+					const useBlend = this.analyses[0] && this.analyses[1];
+					this.analyses.forEach( (a, i) => {
+						if (!a)
+							return;
+						const yOffset = baseline - a.baseline - a.baselineShift;
+						this.drawDensityGraph(a, this.colors[i], yOffset, useBlend && i > 0);
+						this.drawText(a, this.colors[i], textX, yOffset, useBlend && i > 0);
+					}
+					);
+					this.queueScale();
+					this.updateResults();
+				}
+				calculateDimensions(analyses) {
+					let asc = 0
+					  , desc = 0
+					  , maxW = 0;
+					for (const a of analyses) {
+						asc = Math.max(asc, a.baseline - a.baselineShift);
+						desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
+						maxW = Math.max(maxW, a.canvas.width);
+					}
+					const baseline = Math.ceil(asc);
+					return {
+						width: this.graphWidth + this.graphPadding + maxW,
+						height: Math.ceil(asc + desc),
+						baseline
+					};
+				}
+				drawDensityGraph({densityMap}, color, yOffset, blend) {
+					let max = 1;
+					for (let i = 0; i < densityMap.length; i++)
+						if (densityMap[i] > max)
+							max = densityMap[i];
+					this.ctx.fillStyle = color;
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					for (let y = 0; y < densityMap.length; y++) {
+						const w = (densityMap[y] / max) * this.graphWidth;
+						if (w > 0)
+							this.ctx.fillRect(this.graphWidth - w, y + yOffset, w, 1);
+					}
+					this.ctx.globalCompositeOperation = 'source-over';
+				}
+				drawText({canvas: src}, color, x, y, blend) {
+					if (this.tint.width !== src.width)
+						this.tint.width = src.width;
+					if (this.tint.height !== src.height)
+						this.tint.height = src.height;
+					this.tctx.clearRect(0, 0, this.tint.width, this.tint.height);
+					this.tctx.fillStyle = color;
+					this.tctx.fillRect(0, 0, this.tint.width, this.tint.height);
+					this.tctx.globalCompositeOperation = 'destination-in';
+					this.tctx.drawImage(src, 0, 0);
+					this.tctx.globalCompositeOperation = 'source-over';
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					this.ctx.drawImage(this.tint, x, y);
+					this.ctx.globalCompositeOperation = 'source-over';
+				}
+				renderEmpty() {
+					this.canvas.width = 400;
+					this.canvas.height = 200;
+					this.ctx.clearRect(0, 0, 400, 200);
+					this.queueScale();
+				}
+				updateDisplayScale() {
+					const mode = this.zoomMode.value;
+					if (mode !== 'fit' || this.canvas.width === 0) {
+						this.canvas.style.transform = 'none';
+						return;
+					}
+					const wrapper = this.canvas.parentElement;
+					const container = wrapper.parentElement;
+					const cs = getComputedStyle(wrapper);
+					const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+					const available = container.clientWidth - padX;
+					const scale = Math.min(available / this.canvas.width, 1);
+					this.canvas.style.transform = `scale(${scale})`;
+				}
+				updateResults() {
+					this.analyses.forEach( (a, i) => {
+						const el = this.ctrls[i].results;
+						el.textContent = a ? [`Y Min: ${a.yMin}px`, `Y Max: ${a.yMax}px`, `Density: ${a.density}%`, `Font Size: ${a.fontSize}px`, `Baseline Shift: ${a.baselineShift}px`, `Actual Ascent: ${Math.round(a.metrics.actualAscent)}px`, `Actual Descent: ${Math.round(a.metrics.actualDescent)}px`, `Font Ascent: ${Math.round(a.metrics.fontAscent)}px`, `Font Descent: ${Math.round(a.metrics.fontDescent)}px`].join('\n') : (this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.');
+					}
+					);
+				}
+			}
+			document.addEventListener('DOMContentLoaded', () => new TypographicTool());
+		</script>
+	</body>
+</html>
