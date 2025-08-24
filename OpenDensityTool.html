@@ -553,7 +553,7 @@
 						if (!a) return;
 
 						const yOffset = baseline - a.baseline - a.baselineShift;
-						const advance = a.font.getAdvanceWidth(a.font.glyphs.get(a.font.glyphNames.indexOf('space')), a.fontSize);
+						const advance = this._getSpaceAdvance(a.font, a.fontSize);
 
 						if (sideBySide && i > 0) {
 							currentX += this.analyses[i-1].canvas.width + (lastAdvance / 2) + (advance / 2);
@@ -578,7 +578,7 @@
 							asc = Math.max(asc, a.baseline - a.baselineShift);
 							desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
 
-							const advance = a.font.getAdvanceWidth(a.font.glyphs.get(a.font.glyphNames.indexOf('space')), a.fontSize);
+							const advance = this._getSpaceAdvance(a.font, a.fontSize);
 							totalW += a.canvas.width + (lastAdvance ? lastAdvance / 2 : 0) + advance / 2;
 							lastAdvance = advance;
 						}
@@ -661,6 +661,13 @@
 					link.href = url;
 					link.download = 'typographic-density.png';
 					link.click();
+				}
+				_getSpaceAdvance(font, fontSize) {
+					const glyph = font.stringToGlyphs(' ')[0];
+					if (glyph) {
+						return font.getAdvanceWidth(glyph, fontSize);
+					}
+					return (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
 				}
 			}
 			document.addEventListener('DOMContentLoaded', () => new TypographicTool());
