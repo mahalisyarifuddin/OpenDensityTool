@@ -294,7 +294,12 @@
 						<option value="fit">Fit to View</option>
 						<option value="100">100% Scale</option>
 					</select>
-					<button id="export-png" class="zoom-select">Export PNG</button>
+					<span class="zoom-label" style="margin-left: 12px;">Mode:</span>
+					<select id="render-mode" class="zoom-select">
+						<option value="overlay">Overlay</option>
+						<option value="side-by-side">Side-by-side</option>
+					</select>
+					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
 				</div>
 				<div class="preview-container">
 					<div class="canvas-wrapper">
@@ -349,6 +354,7 @@
 						results: 'results2'
 					})];
 					this.zoomMode = document.getElementById('zoom-mode');
+					this.renderMode = document.getElementById('render-mode');
 					this.exportBtn = document.getElementById('export-png');
 					this.fonts = [null, null];
 					this.analyses = [null, null];
@@ -369,6 +375,7 @@
 					}
 					);
 					this.zoomMode.addEventListener('change', this.queueScale);
+					this.renderMode.addEventListener('change', this.queueAnalyze);
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.queueScale);
 				}
@@ -530,35 +537,62 @@
 						this.updateResults();
 						return;
 					}
+
 					const {width, height, baseline} = this.calculateDimensions(valid);
 					this.canvas.width = width;
 					this.canvas.height = height;
 					this.ctx.clearRect(0, 0, width, height);
-					const textX = this.graphWidth + this.graphPadding;
-					const useBlend = this.analyses[0] && this.analyses[1];
-					this.analyses.forEach( (a, i) => {
-						if (!a)
-							return;
+
+					const sideBySide = this.renderMode.value === 'side-by-side' && valid.length > 1;
+					const useBlend = !sideBySide && this.analyses[0] && this.analyses[1];
+
+					let currentX = this.graphWidth + this.graphPadding;
+					let lastAdvance = 0;
+
+					this.analyses.forEach((a, i) => {
+						if (!a) return;
+
 						const yOffset = baseline - a.baseline - a.baselineShift;
+						const advance = a.font.getAdvanceWidth(a.font.glyphs.get(a.font.glyphNames.indexOf('space')), a.fontSize);
+
+						if (sideBySide && i > 0) {
+							currentX += this.analyses[i-1].canvas.width + (lastAdvance / 2) + (advance / 2);
+						}
+
 						this.drawDensityGraph(a, this.colors[i], yOffset, useBlend && i > 0);
-						this.drawText(a, this.colors[i], textX, yOffset, useBlend && i > 0);
-					}
-					);
+						this.drawText(a, this.colors[i], currentX, yOffset, useBlend && i > 0);
+
+						lastAdvance = advance;
+					});
+
 					this.queueScale();
 					this.updateResults();
 				}
 				calculateDimensions(analyses) {
-					let asc = 0
-					  , desc = 0
-					  , maxW = 0;
-					for (const a of analyses) {
-						asc = Math.max(asc, a.baseline - a.baselineShift);
-						desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
-						maxW = Math.max(maxW, a.canvas.width);
+					let asc = 0, desc = 0, totalW = 0;
+					const sideBySide = this.renderMode.value === 'side-by-side' && analyses.length > 1;
+
+					if (sideBySide) {
+						let lastAdvance = 0;
+						for (const a of analyses) {
+							asc = Math.max(asc, a.baseline - a.baselineShift);
+							desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
+
+							const advance = a.font.getAdvanceWidth(a.font.glyphs.get(a.font.glyphNames.indexOf('space')), a.fontSize);
+							totalW += a.canvas.width + (lastAdvance ? lastAdvance / 2 : 0) + advance / 2;
+							lastAdvance = advance;
+						}
+					} else {
+						for (const a of analyses) {
+							asc = Math.max(asc, a.baseline - a.baselineShift);
+							desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
+							totalW = Math.max(totalW, a.canvas.width);
+						}
 					}
+
 					const baseline = Math.ceil(asc);
 					return {
-						width: this.graphWidth + this.graphPadding + maxW,
+						width: this.graphWidth + this.graphPadding + totalW,
 						height: Math.ceil(asc + desc),
 						baseline
 					};
@@ -569,7 +603,8 @@
 						if (densityMap[i] > max)
 							max = densityMap[i];
 					this.ctx.fillStyle = color;
-					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					const sideBySide = this.renderMode.value === 'side-by-side';
+					this.ctx.globalCompositeOperation = blend && !sideBySide ? 'multiply' : 'source-over';
 					for (let y = 0; y < densityMap.length; y++) {
 						const w = (densityMap[y] / max) * this.graphWidth;
 						if (w > 0)
@@ -588,7 +623,8 @@
 					this.tctx.globalCompositeOperation = 'destination-in';
 					this.tctx.drawImage(src, 0, 0);
 					this.tctx.globalCompositeOperation = 'source-over';
-					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					const sideBySide = this.renderMode.value === 'side-by-side';
+					this.ctx.globalCompositeOperation = blend && !sideBySide ? 'multiply' : 'source-over';
 					this.ctx.drawImage(this.tint, x, y);
 					this.ctx.globalCompositeOperation = 'source-over';
 				}
