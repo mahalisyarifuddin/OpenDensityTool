@@ -544,7 +544,7 @@
 					this.ctx.clearRect(0, 0, width, height);
 
 					const sideBySide = this.renderMode.value === 'side-by-side' && valid.length > 1;
-					const useBlend = !sideBySide && this.analyses[0] && this.analyses[1];
+					const useBlend = this.analyses[0] && this.analyses[1];
 
 					let currentX = this.graphWidth + this.graphPadding;
 					let lastAdvance = 0;
@@ -603,8 +603,7 @@
 						if (densityMap[i] > max)
 							max = densityMap[i];
 					this.ctx.fillStyle = color;
-					const sideBySide = this.renderMode.value === 'side-by-side';
-					this.ctx.globalCompositeOperation = blend && !sideBySide ? 'multiply' : 'source-over';
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					for (let y = 0; y < densityMap.length; y++) {
 						const w = (densityMap[y] / max) * this.graphWidth;
 						if (w > 0)
@@ -623,8 +622,7 @@
 					this.tctx.globalCompositeOperation = 'destination-in';
 					this.tctx.drawImage(src, 0, 0);
 					this.tctx.globalCompositeOperation = 'source-over';
-					const sideBySide = this.renderMode.value === 'side-by-side';
-					this.ctx.globalCompositeOperation = blend && !sideBySide ? 'multiply' : 'source-over';
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					this.ctx.drawImage(this.tint, x, y);
 					this.ctx.globalCompositeOperation = 'source-over';
 				}
