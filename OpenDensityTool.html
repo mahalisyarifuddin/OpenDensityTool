@@ -471,18 +471,20 @@
 					const metrics = this.getFontMetrics(font, text, fontSize);
 					const path = font.getPath(text, 0, 0, fontSize);
 					const bounds = path.getBoundingBox();
-					const width = Math.ceil(bounds.x2 - bounds.x1);
 
-					if (!isFinite(bounds.x1) || width <= 0) return null;
+					const bboxWidth = Math.ceil(bounds.x2 - bounds.x1);
+					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize));
+
+					if (!isFinite(bounds.x1) || bboxWidth <= 0) return null;
 
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
 
 					const tempCanvas = document.createElement('canvas');
-					tempCanvas.width = width;
+					tempCanvas.width = advanceWidth;
 					tempCanvas.height = height;
 					const tempCtx = tempCanvas.getContext('2d');
-					font.draw(tempCtx, text, -bounds.x1, baseline, fontSize);
+					font.draw(tempCtx, text, 0, baseline, fontSize);
 
 					const {
 						densityMap,
@@ -497,7 +499,7 @@
 					return {
 						yMin: Math.round(baseline - maxY),
 						yMax: Math.round(baseline - minY),
-						density: ((inkPixels / (boundingHeight * width)) * 100).toFixed(1),
+						density: ((inkPixels / (boundingHeight * bboxWidth)) * 100).toFixed(1),
 						densityMap,
 						canvas: tempCanvas,
 						baseline,
@@ -597,27 +599,23 @@
 						totalW = 0;
 					const sideBySide = this.renderMode.value === 'side-by-side' && analyses.length > 1;
 
-					if (sideBySide) {
-						let lastAdvance = 0;
-						for (const a of analyses) {
-							asc = Math.max(asc, a.baseline - a.baselineShift);
-							desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
+					for (const a of analyses) {
+						asc = Math.max(asc, a.baseline - a.baselineShift);
+						desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
+					}
 
-							const advance = this._getSpaceAdvance(a.font, a.fontSize);
-							totalW += a.canvas.width + (lastAdvance ? lastAdvance / 2 : 0) + advance / 2;
-							lastAdvance = advance;
-						}
+					if (sideBySide) {
+						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, 0);
+						const space1 = this._getSpaceAdvance(analyses[0].font, analyses[0].fontSize);
+						const space2 = this._getSpaceAdvance(analyses[1].font, analyses[1].fontSize);
+						totalW += (space1 / 2) + (space2 / 2);
 					} else {
-						for (const a of analyses) {
-							asc = Math.max(asc, a.baseline - a.baselineShift);
-							desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
-							totalW = Math.max(totalW, a.canvas.width);
-						}
+						totalW = Math.max(0, ...analyses.map(a => a.canvas.width));
 					}
 
 					const baseline = Math.ceil(asc);
 					return {
-						width: this.graphWidth + this.graphPadding + totalW,
+						width: Math.ceil(this.graphWidth + this.graphPadding + totalW),
 						height: Math.ceil(asc + desc),
 						baseline
 					};
