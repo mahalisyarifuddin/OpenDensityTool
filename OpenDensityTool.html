@@ -429,25 +429,29 @@
 					let fontAscent = font.ascender * scale;
 					let fontDescent = Math.abs(font.descender * scale);
 
-					if (font.tables?.os2) {
-						const {
-							sTypoAscender,
-							sTypoDescender,
-							usWinAscent,
-							usWinDescent
-						} = font.tables.os2;
-						if (sTypoAscender !== undefined) fontAscent = Math.max(fontAscent, sTypoAscender * scale);
-						if (sTypoDescender !== undefined) fontDescent = Math.max(fontDescent, Math.abs(sTypoDescender * scale));
-						if (usWinAscent !== undefined) fontAscent = Math.max(fontAscent, usWinAscent * scale);
-						if (usWinDescent !== undefined) fontDescent = Math.max(fontDescent, usWinDescent * scale);
+					const os2 = font.tables?.os2;
+					const hhea = font.tables?.hhea;
+
+					const metrics = [
+						font.ascender,
+						os2?.sTypoAscender,
+						os2?.usWinAscent,
+						hhea?.ascender,
+					];
+
+					const descMetrics = [
+						font.descender,
+						os2?.sTypoDescender,
+						os2?.usWinDescent,
+						hhea?.descender,
+					];
+
+					for (const m of metrics) {
+						if (isFinite(m)) fontAscent = Math.max(fontAscent, m * scale);
 					}
-					if (font.tables?.hhea) {
-						const {
-							ascender,
-							descender
-						} = font.tables.hhea;
-						if (ascender !== undefined) fontAscent = Math.max(fontAscent, ascender * scale);
-						if (descender !== undefined) fontDescent = Math.max(fontDescent, Math.abs(descender * scale));
+
+					for (const m of descMetrics) {
+						if (isFinite(m)) fontDescent = Math.max(fontDescent, Math.abs(m * scale));
 					}
 
 					return {
