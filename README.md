@@ -61,8 +61,8 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Making before/after visuals when tuning sizes or baselines
 
 ## Known Limitations
-- OpenType feature coverage: opentype.js (as used here) primarily supports GPOS "kern" and GSUB "liga." Complex shaping and features beyond these are limited.
-- Complex scripts: Arabic, Indic, Southeast Asian, and other shaping‑intensive scripts may not render ideally. Consider the results approximate.
+- OpenType feature coverage: opentype.js now supports shaping for Arabic and Thai. For other scripts, it primarily supports GPOS "kern" and GSUB "liga." Complex shaping and features beyond these (e.g., for Javanese) are limited.
+- Complex scripts: While Arabic and Thai are now supported, other shaping-intensive scripts (e.g., Indic, other Southeast Asian languages) may not render ideally. Consider the results approximate.
 - No vertical writing / ideographic baseline: The tool measures in horizontal layout only.
 - Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU.
 - Performance: Very long strings or huge sizes can be slow.
