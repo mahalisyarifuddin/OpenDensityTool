@@ -250,10 +250,14 @@
 						<label class="form-label" for="font1-text">Text</label>
 						<textarea id="font1-text" class="form-control" placeholder="Enter text to analyze" maxlength="1000">Idealogy</textarea>
 					</div>
+					<div class="form-group">
+						<label class="form-label" for="font1-size">Size (px)</label>
+						<input type="number" id="font1-size" class="form-control" value="100" min="8" max="500"/>
+					</div>
 					<div class="form-row">
 						<div class="form-group">
-							<label class="form-label" for="font1-size">Size (px)</label>
-							<input type="number" id="font1-size" class="form-control" value="100" min="8" max="500"/>
+							<label class="form-label" for="font1-letter-spacing">Letter Spacing</label>
+							<input type="number" id="font1-letter-spacing" class="form-control" value="0" min="-100" max="100" step="1"/>
 						</div>
 						<div class="form-group">
 							<label class="form-label" for="font1-shift">Baseline Shift</label>
@@ -274,10 +278,14 @@
 						<label class="form-label" for="font2-text">Text</label>
 						<textarea id="font2-text" class="form-control" placeholder="Enter text to analyze" maxlength="1000">Идеология</textarea>
 					</div>
+					<div class="form-group">
+						<label class="form-label" for="font2-size">Size (px)</label>
+						<input type="number" id="font2-size" class="form-control" value="100" min="8" max="500"/>
+					</div>
 					<div class="form-row">
 						<div class="form-group">
-							<label class="form-label" for="font2-size">Size (px)</label>
-							<input type="number" id="font2-size" class="form-control" value="100" min="8" max="500"/>
+							<label class="form-label" for="font2-letter-spacing">Letter Spacing</label>
+							<input type="number" id="font2-letter-spacing" class="form-control" value="0" min="-100" max="100" step="1"/>
 						</div>
 						<div class="form-group">
 							<label class="form-label" for="font2-shift">Baseline Shift</label>
@@ -348,6 +356,7 @@
 						text: getEl(`font${i}-text`),
 						size: getEl(`font${i}-size`),
 						shift: getEl(`font${i}-shift`),
+						letterSpacing: getEl(`font${i}-letter-spacing`),
 						results: getEl(`results${i}`),
 					}));
 
@@ -373,7 +382,7 @@
 
 					this.ctrls.forEach((c,i)=>{
 						c.file.addEventListener('change', e=>this.loadFont(e.target.files && e.target.files[0], i));
-						['input', 'change'].forEach(evt=>[c.text, c.size, c.shift].forEach(el=>el.addEventListener(evt, this.queueAnalyze)));
+						['input', 'change'].forEach(evt=>[c.text, c.size, c.shift, c.letterSpacing].forEach(el=>el.addEventListener(evt, this.queueAnalyze)));
 					}
 					);
 
@@ -461,7 +470,7 @@
 					};
 				}
 
-				analyzeFont(font, text, fontSize, baselineShift) {
+				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize)
 						return null;
 
@@ -469,12 +478,15 @@
 					  , MAX_FONT_SIZE = 2000;
 					fontSize = Math.max(MIN_FONT_SIZE, Math.min(fontSize, MAX_FONT_SIZE));
 
+					const options = {
+						tracking: letterSpacing || 0
+					};
 					const metrics = this.getFontMetrics(font, text, fontSize);
-					const path = font.getPath(text, 0, 0, fontSize);
+					const path = font.getPath(text, 0, 0, fontSize, options);
 					const bounds = path.getBoundingBox();
 
 					const bboxWidth = Math.ceil(bounds.x2 - bounds.x1);
-					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize));
+					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize, options));
 
 					if (!isFinite(bounds.x1) || bboxWidth <= 0)
 						return null;
@@ -486,7 +498,7 @@
 					tempCanvas.width = advanceWidth;
 					tempCanvas.height = height;
 					const tempCtx = tempCanvas.getContext('2d');
-					font.draw(tempCtx, text, 0, baseline, fontSize);
+					font.draw(tempCtx, text, 0, baseline, fontSize, options);
 
 					const {densityMap, inkPixels, minY, maxY} = this.getPixelData(tempCanvas);
 					if (minY > maxY)
@@ -502,6 +514,7 @@
 						canvas: tempCanvas,
 						baseline,
 						baselineShift,
+						letterSpacing,
 						fontSize,
 						font,
 						metrics,
@@ -542,7 +555,7 @@
 				}
 
 				analyzeAndRender() {
-					this.analyses = this.ctrls.map((c,i)=>this.analyzeFont(this.fonts[i], c.text.value.trim(), parseInt(c.size.value, 10) || 0, parseInt(c.shift.value, 10) || 0));
+					this.analyses = this.ctrls.map((c,i)=>this.analyzeFont(this.fonts[i], c.text.value.trim(), parseInt(c.size.value, 10) || 0, parseInt(c.shift.value, 10) || 0, parseInt(c.letterSpacing.value, 10) || 0));
 					this.render();
 				}
 
@@ -662,8 +675,8 @@
 					this.analyses.forEach((a,i)=>{
 						const el = this.ctrls[i].results;
 						if (a) {
-							const {yMin, yMax, density, fontSize, baselineShift, metrics} = a;
-							el.textContent = [`Y Min: ${yMin}px`, `Y Max: ${yMax}px`, `Density: ${density}%`, `Font Size: ${fontSize}px`, `Baseline Shift: ${baselineShift}px`, `Actual Ascent: ${Math.round(metrics.actualAscent)}px`, `Actual Descent: ${Math.round(metrics.actualDescent)}px`, `Font Ascent: ${Math.round(metrics.fontAscent)}px`, `Font Descent: ${Math.round(metrics.fontDescent)}px`].join('\n');
+							const {yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics} = a;
+							el.textContent = [`Y Min: ${yMin}px`, `Y Max: ${yMax}px`, `Density: ${density}%`, `Font Size: ${fontSize}px`, `Baseline Shift: ${baselineShift}px`, `Letter Spacing: ${letterSpacing}px`, `Actual Ascent: ${Math.round(metrics.actualAscent)}px`, `Actual Descent: ${Math.round(metrics.actualDescent)}px`, `Font Ascent: ${Math.round(metrics.fontAscent)}px`, `Font Descent: ${Math.round(metrics.fontDescent)}px`].join('\n');
 						} else {
 							el.textContent = this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 						}
