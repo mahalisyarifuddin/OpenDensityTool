@@ -337,21 +337,20 @@
 		<script>
 			class TypographicTool {
 				constructor() {
-					const getEl = id=>document.getElementById(id);
-
-					this.canvas = getEl('canvas');
-					this.ctx = this.canvas.getContext('2d');
-					this.tint = document.createElement('canvas');
-					this.tctx = this.tint.getContext('2d', {
-						willReadFrequently: true
-					});
-
+					const getEl = id => document.getElementById(id);
 					const css = getComputedStyle(document.documentElement);
-					this.colors = ['--font1', '--font2'].map(p=>css.getPropertyValue(p).trim());
-					this.graphWidth = 150;
-					this.graphPadding = 20;
-
-					this.ctrls = [1, 2].map(i=>({
+					Object.assign(this, {
+						canvas: getEl('canvas'),
+						ctx: getEl('canvas').getContext('2d'),
+						colors: ['--font1', '--font2'].map(p => css.getPropertyValue(p).trim()),
+						graphWidth: 150,
+						graphPadding: 20,
+						fonts: [null, null],
+						analyses: [null, null]
+					});
+					this.tint = document.createElement('canvas');
+					this.tctx = this.tint.getContext('2d', { willReadFrequently: true });
+					this.ctrls = [1, 2].map(i => ({
 						file: getEl(`font${i}-file`),
 						text: getEl(`font${i}-text`),
 						size: getEl(`font${i}-size`),
@@ -359,57 +358,41 @@
 						letterSpacing: getEl(`font${i}-letter-spacing`),
 						results: getEl(`results${i}`),
 					}));
-
 					this.zoomMode = getEl('zoom-mode');
 					this.renderMode = getEl('render-mode');
 					this.exportBtn = getEl('export-png');
-
-					this.fonts = [null, null];
-					this.analyses = [null, null];
-
 					this.bind();
 					this.render();
 				}
-
 				bind() {
-					const queue = (fn,key)=>(...args)=>{
+					const queue = (fn, key) => (...args) => {
 						cancelAnimationFrame(this[key]);
-						this[key] = requestAnimationFrame(()=>fn.apply(this, args));
-					}
-					;
+						this[key] = requestAnimationFrame(() => fn.apply(this, args));
+					};
 					this.queueAnalyze = queue(this.analyzeAndRender, '_rafAnalyze');
 					this.queueScale = queue(this.updateDisplayScale, '_rafScale');
-
-					this.ctrls.forEach((c,i)=>{
-						c.file.addEventListener('change', e=>this.loadFont(e.target.files && e.target.files[0], i));
-						['input', 'change'].forEach(evt=>[c.text, c.size, c.shift, c.letterSpacing].forEach(el=>el.addEventListener(evt, this.queueAnalyze)));
-					}
-					);
-
+					this.ctrls.forEach((c, i) => {
+						c.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
+						['input', 'change'].forEach(evt => [c.text, c.size, c.shift, c.letterSpacing].forEach(el => el.addEventListener(evt, this.queueAnalyze)));
+					});
 					this.zoomMode.addEventListener('change', this.queueScale);
 					this.renderMode.addEventListener('change', this.queueAnalyze);
-					this.exportBtn.addEventListener('click', ()=>this.exportPNG());
+					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.queueScale);
 				}
-
 				async loadFont(file, index) {
-					const resetFont = ()=>{
+					const resetFont = () => {
 						this.ctrls[index].file.value = '';
 						this.fonts[index] = null;
-					}
-					;
-
-					if (!file)
-						return;
-
+					};
+					if (!file) return;
 					const MAX_FONT_SIZE = 30 * 1024 * 1024;
 					if (file.size > MAX_FONT_SIZE) {
 						alert(`Font file is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is ${MAX_FONT_SIZE / 1024 / 1024}MB.`);
 						resetFont();
 					} else {
 						try {
-							const buf = await file.arrayBuffer();
-							this.fonts[index] = await opentype.parse(buf);
+							this.fonts[index] = opentype.parse(await file.arrayBuffer());
 						} catch (err) {
 							console.error('Font loading failed:', err);
 							alert(`Failed to parse font: ${file.name}. The file may be corrupt or not a supported font format.`);
@@ -418,20 +401,15 @@
 					}
 					this.queueAnalyze();
 				}
-
 				getFontMetrics(font, text, fontSize) {
 					const scale = fontSize / font.unitsPerEm;
-					let actualAscent = 0
-					  , actualDescent = 0;
+					let actualAscent = 0, actualDescent = 0;
 
 					for (const glyph of font.stringToGlyphs(text)) {
-						const path = glyph.path;
-						if (path && path.commands.length > 0) {
-							const glyphBounds = path.getBoundingBox();
-							if (isFinite(glyphBounds.y1) && isFinite(glyphBounds.y2)) {
-								actualAscent = Math.max(actualAscent, glyphBounds.y2 * scale);
-								actualDescent = Math.max(actualDescent, -glyphBounds.y1 * scale);
-							}
+						const b = glyph.path?.getBoundingBox();
+						if (b && isFinite(b.y1) && isFinite(b.y2)) {
+							actualAscent = Math.max(actualAscent, b.y2 * scale);
+							actualDescent = Math.max(actualDescent, -b.y1 * scale);
 						}
 					}
 
@@ -440,125 +418,66 @@
 						actualDescent = Math.abs(font.descender * scale);
 					}
 
-					let fontAscent = font.ascender * scale;
-					let fontDescent = Math.abs(font.descender * scale);
+					const { os2, hhea } = font.tables;
+					const metrics = [font.ascender, os2?.sTypoAscender, os2?.usWinAscent, hhea?.ascender];
+					const descMetrics = [font.descender, os2?.sTypoDescender, os2?.usWinDescent, hhea?.descender];
 
-					const os2 = font.tables?.os2;
-					const hhea = font.tables?.hhea;
-
-					const metrics = [font.ascender, os2?.sTypoAscender, os2?.usWinAscent, hhea?.ascender, ];
-
-					const descMetrics = [font.descender, os2?.sTypoDescender, os2?.usWinDescent, hhea?.descender, ];
-
-					for (const m of metrics) {
-						if (isFinite(m))
-							fontAscent = Math.max(fontAscent, m * scale);
-					}
-
-					for (const m of descMetrics) {
-						if (isFinite(m))
-							fontDescent = Math.max(fontDescent, Math.abs(m * scale));
-					}
+					const fontAscent = Math.max(font.ascender * scale, ...metrics.filter(isFinite).map(m => m * scale));
+					const fontDescent = Math.max(Math.abs(font.descender * scale), ...descMetrics.filter(isFinite).map(m => Math.abs(m * scale)));
 
 					return {
 						ascent: Math.max(actualAscent, fontAscent),
 						descent: Math.max(actualDescent, fontDescent),
-						actualAscent,
-						actualDescent,
-						fontAscent,
-						fontDescent,
+						actualAscent, actualDescent, fontAscent, fontDescent,
 					};
 				}
-
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
-					if (!font || !text || !fontSize)
-						return null;
-
-					const MIN_FONT_SIZE = 1
-					  , MAX_FONT_SIZE = 2000;
-					fontSize = Math.max(MIN_FONT_SIZE, Math.min(fontSize, MAX_FONT_SIZE));
-
-					const options = {
-						tracking: letterSpacing || 0
-					};
+					if (!font || !text || !fontSize) return null;
+					fontSize = Math.max(1, Math.min(fontSize, 2000));
+					const options = { tracking: letterSpacing || 0 };
 					const metrics = this.getFontMetrics(font, text, fontSize);
 					const path = font.getPath(text, 0, 0, fontSize, options);
 					const bounds = path.getBoundingBox();
-
 					const bboxWidth = Math.ceil(bounds.x2 - bounds.x1);
 					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize, options));
 
-					if (!isFinite(bounds.x1) || bboxWidth <= 0)
-						return null;
+					if (!isFinite(bounds.x1) || bboxWidth <= 0) return null;
 
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
+					const tempCanvas = Object.assign(document.createElement('canvas'), { width: advanceWidth, height });
+					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, fontSize, options);
 
-					const tempCanvas = document.createElement('canvas');
-					tempCanvas.width = advanceWidth;
-					tempCanvas.height = height;
-					const tempCtx = tempCanvas.getContext('2d');
-					font.draw(tempCtx, text, 0, baseline, fontSize, options);
-
-					const {densityMap, inkPixels, minY, maxY} = this.getPixelData(tempCanvas);
-					if (minY > maxY)
-						return null;
-
+					const { densityMap, inkPixels, minY, maxY } = this.getPixelData(tempCanvas);
+					if (minY > maxY) return null;
 					const boundingHeight = (maxY - minY + 1) || 1;
-
 					return {
-						yMin: Math.round(baseline - maxY),
-						yMax: Math.round(baseline - minY),
+						yMin: Math.round(baseline - maxY), yMax: Math.round(baseline - minY),
 						density: ((inkPixels / (boundingHeight * bboxWidth)) * 100).toFixed(1),
-						densityMap,
-						canvas: tempCanvas,
-						baseline,
-						baselineShift,
-						letterSpacing,
-						fontSize,
-						font,
-						metrics,
+						densityMap, canvas: tempCanvas, baseline, baselineShift, letterSpacing, fontSize, font, metrics,
 					};
 				}
-
 				getPixelData(canvas) {
-					const ctx = canvas.getContext('2d', {
-						willReadFrequently: true
-					});
-					const {data, width, height} = ctx.getImageData(0, 0, canvas.width, canvas.height);
+					const { data, width, height } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
-					let inkPixels = 0
-					  , minY = height
-					  , maxY = -1;
-
+					let inkPixels = 0, minY = height, maxY = -1;
 					for (let y = 0; y < height; y++) {
-						let i = ((y * width) << 2) + 3;
-						for (let x = 0; x < width; x++,
-						i += 4) {
+						for (let x = 0, i = ((y * width) << 2) + 3; x < width; x++, i += 4) {
 							const a = data[i];
 							if (a > 0) {
-								if (y < minY)
-									minY = y;
-								if (y > maxY)
-									maxY = y;
+								minY = Math.min(minY, y);
+								maxY = Math.max(maxY, y);
 								inkPixels += a / 255;
 								densityMap[y] += a / 255;
 							}
 						}
 					}
-					return {
-						densityMap,
-						inkPixels,
-						minY,
-						maxY
-					};
+					return { densityMap, inkPixels, minY, maxY };
 				}
-
 				analyzeAndRender() {
-					this.analyses = this.ctrls.map((c,i)=>this.analyzeFont(this.fonts[i], c.text.value.trim(), parseInt(c.size.value, 10) || 0, parseInt(c.shift.value, 10) || 0, parseInt(c.letterSpacing.value, 10) || 0));
+					this.analyses = this.ctrls.map((c, i) => this.analyzeFont(this.fonts[i], c.text.value.trim(), +c.size.value || 0, +c.shift.value || 0, +c.letterSpacing.value || 0));
 					this.render();
 				}
-
 				render() {
 					const valid = this.analyses.filter(Boolean);
 					if (!valid.length) {
@@ -566,21 +485,17 @@
 						this.updateResults();
 						return;
 					}
-
-					const {width, height, baseline} = this.calculateDimensions(valid);
-					this.canvas.width = width;
-					this.canvas.height = height;
+					const { width, height, baseline } = this.calculateDimensions(valid);
+					Object.assign(this.canvas, { width, height });
 					this.ctx.clearRect(0, 0, width, height);
 
 					const sideBySide = this.renderMode.value === 'side-by-side' && valid.length > 1;
 					const useBlend = this.analyses[0] && this.analyses[1];
-
 					let currentX = this.graphWidth + this.graphPadding;
 					let lastAdvance = 0;
 
-					this.analyses.forEach((a,i)=>{
-						if (!a)
-							return;
+					this.analyses.forEach((a, i) => {
+						if (!a) return;
 						const yOffset = baseline - a.baseline - a.baselineShift;
 						const advance = this._getSpaceAdvance(a.font, a.fontSize);
 						if (sideBySide && i > 0) {
@@ -589,114 +504,88 @@
 						this.drawDensityGraph(a, this.colors[i], yOffset, useBlend && i > 0);
 						this.drawText(a, this.colors[i], currentX, yOffset, useBlend && i > 0);
 						lastAdvance = advance;
-					}
-					);
-
+					});
 					this.queueScale();
 					this.updateResults();
 				}
-
 				calculateDimensions(analyses) {
-					let asc = 0
-					  , desc = 0
-					  , totalW = 0;
 					const sideBySide = this.renderMode.value === 'side-by-side' && analyses.length > 1;
-
-					for (const a of analyses) {
-						asc = Math.max(asc, a.baseline - a.baselineShift);
-						desc = Math.max(desc, (a.canvas.height - a.baseline) + a.baselineShift);
-					}
-
+					const asc = Math.max(0, ...analyses.map(a => a.baseline - a.baselineShift));
+					const desc = Math.max(0, ...analyses.map(a => (a.canvas.height - a.baseline) + a.baselineShift));
+					let totalW;
 					if (sideBySide) {
-						totalW = analyses.reduce((sum,a)=>sum + a.canvas.width, 0);
 						const space1 = this._getSpaceAdvance(analyses[0].font, analyses[0].fontSize);
 						const space2 = this._getSpaceAdvance(analyses[1].font, analyses[1].fontSize);
-						totalW += (space1 / 2) + (space2 / 2);
+						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, (space1 / 2) + (space2 / 2));
 					} else {
-						totalW = Math.max(0, ...analyses.map(a=>a.canvas.width));
+						totalW = Math.max(0, ...analyses.map(a => a.canvas.width));
 					}
-
-					const baseline = Math.ceil(asc);
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + totalW),
 						height: Math.ceil(asc + desc),
-						baseline
+						baseline: Math.ceil(asc)
 					};
 				}
-
-				drawDensityGraph({densityMap}, color, yOffset, blend) {
+				drawDensityGraph({ densityMap }, color, yOffset, blend) {
 					const max = Math.max(1, ...densityMap);
-					this.ctx.fillStyle = color;
-					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					Object.assign(this.ctx, { fillStyle: color, globalCompositeOperation: blend ? 'multiply' : 'source-over' });
 					for (let y = 0; y < densityMap.length; y++) {
 						const w = (densityMap[y] / max) * this.graphWidth;
-						if (w > 0)
-							this.ctx.fillRect(this.graphWidth - w, y + yOffset, w, 1);
+						if (w > 0) this.ctx.fillRect(this.graphWidth - w, y + yOffset, w, 1);
 					}
 					this.ctx.globalCompositeOperation = 'source-over';
 				}
-
-				drawText({canvas: src}, color, x, y, blend) {
-					if (this.tint.width !== src.width)
-						this.tint.width = src.width;
-					if (this.tint.height !== src.height)
-						this.tint.height = src.height;
-					const {tctx} = this;
-					tctx.clearRect(0, 0, this.tint.width, this.tint.height);
+				drawText({ canvas: src }, color, x, y, blend) {
+					Object.assign(this.tint, { width: src.width, height: src.height });
+					const { tctx } = this;
+					tctx.clearRect(0, 0, src.width, src.height);
 					tctx.fillStyle = color;
-					tctx.fillRect(0, 0, this.tint.width, this.tint.height);
+					tctx.fillRect(0, 0, src.width, src.height);
 					tctx.globalCompositeOperation = 'destination-in';
 					tctx.drawImage(src, 0, 0);
 					tctx.globalCompositeOperation = 'source-over';
-
-					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					Object.assign(this.ctx, { globalCompositeOperation: blend ? 'multiply' : 'source-over' });
 					this.ctx.drawImage(this.tint, x, y);
 					this.ctx.globalCompositeOperation = 'source-over';
 				}
-
 				renderEmpty() {
-					this.canvas.width = 400;
-					this.canvas.height = 200;
+					Object.assign(this.canvas, { width: 400, height: 200 });
 					this.ctx.clearRect(0, 0, 400, 200);
 					this.queueScale();
 				}
-
 				updateDisplayScale() {
-					if (this.zoomMode.value !== 'fit' || this.canvas.width === 0) {
-						this.canvas.style.transform = 'none';
+					const { style, parentElement, width } = this.canvas;
+					if (this.zoomMode.value !== 'fit' || width === 0) {
+						style.transform = 'none';
 						return;
 					}
-					const wrapper = this.canvas.parentElement;
-					const available = wrapper.parentElement.clientWidth - (parseFloat(getComputedStyle(wrapper).paddingLeft) * 2);
-					this.canvas.style.transform = `scale(${Math.min(available / this.canvas.width, 1)})`;
+					const available = parentElement.parentElement.clientWidth - (parseFloat(getComputedStyle(parentElement).paddingLeft) * 2);
+					style.transform = `scale(${Math.min(available / width, 1)})`;
 				}
-
 				updateResults() {
-					this.analyses.forEach((a,i)=>{
+					this.analyses.forEach((a, i) => {
 						const el = this.ctrls[i].results;
 						if (a) {
-							const {yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics} = a;
-							el.textContent = [`Y Min: ${yMin}px`, `Y Max: ${yMax}px`, `Density: ${density}%`, `Font Size: ${fontSize}px`, `Baseline Shift: ${baselineShift}px`, `Letter Spacing: ${letterSpacing}px`, `Actual Ascent: ${Math.round(metrics.actualAscent)}px`, `Actual Descent: ${Math.round(metrics.actualDescent)}px`, `Font Ascent: ${Math.round(metrics.fontAscent)}px`, `Font Descent: ${Math.round(metrics.fontDescent)}px`].join('\n');
+							const { yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics } = a;
+							el.textContent = `Y Min: ${yMin}px\nY Max: ${yMax}px\nDensity: ${density}%\nFont Size: ${fontSize}px\nBaseline Shift: ${baselineShift}px\nLetter Spacing: ${letterSpacing}px\nActual Ascent: ${Math.round(metrics.actualAscent)}px\nActual Descent: ${Math.round(metrics.actualDescent)}px\nFont Ascent: ${Math.round(metrics.fontAscent)}px\nFont Descent: ${Math.round(metrics.fontDescent)}px`;
 						} else {
 							el.textContent = this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 						}
-					}
-					);
+					});
 				}
-
 				exportPNG() {
-					const link = document.createElement('a');
-					link.href = this.canvas.toDataURL('image/png');
-					link.download = 'typographic-density.png';
+					const link = Object.assign(document.createElement('a'), {
+						href: this.canvas.toDataURL('image/png'),
+						download: 'typographic-density.png'
+					});
 					link.click();
 				}
-
 				_getSpaceAdvance(font, fontSize) {
 					const glyph = font.stringToGlyphs(' ')[0];
 					return glyph ? font.getAdvanceWidth(glyph, fontSize) : (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
 				}
 			}
-			document.addEventListener('DOMContentLoaded', ()=>new TypographicTool());
+			document.addEventListener('DOMContentLoaded', () => new TypographicTool());
 		</script>
 	</body>
 </html>
