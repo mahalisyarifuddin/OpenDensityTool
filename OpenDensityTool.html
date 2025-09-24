@@ -453,7 +453,7 @@
 					const boundingHeight = (maxY - minY + 1) || 1;
 					return {
 						yMin: Math.round(baseline - maxY), yMax: Math.round(baseline - minY),
-						density: ((inkPixels / (boundingHeight * bboxWidth)) * 100).toFixed(1),
+						density: ((inkPixels / (boundingHeight * advanceWidth)) * 100).toFixed(1),
 						densityMap, canvas: tempCanvas, baseline, baselineShift, letterSpacing, fontSize, font, metrics,
 					};
 				}
