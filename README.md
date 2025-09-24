@@ -44,10 +44,13 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Baseline Shift: Nudge a font up/down to align optical baselines.
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
+- Normalize by: Choose the normalization method for the density calculation.
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
-- Density (%): Share of the glyph bounding region covered by "ink," per the browser’s rasterization.
+- Density (%): Share of the glyph area covered by "ink." This can be calculated in two ways:
+  - **Glyph Bounds**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
+  - **Character Spacing**: Normalizes by the full horizontal space the character occupies, including its side bearings. This is useful for judging the overall texture and color of a block of text.
 - yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
 - Actual Ascent/Descent: Measured from glyph outlines at the chosen size.
 - Font Ascent/Descent: Max of OS/2/hhea/win metrics (when available).
