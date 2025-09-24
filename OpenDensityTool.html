@@ -143,6 +143,13 @@
 				align-items: center;
 				gap: 12px;
 				margin-bottom: 16px;
+				flex-wrap: wrap;
+			}
+
+			.control-group {
+				display: flex;
+				align-items: center;
+				gap: 6px;
 			}
 
 			.zoom-label {
@@ -297,21 +304,27 @@
 			<div class="panel">
 				<h2 class="panel-title">Visualization and Analysis</h2>
 				<div class="controls-bar">
-					<span class="zoom-label">Display:</span>
-					<select id="zoom-mode" class="zoom-select">
-						<option value="fit">Fit to View</option>
-						<option value="100">100% Scale</option>
-					</select>
-					<span class="zoom-label" style="margin-left: 12px;">Mode:</span>
-					<select id="render-mode" class="zoom-select">
-						<option value="overlay">Overlay</option>
-						<option value="side-by-side">Side-by-side</option>
-					</select>
-					<span class="zoom-label" style="margin-left: 12px;">Normalize by:</span>
-					<select id="density-mode" class="zoom-select">
-						<option value="glyph-bounds">Glyph Bounds</option>
-						<option value="char-spacing">Character Spacing</option>
-					</select>
+					<div class="control-group">
+						<span class="zoom-label">Display:</span>
+						<select id="zoom-mode" class="zoom-select">
+							<option value="fit">Fit to View</option>
+							<option value="100">100% Scale</option>
+						</select>
+					</div>
+					<div class="control-group">
+						<span class="zoom-label">Mode:</span>
+						<select id="render-mode" class="zoom-select">
+							<option value="overlay">Overlay</option>
+							<option value="side-by-side">Side-by-side</option>
+						</select>
+					</div>
+					<div class="control-group">
+						<span class="zoom-label">Normalize by:</span>
+						<select id="density-mode" class="zoom-select">
+							<option value="glyph-bounds">Glyph Bounds</option>
+							<option value="char-spacing">Character Spacing</option>
+						</select>
+					</div>
 					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
 				</div>
 				<div class="preview-container">
@@ -408,7 +421,7 @@
 					}
 					this.queueAnalyze();
 				}
-				getFontMetrics(font, text, fontSize) {
+				getFontMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					let actualAscent = 0, actualDescent = 0;
 
@@ -432,33 +445,36 @@
 					const fontAscent = Math.max(font.ascender * scale, ...metrics.filter(isFinite).map(m => m * scale));
 					const fontDescent = Math.max(Math.abs(font.descender * scale), ...descMetrics.filter(isFinite).map(m => Math.abs(m * scale)));
 
+					const options = { tracking: letterSpacing || 0 };
+					const path = font.getPath(text, 0, 0, fontSize, options);
+					const bounds = path.getBoundingBox();
+					const bboxWidth = Math.ceil(bounds.x2 - bounds.x1);
+					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize, options));
+
 					return {
 						ascent: Math.max(actualAscent, fontAscent),
 						descent: Math.max(actualDescent, fontDescent),
 						actualAscent, actualDescent, fontAscent, fontDescent,
+						bboxWidth, advanceWidth
 					};
 				}
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
 					fontSize = Math.max(1, Math.min(fontSize, 2000));
 					const options = { tracking: letterSpacing || 0 };
-					const metrics = this.getFontMetrics(font, text, fontSize);
-					const path = font.getPath(text, 0, 0, fontSize, options);
-					const bounds = path.getBoundingBox();
-					const bboxWidth = Math.ceil(bounds.x2 - bounds.x1);
-					const advanceWidth = Math.ceil(font.getAdvanceWidth(text, fontSize, options));
+					const metrics = this.getFontMetrics(font, text, fontSize, letterSpacing);
 
-					if (!isFinite(bounds.x1) || bboxWidth <= 0) return null;
+					if (!isFinite(metrics.bboxWidth) || metrics.bboxWidth <= 0) return null;
 
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
-					const tempCanvas = Object.assign(document.createElement('canvas'), { width: advanceWidth, height });
+					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, fontSize, options);
 
 					const { densityMap, inkPixels, minY, maxY } = this.getPixelData(tempCanvas);
 					if (minY > maxY) return null;
 					const boundingHeight = (maxY - minY + 1) || 1;
-					const normWidth = this.densityMode.value === 'glyph-bounds' ? bboxWidth : advanceWidth;
+					const normWidth = this.densityMode.value === 'glyph-bounds' ? metrics.bboxWidth : metrics.advanceWidth;
 					return {
 						yMin: Math.round(baseline - maxY), yMax: Math.round(baseline - minY),
 						density: ((inkPixels / (boundingHeight * normWidth)) * 100).toFixed(1),
