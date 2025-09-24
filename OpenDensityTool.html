@@ -307,6 +307,11 @@
 						<option value="overlay">Overlay</option>
 						<option value="side-by-side">Side-by-side</option>
 					</select>
+					<span class="zoom-label" style="margin-left: 12px;">Normalize by:</span>
+					<select id="density-mode" class="zoom-select">
+						<option value="glyph-bounds">Glyph Bounds</option>
+						<option value="char-spacing">Character Spacing</option>
+					</select>
 					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
 				</div>
 				<div class="preview-container">
@@ -360,6 +365,7 @@
 					}));
 					this.zoomMode = getEl('zoom-mode');
 					this.renderMode = getEl('render-mode');
+					this.densityMode = getEl('density-mode');
 					this.exportBtn = getEl('export-png');
 					this.bind();
 					this.render();
@@ -377,6 +383,7 @@
 					});
 					this.zoomMode.addEventListener('change', this.queueScale);
 					this.renderMode.addEventListener('change', this.queueAnalyze);
+					this.densityMode.addEventListener('change', this.queueAnalyze);
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.queueScale);
 				}
@@ -451,9 +458,10 @@
 					const { densityMap, inkPixels, minY, maxY } = this.getPixelData(tempCanvas);
 					if (minY > maxY) return null;
 					const boundingHeight = (maxY - minY + 1) || 1;
+					const normWidth = this.densityMode.value === 'glyph-bounds' ? bboxWidth : advanceWidth;
 					return {
 						yMin: Math.round(baseline - maxY), yMax: Math.round(baseline - minY),
-						density: ((inkPixels / (boundingHeight * bboxWidth)) * 100).toFixed(1),
+						density: ((inkPixels / (boundingHeight * normWidth)) * 100).toFixed(1),
 						densityMap, canvas: tempCanvas, baseline, baselineShift, letterSpacing, fontSize, font, metrics,
 					};
 				}
