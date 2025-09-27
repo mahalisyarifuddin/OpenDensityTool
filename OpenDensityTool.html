@@ -471,32 +471,48 @@
 					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, fontSize, options);
 
-					const { densityMap, inkPixels, minY, maxY } = this.getPixelData(tempCanvas);
-					if (minY > maxY) return null;
-					const boundingHeight = (maxY - minY + 1) || 1;
-					const normWidth = this.densityMode.value === 'glyph-bounds' ? metrics.bboxWidth : metrics.advanceWidth;
+					const pixelData = this.getPixelData(tempCanvas);
+					if (pixelData.minY > pixelData.maxY) return null;
+
+					let density;
+					if (this.densityMode.value === 'glyph-bounds') {
+						const w = (pixelData.maxX - pixelData.minX + 1) || 1;
+						const h = (pixelData.maxY - pixelData.minY + 1) || 1;
+						density = (pixelData.inkCoverage / (w * h)) * 100;
+					} else {
+						const metricArea = metrics.advanceWidth * (metrics.ascent + metrics.descent);
+						density = (pixelData.inkVolume / metricArea) * 100;
+					}
+
 					return {
-						yMin: Math.round(baseline - maxY), yMax: Math.round(baseline - minY),
-						density: ((inkPixels / (boundingHeight * normWidth)) * 100).toFixed(1),
-						densityMap, canvas: tempCanvas, baseline, baselineShift, letterSpacing, fontSize, font, metrics,
+						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
+						density: density.toFixed(1),
+						densityMap: pixelData.densityMap, canvas: tempCanvas, baseline, baselineShift, letterSpacing, fontSize, font, metrics,
 					};
 				}
 				getPixelData(canvas) {
 					const { data, width, height } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
-					let inkPixels = 0, minY = height, maxY = -1;
+					let inkVolume = 0, inkCoverage = 0;
+					let minX = width, maxX = -1, minY = height, maxY = -1;
+
 					for (let y = 0; y < height; y++) {
 						for (let x = 0, i = ((y * width) << 2) + 3; x < width; x++, i += 4) {
 							const a = data[i];
 							if (a > 0) {
 								minY = Math.min(minY, y);
 								maxY = Math.max(maxY, y);
-								inkPixels += a / 255;
-								densityMap[y] += a / 255;
+								minX = Math.min(minX, x);
+								maxX = Math.max(maxX, x);
+
+								const val = a / 255;
+								inkVolume += val;
+								densityMap[y] += val;
+								inkCoverage++;
 							}
 						}
 					}
-					return { densityMap, inkPixels, minY, maxY };
+					return { densityMap, inkVolume, inkCoverage, minX, maxX, minY, maxY };
 				}
 				analyzeAndRender() {
 					this.analyses = this.ctrls.map((c, i) => this.analyzeFont(this.fonts[i], c.text.value.trim(), +c.size.value || 0, +c.shift.value || 0, +c.letterSpacing.value || 0));
