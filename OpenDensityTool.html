@@ -476,12 +476,12 @@
 
 					let density;
 					if (this.densityMode.value === 'glyph-bounds') {
-						const boundingWidth = (pixelData.maxX - pixelData.minX + 1) || 1;
-						const boundingHeight = (pixelData.maxY - pixelData.minY + 1) || 1;
-						density = (pixelData.inkCoverage / (boundingWidth * boundingHeight)) * 100;
+						const w = (pixelData.maxX - pixelData.minX + 1) || 1;
+						const h = (pixelData.maxY - pixelData.minY + 1) || 1;
+						density = (pixelData.inkCoverage / (w * h)) * 100;
 					} else {
-						const normalizationHeight = metrics.ascent + metrics.descent;
-						density = (pixelData.inkVolume / (metrics.advanceWidth * normalizationHeight)) * 100;
+						const metricArea = metrics.advanceWidth * (metrics.ascent + metrics.descent);
+						density = (pixelData.inkVolume / metricArea) * 100;
 					}
 
 					return {
