@@ -609,7 +609,7 @@
 					const link = Object.assign(document.createElement('a'), { href: this.canvas.toDataURL('image/png'), download: 'typographic-density.png' });
 					link.click();
 				}
-				
+
 				_getSpaceAdvance(font, fontSize) {
 					const advance = font.getAdvanceWidth(' ', fontSize);
 					return advance > 0 ? advance : (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
