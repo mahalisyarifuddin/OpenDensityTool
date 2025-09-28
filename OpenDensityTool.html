@@ -457,17 +457,18 @@
 
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
-					const metrics = this.getFontMetrics(font, text, Math.max(1, Math.min(fontSize, 2000)), letterSpacing);
+					const finalSize = Math.max(1, Math.min(fontSize, 2000));
+					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
 					if (!isFinite(metrics.bboxWidth) || metrics.bboxWidth <= 0) return null;
 					const height = Math.ceil(metrics.ascent + metrics.descent), baseline = Math.ceil(metrics.ascent);
 					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
-					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, fontSize, { tracking: letterSpacing || 0 });
+					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 					const px = this._getPixelAnalysis(tempCanvas);
 					if (px.minY > px.maxY) return null;
 					return {
 						...px, density: this._calculateDensity(px, metrics).toFixed(1), canvas: tempCanvas,
 						yMin: Math.round(baseline - px.maxY), yMax: Math.round(baseline - px.minY),
-						baseline, baselineShift, letterSpacing, fontSize, font, metrics,
+						baseline, baselineShift, letterSpacing, fontSize: finalSize, font, metrics,
 					};
 				}
 
