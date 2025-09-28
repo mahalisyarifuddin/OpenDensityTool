@@ -453,7 +453,6 @@
 						ascent: Math.max(actualAscent, fontAscent), descent: Math.max(actualDescent, fontDescent),
 						actualAscent, actualDescent, fontAscent, fontDescent,
 						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
-						bboxX1: bounds.x1,
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
 					};
 				}
@@ -462,10 +461,10 @@
 					if (!font || !text || !fontSize) return null;
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
-					if (!isFinite(metrics.bboxWidth) || metrics.bboxWidth <= 0) return null;
+					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 					const height = Math.ceil(metrics.ascent + metrics.descent), baseline = Math.ceil(metrics.ascent);
-					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.bboxWidth, height });
-					font.draw(tempCanvas.getContext('2d'), text, -metrics.bboxX1, baseline, finalSize, { tracking: letterSpacing || 0 });
+					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
+					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 					const pixelData = this.getPixelData(tempCanvas);
 					if (pixelData.minY > pixelData.maxY) return null;
 					const density = this._calculateDensity(pixelData, metrics);
