@@ -353,7 +353,7 @@
 			</div>
 		</div>
 		<script>
-			class TypographicTool {
+			class DensityTool {
 				constructor() {
 					this._setupProperties();
 					this._setupDOM();
@@ -498,8 +498,7 @@
 						const h = (maxY - minY + 1) || 1;
 						return (inkCoverage / (w * h)) * 100;
 					}
-					// For 'Character Spacing' mode, use the advance width and the font size (em-height).
-					return (pixelAnalysis.inkVolume / (metrics.advanceWidth * fontSize)) * 100;
+					return (inkVolume / (metrics.advanceWidth * fontSize)) * 100;
 				}
 
 				analyzeAndRender() {
@@ -521,7 +520,7 @@
 						if (!analysis) return;
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
 						const space = this._getSpaceAdvance(analysis.font, analysis.fontSize);
-						if (isSideBySide && i > 0) currentX += this.analyses[i-1].canvas.width + (lastAdvance + space) / 2;
+						if (isSideBySide && i > 0) currentX += this.analyses[i-1].canvas.width + (lastAdvance / 2) + (space / 2);
 						const blend = this.analyses[0] && this.analyses[1] && i > 0;
 						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
 						this.drawText(analysis, this.colors[i], currentX, yOffset, blend);
@@ -539,7 +538,7 @@
 					if (isSideBySide) {
 						const space1 = this._getSpaceAdvance(analyses[0].font, analyses[0].fontSize);
 						const space2 = this._getSpaceAdvance(analyses[1].font, analyses[1].fontSize);
-						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, (space1 + space2) / 2);
+						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, (space1 / 2) + (space2 / 2));
 					}
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + totalW),
@@ -616,7 +615,7 @@
 					return advance > 0 ? advance : (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
 				}
 			}
-			document.addEventListener('DOMContentLoaded', () => new TypographicTool());
+			document.addEventListener('DOMContentLoaded', () => new DensityTool());
 		</script>
 	</body>
 </html>
