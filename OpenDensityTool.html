@@ -611,11 +611,14 @@
 				}
 
 				_getSpaceAdvance(font, fontSize) {
-					const advance = font.getAdvanceWidth(' ', fontSize);
-					return advance > 0 ? advance : (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
+					const glyph = font.stringToGlyphs(' ')[0];
+					if (glyph) {
+						return font.getAdvanceWidth(glyph.name, fontSize);
+					}
+					// Fallback for fonts without a space glyph
+					return (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
 				}
 			}
-		<script>
 			document.addEventListener('DOMContentLoaded', () => new DensityTool());
 		</script>
 	</body>
