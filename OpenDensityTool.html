@@ -475,7 +475,7 @@
 				}
 
 				getPixelData(canvas) {
-					const { data, width, height } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
+					const { data, width, height } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
 					let inkVolume = 0, inkCoverage = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 					for (let y = 0; y < height; y++) {
@@ -611,12 +611,8 @@
 				}
 
 				_getSpaceAdvance(font, fontSize) {
-					const glyph = font.stringToGlyphs(' ')[0];
-					if (glyph) {
-						return font.getAdvanceWidth(glyph.name, fontSize);
-					}
-					// Fallback for fonts without a space glyph
-					return (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
+					const advance = font.getAdvanceWidth(' ', fontSize);
+					return advance > 0 ? advance : (font.unitsPerEm / 4) * (fontSize / font.unitsPerEm);
 				}
 			}
 			document.addEventListener('DOMContentLoaded', () => new DensityTool());
