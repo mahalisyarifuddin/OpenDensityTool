@@ -368,16 +368,16 @@
 					this.graphPadding = 20;
 					this.fonts = [null, null];
 					this.analyses = [null, null];
-					this.raf = {};
+					this.animationFrameRefs = {};
 				}
 
 				_setupDOM() {
 					const getEl = id => document.getElementById(id);
 					this.canvas = getEl('canvas');
 					this.ctx = this.canvas.getContext('2d');
-					this.tint = document.createElement('canvas');
-					this.tctx = this.tint.getContext('2d', { willReadFrequently: true });
-					this.ctrls = [1, 2].map(i => ({
+					this.tintCanvas = document.createElement('canvas');
+					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
+					this.fontControls = [1, 2].map(i => ({
 						file: getEl(`font${i}-file`), text: getEl(`font${i}-text`),
 						size: getEl(`font${i}-size`), shift: getEl(`font${i}-shift`),
 						letterSpacing: getEl(`font${i}-letter-spacing`), results: getEl(`results${i}`),
@@ -390,27 +390,27 @@
 
 				_bindEvents() {
 					const queue = (fn, key) => (...args) => {
-						cancelAnimationFrame(this.raf[key]);
-						this.raf[key] = requestAnimationFrame(() => fn.apply(this, args));
+						cancelAnimationFrame(this.animationFrameRefs[key]);
+						this.animationFrameRefs[key] = requestAnimationFrame(() => fn.apply(this, args));
 					};
-					this.queueAnalyze = queue(this.analyzeAndRender, 'analyze');
-					this.queueScale = queue(this.updateDisplayScale, 'scale');
+					this.requestAnalysis = queue(this.analyzeAndRender, 'analyze');
+					this.requestScaling = queue(this.updateDisplayScale, 'scale');
 
-					this.ctrls.forEach((c, i) => {
-						c.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
-						const inputs = [c.text, c.size, c.shift, c.letterSpacing];
-						inputs.forEach(el => ['input', 'change'].forEach(evt => el.addEventListener(evt, this.queueAnalyze)));
+					this.fontControls.forEach((controls, i) => {
+						controls.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
+						const inputs = [controls.text, controls.size, controls.shift, controls.letterSpacing];
+						inputs.forEach(el => ['input', 'change'].forEach(evt => el.addEventListener(evt, this.requestAnalysis)));
 					});
 
 					[this.zoomMode, this.renderMode, this.densityMode].forEach(el => {
-						el.addEventListener('change', el === this.zoomMode ? this.queueScale : this.queueAnalyze);
+						el.addEventListener('change', el === this.zoomMode ? this.requestScaling : this.requestAnalysis);
 					});
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
-					window.addEventListener('resize', this.queueScale);
+					window.addEventListener('resize', this.requestScaling);
 				}
 
 				async loadFont(file, index) {
-					const resetFont = () => { this.ctrls[index].file.value = ''; this.fonts[index] = null; };
+					const resetFont = () => { this.fontControls[index].file.value = ''; this.fonts[index] = null; };
 					if (!file) return;
 					const MAX_FONT_SIZE = 30 * 1024 * 1024;
 					if (file.size > MAX_FONT_SIZE) {
@@ -424,7 +424,7 @@
 						alert(`Failed to parse font: ${file.name}.`);
 						resetFont();
 					}
-					this.queueAnalyze();
+					this.requestAnalysis();
 				}
 
 				getFontMetrics(font, text, fontSize, letterSpacing) {
@@ -448,10 +448,11 @@
 					const fontDescent = Math.max(...descMetrics.filter(isFinite).map(m => Math.abs(m * scale)));
 					const options = { tracking: letterSpacing || 0 };
 					const path = font.getPath(text, 0, 0, fontSize, options);
+					const bounds = path.getBoundingBox();
 					return {
 						ascent: Math.max(actualAscent, fontAscent), descent: Math.max(actualDescent, fontDescent),
 						actualAscent, actualDescent, fontAscent, fontDescent,
-						bboxWidth: Math.ceil(path.getBoundingBox().x2 - path.getBoundingBox().x1),
+						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
 					};
 				}
@@ -460,16 +461,16 @@
 					if (!font || !text || !fontSize) return null;
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
-					if (!isFinite(metrics.bboxWidth) || metrics.bboxWidth <= 0) return null;
+					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 					const height = Math.ceil(metrics.ascent + metrics.descent), baseline = Math.ceil(metrics.ascent);
 					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
-					const px = this.getPixelData(tempCanvas);
-					if (px.minY > px.maxY) return null;
-					const density = this._calculateDensity(px, metrics, finalSize);
+					const pixelData = this.getPixelData(tempCanvas);
+					if (pixelData.minY > pixelData.maxY) return null;
+					const density = this._calculateDensity(pixelData, metrics);
 					return {
-						...px, density: density.toFixed(1), canvas: tempCanvas,
-						yMin: Math.round(baseline - px.maxY), yMax: Math.round(baseline - px.minY),
+						...pixelData, density: density.toFixed(1), canvas: tempCanvas,
+						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
 						baseline, baselineShift, letterSpacing, fontSize: finalSize, font, metrics,
 					};
 				}
@@ -491,42 +492,43 @@
 					return { densityMap, inkVolume, inkCoverage, minX, maxX, minY, maxY };
 				}
 
-				_calculateDensity(pixelAnalysis, metrics, fontSize) {
+				_calculateDensity(pixelAnalysis, metrics) {
 					const { inkCoverage, inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
 					if (this.densityMode.value === 'glyph-bounds') {
 						const w = (maxX - minX + 1) || 1;
 						const h = (maxY - minY + 1) || 1;
 						return (inkCoverage / (w * h)) * 100;
 					}
-					return (inkVolume / (metrics.advanceWidth * fontSize)) * 100;
+					const metricArea = metrics.advanceWidth * (metrics.ascent + metrics.descent);
+					return (inkVolume / metricArea) * 100;
 				}
 
 				analyzeAndRender() {
-					this.analyses = this.ctrls.map((c, i) =>
-						this.analyzeFont(this.fonts[i], c.text.value.trim(), +c.size.value || 0, +c.shift.value || 0, +c.letterSpacing.value || 0)
+					this.analyses = this.fontControls.map((controls, i) =>
+						this.analyzeFont(this.fonts[i], controls.text.value.trim(), +controls.size.value || 0, +controls.shift.value || 0, +controls.letterSpacing.value || 0)
 					);
 					this.render();
 				}
 
 				render() {
-					const valid = this.analyses.filter(Boolean);
-					if (!valid.length) { this.renderEmpty(); this.updateResults(); return; }
-					const dims = this.calculateDimensions(valid);
-					Object.assign(this.canvas, dims);
-					this.ctx.clearRect(0, 0, dims.width, dims.height);
-					const isSideBySide = this.renderMode.value === 'side-by-side' && valid.length > 1;
-					let currentX = this.graphWidth + this.graphPadding, lastAdvance = 0;
+					const validAnalyses = this.analyses.filter(Boolean);
+					if (!validAnalyses.length) { this.renderEmpty(); this.updateResults(); return; }
+					const canvasDimensions = this.calculateDimensions(validAnalyses);
+					Object.assign(this.canvas, canvasDimensions);
+					this.ctx.clearRect(0, 0, canvasDimensions.width, canvasDimensions.height);
+					const isSideBySide = this.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+					let currentX = this.graphWidth + this.graphPadding;
 					this.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
-						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
-						const space = this._getSpaceAdvance(analysis.font, analysis.fontSize);
-						if (isSideBySide && i > 0) currentX += this.analyses[i-1].canvas.width + (lastAdvance / 2) + (space / 2);
+						const yOffset = canvasDimensions.baseline - analysis.baseline - analysis.baselineShift;
+						if (isSideBySide && i > 0) {
+							currentX += this.analyses[i-1].canvas.width;
+						}
 						const blend = this.analyses[0] && this.analyses[1] && i > 0;
 						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
 						this.drawText(analysis, this.colors[i], currentX, yOffset, blend);
-						lastAdvance = space;
 					});
-					this.queueScale();
+					this.requestScaling();
 					this.updateResults();
 				}
 
@@ -536,9 +538,7 @@
 					const desc = Math.max(0, ...analyses.map(a => (a.canvas.height - a.baseline) + a.baselineShift));
 					let totalW = Math.max(0, ...analyses.map(a => a.canvas.width));
 					if (isSideBySide) {
-						const space1 = this._getSpaceAdvance(analyses[0].font, analyses[0].fontSize);
-						const space2 = this._getSpaceAdvance(analyses[1].font, analyses[1].fontSize);
-						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, (space1 / 2) + (space2 / 2));
+						totalW = analyses.reduce((sum, a) => sum + a.canvas.width, 0);
 					}
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + totalW),
@@ -558,23 +558,23 @@
 				}
 
 				drawText({ canvas: src }, color, x, y, blend) {
-					const { tctx, tint, ctx } = this;
-					Object.assign(tint, { width: src.width, height: src.height });
-					tctx.clearRect(0, 0, tint.width, tint.height);
-					tctx.fillStyle = color;
-					tctx.fillRect(0, 0, tint.width, tint.height);
-					tctx.globalCompositeOperation = 'destination-in';
-					tctx.drawImage(src, 0, 0);
+					const { tintContext, tintCanvas, ctx } = this;
+					Object.assign(tintCanvas, { width: src.width, height: src.height });
+					tintContext.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
+					tintContext.fillStyle = color;
+					tintContext.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+					tintContext.globalCompositeOperation = 'destination-in';
+					tintContext.drawImage(src, 0, 0);
 					ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					ctx.drawImage(tint, x, y);
-					tctx.globalCompositeOperation = 'source-over';
+					ctx.drawImage(tintCanvas, x, y);
+					tintContext.globalCompositeOperation = 'source-over';
 					ctx.globalCompositeOperation = 'source-over';
 				}
 
 				renderEmpty() {
 					Object.assign(this.canvas, { width: 400, height: 200 });
 					this.ctx.clearRect(0, 0, 400, 200);
-					this.queueScale();
+					this.requestScaling();
 				}
 
 				updateDisplayScale() {
@@ -586,10 +586,10 @@
 				}
 
 				updateResults() {
-					this.analyses.forEach((a, i) => {
-						const el = this.ctrls[i].results;
-						if (a) {
-							const { yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics } = a;
+					this.analyses.forEach((analysis, i) => {
+						const el = this.fontControls[i].results;
+						if (analysis) {
+							const { yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics } = analysis;
 							el.textContent = Object.entries({
 								"Y Min": `${yMin}px`, "Y Max": `${yMax}px`, "Density": `${density}%`,
 								"Font Size": `${fontSize}px`, "Baseline Shift": `${baselineShift}px`,
