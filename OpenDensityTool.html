@@ -467,7 +467,7 @@
 					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 					const pixelData = this.getPixelData(tempCanvas);
 					if (pixelData.minY > pixelData.maxY) return null;
-					const density = this._calculateDensity(pixelData, metrics);
+					const density = this._calculateDensity(pixelData, metrics, finalSize);
 					return {
 						...pixelData, density: density.toFixed(1), canvas: tempCanvas,
 						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
@@ -492,14 +492,15 @@
 					return { densityMap, inkVolume, inkCoverage, minX, maxX, minY, maxY };
 				}
 
-				_calculateDensity(pixelAnalysis, metrics) {
+				_calculateDensity(pixelAnalysis, metrics, fontSize) {
 					const { inkCoverage, inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
 					if (this.densityMode.value === 'glyph-bounds') {
 						const w = (maxX - minX + 1) || 1;
 						const h = (maxY - minY + 1) || 1;
 						return (inkCoverage / (w * h)) * 100;
 					}
-					const metricArea = metrics.advanceWidth * (metrics.ascent + metrics.descent);
+					const height = this.densityMode.value === 'char-spacing' ? fontSize : (metrics.ascent + metrics.descent);
+					const metricArea = metrics.advanceWidth * height;
 					return (inkVolume / metricArea) * 100;
 				}
 
