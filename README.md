@@ -49,8 +49,8 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 
 ## Interpreting the Analysis
 - Density (%): Share of the glyph area covered by "ink." This can be calculated in two ways:
-  - **Glyph Bounds**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
-  - **Character Spacing**: Normalizes by the full horizontal space the character occupies, including its side bearings. This is useful for judging the overall texture and color of a block of text.
+  - **Ink Box**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
+  - **Em box**: Normalizes by the full horizontal space the character occupies (advance width) and the font's em size. This is useful for judging the overall texture and color of a block of text.
 - yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
 - Actual Ascent/Descent: Measured from glyph outlines at the chosen size.
 - Font Ascent/Descent: Max of OS/2/hhea/win metrics (when available).
