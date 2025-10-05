@@ -489,7 +489,7 @@
 					const ctx = canvas.getContext('2d', { willReadFrequently: true });
 					const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
-					let inkVolume = 0, inkCoverage = 0, minX = width, maxX = -1, minY = height, maxY = -1;
+					let inkVolume = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
 					for (let y = 0; y < height; y++) {
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
@@ -499,21 +499,20 @@
 								const val = data[i] / 255;
 								inkVolume += val;
 								densityMap[y] += val;
-								inkCoverage++;
 							}
 						}
 					}
-					return { densityMap, inkVolume, inkCoverage, minX, maxX, minY, maxY };
+					return { densityMap, inkVolume, minX, maxX, minY, maxY };
 				}
 
 				_calculateDensity(pixelAnalysis, metrics, fontSize) {
-					const { inkCoverage, inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
+					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
 					if (this.densityMode.value === 'glyph-bounds') {
 						const w = (maxX - minX + 1) || 1;
 						const h = (maxY - minY + 1) || 1;
 						return (inkVolume / (w * h)) * 100;
 					}
-					const height = this.densityMode.value === 'char-spacing' ? fontSize : (metrics.ascent + metrics.descent);
+					const height = fontSize;
 					const metricArea = metrics.advanceWidth * height;
 					return (inkVolume / metricArea) * 100;
 				}
