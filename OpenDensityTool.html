@@ -362,11 +362,6 @@
 
 				_initialize() {
 					const getEl = id => document.getElementById(id);
-					this.canvas = getEl('canvas');
-					this.ctx = this.canvas.getContext('2d');
-					this.tintCanvas = document.createElement('canvas');
-					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
-
 					const css = getComputedStyle(document.documentElement);
 					this.colors = ['--font1', '--font2'].map(p => css.getPropertyValue(p).trim());
 					this.graphWidth = 150;
@@ -375,14 +370,21 @@
 					this.analyses = [null, null];
 					this.animRefs = {};
 
-					this.fontUIs = [1, 2].map(i =>
-						Object.fromEntries(['file', 'text', 'size', 'shift', 'letterSpacing', 'results']
-							.map(p => [p, getEl(`font${i}-${p}`)]))
-					);
+					this.canvas = getEl('canvas');
+					this.ctx = this.canvas.getContext('2d');
+					this.tintCanvas = document.createElement('canvas');
+					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
 
-					['zoomMode', 'renderMode', 'densityMode', 'exportBtn'].forEach(id => {
-						this[id] = getEl(id.replace(/([A-Z])/g, '-$1').toLowerCase());
-					});
+					this.fontUIs = [1, 2].map(i => ({
+						file: getEl(`font${i}-file`), text: getEl(`font${i}-text`),
+						size: getEl(`font${i}-size`), shift: getEl(`font${i}-shift`),
+						letterSpacing: getEl(`font${i}-letter-spacing`), results: getEl(`results${i}`),
+					}));
+
+					this.zoomMode = getEl('zoom-mode');
+					this.renderMode = getEl('render-mode');
+					this.densityMode = getEl('density-mode');
+					this.exportBtn = getEl('export-png');
 				}
 
 				_bindEvents() {
@@ -395,14 +397,14 @@
 
 					this.fontUIs.forEach((ui, i) => {
 						ui.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
-						['text', 'size', 'shift', 'letterSpacing'].forEach(p =>
-							ui[p].addEventListener('input', this.requestAnalysis)
+						Object.values(ui).slice(1, -1).forEach(el =>
+							['input', 'change'].forEach(evt => el.addEventListener(evt, this.requestAnalysis))
 						);
 					});
 
-					[this.zoomMode, this.renderMode, this.densityMode].forEach(el =>
-						el.addEventListener('change', el === this.zoomMode ? this.requestScaling : this.requestAnalysis)
-					);
+					[this.zoomMode, this.renderMode, this.densityMode, this.exportBtn].forEach(el => {
+						el.addEventListener('change', el === this.zoomMode ? this.requestScaling : this.requestAnalysis);
+					});
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.requestScaling);
 				}
