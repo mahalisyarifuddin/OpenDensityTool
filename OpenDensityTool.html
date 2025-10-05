@@ -321,8 +321,8 @@
 					<div class="control-group">
 						<span class="zoom-label">Normalize by:</span>
 						<select id="density-mode" class="zoom-select">
-							<option value="glyph-bounds">Glyph Bounds</option>
-							<option value="char-spacing">Character Spacing</option>
+							<option value="ink-box">Ink Box</option>
+							<option value="em-box">Em box</option>
 						</select>
 					</div>
 					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
@@ -402,7 +402,7 @@
 						);
 					});
 
-					[this.zoomMode, this.renderMode, this.densityMode].forEach(el => {
+					[this.zoomMode, this.renderMode, this.densityMode, this.exportBtn].forEach(el => {
 						el.addEventListener('change', el === this.zoomMode ? this.requestScaling : this.requestAnalysis);
 					});
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
@@ -410,7 +410,8 @@
 				}
 
 				async loadFont(file, index) {
-					const resetFont = () => { this.fontUIs[index].file.value = ''; this.fonts[index] = null; };
+					const ui = this.fontUIs[index];
+					const resetFont = () => { ui.file.value = ''; this.fonts[index] = null; };
 					if (!file) return;
 					const MAX_SIZE = 30 * 1024 * 1024;
 					if (file.size > MAX_SIZE) {
@@ -429,15 +430,16 @@
 
 				getFontMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
-					let actualAscent = 0, actualDescent = 0;
+					const glyphs = font.stringToGlyphs(text);
 
-					font.stringToGlyphs(text).forEach(glyph => {
+					let { actualAscent, actualDescent } = glyphs.reduce((acc, glyph) => {
 						const b = glyph.path?.getBoundingBox();
 						if (b && isFinite(b.y1) && isFinite(b.y2)) {
-							actualAscent = Math.max(actualAscent, b.y2 * scale);
-							actualDescent = Math.max(actualDescent, -b.y1 * scale);
+							acc.actualAscent = Math.max(acc.actualAscent, b.y2 * scale);
+							acc.actualDescent = Math.max(acc.actualDescent, -b.y1 * scale);
 						}
-					});
+						return acc;
+					}, { actualAscent: 0, actualDescent: 0 });
 
 					if (actualAscent === 0 && actualDescent === 0) {
 						actualAscent = font.ascender * scale;
@@ -454,7 +456,8 @@
 					const bounds = path.getBoundingBox();
 
 					return {
-						ascent: Math.max(actualAscent, fontAscent), descent: Math.max(actualDescent, fontDescent),
+						ascent: Math.max(actualAscent, fontAscent),
+						descent: Math.max(actualDescent, fontDescent),
 						actualAscent, actualDescent, fontAscent, fontDescent,
 						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
@@ -489,33 +492,27 @@
 					const ctx = canvas.getContext('2d', { willReadFrequently: true });
 					const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
-					let inkVolume = 0, inkCoverage = 0, minX = width, maxX = -1, minY = height, maxY = -1;
+					let inkVolume = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
 					for (let y = 0; y < height; y++) {
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
 							if (data[i] > 0) {
 								minY = Math.min(minY, y); maxY = Math.max(maxY, y);
 								minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-								const val = data[i] / 255;
-								inkVolume += val;
-								densityMap[y] += val;
-								inkCoverage++;
+								inkVolume++;
+								densityMap[y]++;
 							}
 						}
 					}
-					return { densityMap, inkVolume, inkCoverage, minX, maxX, minY, maxY };
+					return { densityMap, inkVolume, minX, maxX, minY, maxY };
 				}
 
 				_calculateDensity(pixelAnalysis, metrics, fontSize) {
-					const { inkCoverage, inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
-					if (this.densityMode.value === 'glyph-bounds') {
-						const w = (maxX - minX + 1) || 1;
-						const h = (maxY - minY + 1) || 1;
-						return (inkCoverage / (w * h)) * 100;
-					}
-					const height = this.densityMode.value === 'char-spacing' ? fontSize : (metrics.ascent + metrics.descent);
-					const metricArea = metrics.advanceWidth * height;
-					return (inkVolume / metricArea) * 100;
+					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
+					const w = (maxX - minX + 1) || 1;
+					const h = (maxY - minY + 1) || 1;
+					const area = this.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * fontSize);
+					return (inkVolume / area) * 100;
 				}
 
 				analyzeAndRender() {
@@ -608,7 +605,7 @@
 
 				updateDisplayScale() {
 					const { style, parentElement, width } = this.canvas;
-					if (this.zoomMode.value !== 'fit' || width === 0) {
+					if (this.zoomMode.value !== 'fit' || !width) {
 						style.transform = 'none';
 						return;
 					}
@@ -620,21 +617,16 @@
 				updateResults() {
 					this.fontUIs.forEach((ui, i) => {
 						const analysis = this.analyses[i];
-						const resultEl = ui.results;
-						if (analysis) {
-							const { yMin, yMax, density, fontSize, baselineShift, letterSpacing, metrics } = analysis;
-							resultEl.textContent = Object.entries({
-								"Y Min": `${yMin}px`, "Y Max": `${yMax}px`, "Density": `${density}%`,
-								"Font Size": `${fontSize}px`, "Baseline Shift": `${baselineShift}px`,
-								"Letter Spacing": `${letterSpacing}px`,
-								"Actual Ascent": `${Math.round(metrics.actualAscent)}px`,
-								"Actual Descent": `${Math.round(metrics.actualDescent)}px`,
-								"Font Ascent": `${Math.round(metrics.fontAscent)}px`,
-								"Font Descent": `${Math.round(metrics.fontDescent)}px`
-							}).map(([key, value]) => `${key}: ${value}`).join('\n');
-						} else {
-							resultEl.textContent = this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
-						}
+						ui.results.textContent = analysis
+							? Object.entries({
+								"Y Min": `${analysis.yMin}px`, "Y Max": `${analysis.yMax}px`, "Density": `${analysis.density}%`,
+								"Font Size": `${analysis.fontSize}px`, "Baseline Shift": `${analysis.baselineShift}px`,
+								"Letter Spacing": `${analysis.letterSpacing}px`,
+								...Object.fromEntries(Object.entries(analysis.metrics)
+									.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
+									.map(([k, v]) => [k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1'), `${Math.round(v)}px`]))
+							}).map(([key, value]) => `${key}: ${value}`).join('\n')
+							: (this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.');
 					});
 				}
 
