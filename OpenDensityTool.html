@@ -511,7 +511,7 @@
 					if (this.densityMode.value === 'glyph-bounds') {
 						const w = (maxX - minX + 1) || 1;
 						const h = (maxY - minY + 1) || 1;
-						return (inkCoverage / (w * h)) * 100;
+						return (inkVolume / (w * h)) * 100;
 					}
 					const height = this.densityMode.value === 'char-spacing' ? fontSize : (metrics.ascent + metrics.descent);
 					const metricArea = metrics.advanceWidth * height;
