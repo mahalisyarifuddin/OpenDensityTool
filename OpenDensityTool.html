@@ -321,8 +321,8 @@
 					<div class="control-group">
 						<span class="zoom-label">Normalize by:</span>
 						<select id="density-mode" class="zoom-select">
-							<option value="glyph-bounds">Glyph Bounds</option>
-							<option value="char-spacing">Character Spacing</option>
+							<option value="ink-box">Ink Box</option>
+							<option value="em-box">EM Box</option>
 						</select>
 					</div>
 					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
@@ -496,9 +496,8 @@
 							if (data[i] > 0) {
 								minY = Math.min(minY, y); maxY = Math.max(maxY, y);
 								minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-								const val = data[i] / 255;
-								inkVolume += val;
-								densityMap[y] += val;
+								inkVolume++;
+								densityMap[y]++;
 							}
 						}
 					}
@@ -507,7 +506,7 @@
 
 				_calculateDensity(pixelAnalysis, metrics, fontSize) {
 					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
-					if (this.densityMode.value === 'glyph-bounds') {
+					if (this.densityMode.value === 'ink-box') {
 						const w = (maxX - minX + 1) || 1;
 						const h = (maxY - minY + 1) || 1;
 						return (inkVolume / (w * h)) * 100;
