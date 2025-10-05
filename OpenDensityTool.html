@@ -430,7 +430,7 @@
 					const scale = fontSize / font.unitsPerEm;
 					const glyphs = font.stringToGlyphs(text);
 
-					const { actualAscent, actualDescent } = glyphs.reduce((acc, glyph) => {
+					let { actualAscent, actualDescent } = glyphs.reduce((acc, glyph) => {
 						const b = glyph.path?.getBoundingBox();
 						if (b && isFinite(b.y1) && isFinite(b.y2)) {
 							acc.actualAscent = Math.max(acc.actualAscent, b.y2 * scale);
@@ -438,6 +438,11 @@
 						}
 						return acc;
 					}, { actualAscent: 0, actualDescent: 0 });
+
+					if (actualAscent === 0 && actualDescent === 0) {
+						actualAscent = font.ascender * scale;
+						actualDescent = Math.abs(font.descender * scale);
+					}
 
 					const { os2, hhea } = font.tables;
 					const getMaxMetric = (metrics) => Math.max(...metrics.filter(isFinite).map(m => m * scale));
@@ -449,8 +454,8 @@
 					const bounds = path.getBoundingBox();
 
 					return {
-						ascent: Math.max(actualAscent, fontAscent) || (font.ascender * scale),
-						descent: Math.max(actualDescent, fontDescent) || Math.abs(font.descender * scale),
+						ascent: Math.max(actualAscent, fontAscent),
+						descent: Math.max(actualDescent, fontDescent),
 						actualAscent, actualDescent, fontAscent, fontDescent,
 						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
