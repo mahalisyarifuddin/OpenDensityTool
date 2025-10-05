@@ -496,7 +496,7 @@
 
 					for (let y = 0; y < height; y++) {
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
-							if (data[i] > 0) {
+							if (data[i] >= 128) {
 								minY = Math.min(minY, y); maxY = Math.max(maxY, y);
 								minX = Math.min(minX, x); maxX = Math.max(maxX, x);
 								inkVolume++;

@@ -48,7 +48,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
-- Density (%): Share of the glyph area covered by "ink." This can be calculated in two ways:
+- Density (%): Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in two ways:
   - **Ink Box**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
   - **Em box**: Normalizes by the full horizontal space the character occupies (advance width) and the font's em size. This is useful for judging the overall texture and color of a block of text.
 - yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
