@@ -353,6 +353,8 @@
 			</div>
 		</div>
 		<script>
+			const $ = (id) => document.getElementById(id);
+
 			class DensityTool {
 				constructor() {
 					this._initialize();
@@ -360,8 +362,23 @@
 					this.render();
 				}
 
+				getUIElements() {
+					const ids = {
+						canvas: 'canvas',
+						zoomMode: 'zoom-mode',
+						renderMode: 'render-mode',
+						densityMode: 'density-mode',
+						exportBtn: 'export-png',
+						font1File: 'font1-file', font1Text: 'font1-text', font1Size: 'font1-size',
+						font1Shift: 'font1-shift', font1LetterSpacing: 'font1-letter-spacing', results1: 'results1',
+						font2File: 'font2-file', font2Text: 'font2-text', font2Size: 'font2-size',
+						font2Shift: 'font2-shift', font2LetterSpacing: 'font2-letter-spacing', results2: 'results2',
+					};
+					return Object.fromEntries(Object.entries(ids).map(([key, id]) => [key, $(id)]));
+				}
+
 				_initialize() {
-					const getEl = id => document.getElementById(id);
+					this.ui = this.getUIElements();
 					const css = getComputedStyle(document.documentElement);
 
 					Object.assign(this, {
@@ -371,21 +388,16 @@
 						fonts: [null, null],
 						analyses: [null, null],
 						animRefs: {},
-						canvas: getEl('canvas'),
 						tintCanvas: document.createElement('canvas'),
-						zoomMode: getEl('zoom-mode'),
-						renderMode: getEl('render-mode'),
-						densityMode: getEl('density-mode'),
-						exportBtn: getEl('export-png'),
 					});
 
-					this.ctx = this.canvas.getContext('2d');
+					this.ctx = this.ui.canvas.getContext('2d');
 					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
 
 					this.fontUIs = [1, 2].map(i => ({
-						file: getEl(`font${i}-file`), text: getEl(`font${i}-text`),
-						size: getEl(`font${i}-size`), shift: getEl(`font${i}-shift`),
-						letterSpacing: getEl(`font${i}-letter-spacing`), results: getEl(`results${i}`),
+						file: this.ui[`font${i}File`], text: this.ui[`font${i}Text`],
+						size: this.ui[`font${i}Size`], shift: this.ui[`font${i}Shift`],
+						letterSpacing: this.ui[`font${i}LetterSpacing`], results: this.ui[`results${i}`]
 					}));
 				}
 
@@ -401,16 +413,25 @@
 						['input', 'change'].forEach(evt => element.addEventListener(evt, handler));
 					};
 
+					const listeners = {
+						zoomMode: ['change', this.requestScaling],
+						renderMode: ['change', this.requestAnalysis],
+						densityMode: ['change', this.requestAnalysis],
+						exportBtn: ['click', () => this.exportPNG()],
+					};
+
+					for (const key in listeners) {
+						this.ui[key].addEventListener(...listeners[key]);
+					}
+
 					this.fontUIs.forEach((ui, i) => {
 						ui.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
 						[ui.text, ui.size, ui.shift, ui.letterSpacing].forEach(el => addInputListeners(el, this.requestAnalysis));
 					});
 
-					this.zoomMode.addEventListener('change', this.requestScaling);
-					[this.renderMode, this.densityMode].forEach(el => el.addEventListener('change', this.requestAnalysis));
-					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.requestScaling);
 				}
+
 
 				async loadFont(file, index) {
 					let font = null;
@@ -521,7 +542,7 @@
 					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
 					const w = (maxX - minX + 1) || 1;
 					const h = (maxY - minY + 1) || 1;
-					const area = this.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * fontSize);
+					const area = this.ui.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * fontSize);
 					return (inkVolume / area) * 100;
 				}
 
@@ -541,10 +562,10 @@
 					}
 
 					const dims = this.calculateDimensions(validAnalyses);
-					Object.assign(this.canvas, dims);
+					Object.assign(this.ui.canvas, dims);
 					this.ctx.clearRect(0, 0, dims.width, dims.height);
 
-					const isSideBySide = this.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+					const isSideBySide = this.ui.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
 					let currentX = this.graphWidth + this.graphPadding;
 
 					this.analyses.forEach((analysis, i) => {
@@ -562,7 +583,7 @@
 				}
 
 				calculateDimensions(analyses) {
-					const isSideBySide = this.renderMode.value === 'side-by-side' && analyses.length > 1;
+					const isSideBySide = this.ui.renderMode.value === 'side-by-side' && analyses.length > 1;
 					const asc = Math.max(0, ...analyses.map(a => a.baseline - a.baselineShift));
 					const desc = Math.max(0, ...analyses.map(a => (a.canvas.height - a.baseline) + a.baselineShift));
 
@@ -591,7 +612,7 @@
 				}
 
 				drawText({ canvas: src }, color, x, y, blend) {
-					const { tintContext: tintCtx, tintCanvas, ctx } = this;
+					const { tintContext, tintCanvas, ctx } = this;
 					Object.assign(tintCanvas, { width: src.width, height: src.height });
 
 					tintCtx.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
@@ -608,14 +629,14 @@
 				}
 
 				renderEmpty() {
-					Object.assign(this.canvas, { width: 400, height: 200 });
+					Object.assign(this.ui.canvas, { width: 400, height: 200 });
 					this.ctx.clearRect(0, 0, 400, 200);
 					this.requestScaling();
 				}
 
 				updateDisplayScale() {
-					const { style, parentElement, width } = this.canvas;
-					if (this.zoomMode.value !== 'fit' || !width) {
+					const { style, parentElement, width } = this.ui.canvas;
+					if (this.ui.zoomMode.value !== 'fit' || !width) {
 						style.transform = 'none';
 						return;
 					}
@@ -656,11 +677,12 @@
 
 				exportPNG() {
 					const link = document.createElement('a');
-					link.href = this.canvas.toDataURL('image/png');
+					link.href = this.ui.canvas.toDataURL('image/png');
 					link.download = 'typographic-density.png';
 					link.click();
 				}
 			}
+
 			document.addEventListener('DOMContentLoaded', () => new DensityTool());
 		</script>
 	</body>
