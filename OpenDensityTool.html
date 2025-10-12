@@ -615,16 +615,16 @@
 					const { tintContext, tintCanvas, ctx } = this;
 					Object.assign(tintCanvas, { width: src.width, height: src.height });
 
-					tintCtx.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
-					tintCtx.fillStyle = color;
-					tintCtx.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
-					tintCtx.globalCompositeOperation = 'destination-in';
-					tintCtx.drawImage(src, 0, 0);
+					tintContext.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
+					tintContext.fillStyle = color;
+					tintContext.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+					tintContext.globalCompositeOperation = 'destination-in';
+					tintContext.drawImage(src, 0, 0);
 
 					ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					ctx.drawImage(tintCanvas, x, y);
 
-					tintCtx.globalCompositeOperation = 'source-over';
+					tintContext.globalCompositeOperation = 'source-over';
 					ctx.globalCompositeOperation = 'source-over';
 				}
 
