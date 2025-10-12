@@ -363,16 +363,23 @@
 				_initialize() {
 					const getEl = id => document.getElementById(id);
 					const css = getComputedStyle(document.documentElement);
-					this.colors = ['--font1', '--font2'].map(p => css.getPropertyValue(p).trim());
-					this.graphWidth = 150;
-					this.graphPadding = 20;
-					this.fonts = [null, null];
-					this.analyses = [null, null];
-					this.animRefs = {};
 
-					this.canvas = getEl('canvas');
+					Object.assign(this, {
+						colors: ['--font1', '--font2'].map(p => css.getPropertyValue(p).trim()),
+						graphWidth: 150,
+						graphPadding: 20,
+						fonts: [null, null],
+						analyses: [null, null],
+						animRefs: {},
+						canvas: getEl('canvas'),
+						tintCanvas: document.createElement('canvas'),
+						zoomMode: getEl('zoom-mode'),
+						renderMode: getEl('render-mode'),
+						densityMode: getEl('density-mode'),
+						exportBtn: getEl('export-png'),
+					});
+
 					this.ctx = this.canvas.getContext('2d');
-					this.tintCanvas = document.createElement('canvas');
 					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
 
 					this.fontUIs = [1, 2].map(i => ({
@@ -380,11 +387,6 @@
 						size: getEl(`font${i}-size`), shift: getEl(`font${i}-shift`),
 						letterSpacing: getEl(`font${i}-letter-spacing`), results: getEl(`results${i}`),
 					}));
-
-					this.zoomMode = getEl('zoom-mode');
-					this.renderMode = getEl('render-mode');
-					this.densityMode = getEl('density-mode');
-					this.exportBtn = getEl('export-png');
 				}
 
 				_bindEvents() {
@@ -395,35 +397,43 @@
 					this.requestAnalysis = queue(this.analyzeAndRender, 'analyze');
 					this.requestScaling = queue(this.updateDisplayScale, 'scale');
 
+					const addInputListeners = (element, handler) => {
+						['input', 'change'].forEach(evt => element.addEventListener(evt, handler));
+					};
+
 					this.fontUIs.forEach((ui, i) => {
 						ui.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
-						Object.values(ui).slice(1, -1).forEach(el =>
-							['input', 'change'].forEach(evt => el.addEventListener(evt, this.requestAnalysis))
-						);
+						[ui.text, ui.size, ui.shift, ui.letterSpacing].forEach(el => addInputListeners(el, this.requestAnalysis));
 					});
 
-					[this.zoomMode, this.renderMode, this.densityMode, this.exportBtn].forEach(el => {
-						el.addEventListener('change', el === this.zoomMode ? this.requestScaling : this.requestAnalysis);
-					});
+					this.zoomMode.addEventListener('change', this.requestScaling);
+					[this.renderMode, this.densityMode].forEach(el => el.addEventListener('change', this.requestAnalysis));
 					this.exportBtn.addEventListener('click', () => this.exportPNG());
 					window.addEventListener('resize', this.requestScaling);
 				}
 
 				async loadFont(file, index) {
+					let font = null;
 					const ui = this.fontUIs[index];
-					const resetFont = () => { ui.file.value = ''; this.fonts[index] = null; };
-					if (!file) return;
-					const MAX_SIZE = 30 * 1024 * 1024;
-					if (file.size > MAX_SIZE) {
-						alert(`Font file is too large (${(file.size / 1048576).toFixed(1)}MB). Max size is ${MAX_SIZE / 1048576}MB.`);
-						return resetFont();
+					const MAX_SIZE_MB = 30;
+					const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+					if (file) {
+						if (file.size > MAX_SIZE_BYTES) {
+							alert(`Font file is too large (${(file.size / 1048576).toFixed(1)}MB). Max size is ${MAX_SIZE_MB}MB.`);
+						} else {
+							try {
+								font = opentype.parse(await file.arrayBuffer());
+							} catch (err) {
+								console.error('Font loading failed:', err);
+								alert(`Failed to parse font: ${file.name}.`);
+							}
+						}
 					}
-					try {
-						this.fonts[index] = opentype.parse(await file.arrayBuffer());
-					} catch (err) {
-						console.error('Font loading failed:', err);
-						alert(`Failed to parse font: ${file.name}.`);
-						resetFont();
+
+					this.fonts[index] = font;
+					if (!font) {
+						ui.file.value = '';
 					}
 					this.requestAnalysis();
 				}
@@ -432,14 +442,14 @@
 					const scale = fontSize / font.unitsPerEm;
 					const glyphs = font.stringToGlyphs(text);
 
-					let { actualAscent, actualDescent } = glyphs.reduce((acc, glyph) => {
+					let actualAscent = 0, actualDescent = 0;
+					for (const glyph of glyphs) {
 						const b = glyph.path?.getBoundingBox();
 						if (b && isFinite(b.y1) && isFinite(b.y2)) {
-							acc.actualAscent = Math.max(acc.actualAscent, b.y2 * scale);
-							acc.actualDescent = Math.max(acc.actualDescent, -b.y1 * scale);
+							actualAscent = Math.max(actualAscent, b.y2 * scale);
+							actualDescent = Math.max(actualDescent, -b.y1 * scale);
 						}
-						return acc;
-					}, { actualAscent: 0, actualDescent: 0 });
+					}
 
 					if (actualAscent === 0 && actualDescent === 0) {
 						actualAscent = font.ascender * scale;
@@ -614,19 +624,33 @@
 					style.transform = `scale(${Math.min(available / width, 1)})`;
 				}
 
+				_formatAnalysisResults(analysis) {
+					if (!analysis) return this.fonts[this.analyses.indexOf(analysis)] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
+
+					const formatMetric = ([key, value]) => {
+						const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+						return `${formattedKey}: ${Math.round(value)}px`;
+					};
+
+					const metrics = Object.entries(analysis.metrics)
+						.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
+						.map(formatMetric);
+
+					const coreMetrics = [
+						`Y Min: ${analysis.yMin}px`,
+						`Y Max: ${analysis.yMax}px`,
+						`Density: ${analysis.density}%`,
+						`Font Size: ${analysis.fontSize}px`,
+						`Baseline Shift: ${analysis.baselineShift}px`,
+						`Letter Spacing: ${analysis.letterSpacing}px`,
+					];
+
+					return [...coreMetrics, ...metrics].join('\n');
+				}
+
 				updateResults() {
 					this.fontUIs.forEach((ui, i) => {
-						const analysis = this.analyses[i];
-						ui.results.textContent = analysis
-							? Object.entries({
-								"Y Min": `${analysis.yMin}px`, "Y Max": `${analysis.yMax}px`, "Density": `${analysis.density}%`,
-								"Font Size": `${analysis.fontSize}px`, "Baseline Shift": `${analysis.baselineShift}px`,
-								"Letter Spacing": `${analysis.letterSpacing}px`,
-								...Object.fromEntries(Object.entries(analysis.metrics)
-									.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
-									.map(([k, v]) => [k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1'), `${Math.round(v)}px`]))
-							}).map(([key, value]) => `${key}: ${value}`).join('\n')
-							: (this.fonts[i] ? 'Enter text to analyze.' : 'Load a font to see analysis.');
+						ui.results.textContent = this._formatAnalysisResults(this.analyses[i]);
 					});
 				}
 
