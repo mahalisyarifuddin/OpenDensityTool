@@ -511,7 +511,7 @@
 					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
 					const w = (maxX - minX + 1) || 1;
 					const h = (maxY - minY + 1) || 1;
-					const area = this.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * fontSize);
+					const area = this.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * (metrics.fontAscent + metrics.fontDescent));
 					return (inkVolume / area) * 100;
 				}
 
@@ -637,7 +637,7 @@
 					link.click();
 				}
 			}
-			document.addEventListener('DOMContentLoaded', () => new DensityTool());
+			document.addEventListener('DOMContentLoaded', () => { window.densityTool = new DensityTool(); });
 		</script>
 	</body>
 </html>

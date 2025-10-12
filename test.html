@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DensityTool Test</title>
+</head>
+<body>
+    <h1>Testing DensityTool._calculateDensity</h1>
+    <div id="results"></div>
+    <iframe src="OpenDensityTool.html" style="display:none;"></iframe>
+    <script>
+        // Simple assertion function
+        function assert(condition, message) {
+            const resultsDiv = document.getElementById('results');
+            const p = document.createElement('p');
+            p.style.color = condition ? 'green' : 'red';
+            p.textContent = (condition ? 'PASS: ' : 'FAIL: ') + message;
+            resultsDiv.appendChild(p);
+            if (!condition) {
+                console.error('Assertion failed:', message);
+            }
+        }
+
+        function runTest() {
+            const iframe = document.querySelector('iframe');
+            const densityTool = iframe.contentWindow.densityTool;
+
+            if (!densityTool) {
+                console.error('DensityTool instance not found.');
+                assert(false, 'DensityTool instance could not be found. The test cannot run.');
+                return;
+            }
+
+            // --- Test Case ---
+            // 1. Setup mock data
+            const mockPixelAnalysis = {
+                inkVolume: 5000,
+                minX: 0,
+                maxX: 99, // width = 100
+                minY: 0,
+                maxY: 49  // height = 50
+            };
+
+            const mockMetrics = {
+                advanceWidth: 200,
+                fontAscent: 80,
+                fontDescent: 20
+            };
+
+            // This is a bit of a hack, but we need to set the density mode for the test
+            densityTool.densityMode.value = 'em-box';
+
+            // 2. Execute the function
+            const density = densityTool._calculateDensity(mockPixelAnalysis, mockMetrics);
+
+            // 3. Assert the result
+            const expectedArea = 200 * (80 + 20); // advanceWidth * (fontAscent + fontDescent)
+            const expectedDensity = (5000 / expectedArea) * 100;
+
+            console.log('Calculated Density:', density);
+            console.log('Expected Density:', expectedDensity);
+
+            assert(
+                Math.abs(density - expectedDensity) < 0.001,
+                'Em-box density should be calculated using fontAscent and fontDescent'
+            );
+        }
+
+        // Run the test when the iframe loads
+        const iframe = document.querySelector('iframe');
+        iframe.onload = runTest;
+    </script>
+</body>
+</html>
