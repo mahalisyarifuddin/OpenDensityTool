@@ -103,7 +103,7 @@
 				margin-bottom: 0;
 			}
 
-			.form-label {
+			.form-label, .zoom-label {
 				display: block;
 				font-weight: 500;
 				margin-bottom: 6px;
@@ -111,7 +111,7 @@
 				color: #555;
 			}
 
-			.form-control {
+			.form-control, .controls-bar > * {
 				width: 100%;
 				padding: 8px 12px;
 				border: 1px solid #ccc;
@@ -119,6 +119,12 @@
 				font-size: 0.95em;
 				background: #fff;
 				transition: border-color .2s,box-shadow .2s;
+			}
+
+			.controls-bar > * {
+				width: auto;
+				padding: 6px 10px;
+				font-size: 0.9em;
 			}
 
 			.form-control:focus {
@@ -144,26 +150,6 @@
 				gap: 12px;
 				margin-bottom: 16px;
 				flex-wrap: wrap;
-			}
-
-			.control-group {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-			}
-
-			.zoom-label {
-				font-weight: 500;
-				font-size: 0.9em;
-				color: #555;
-			}
-
-			.zoom-select {
-				padding: 6px 10px;
-				border: 1px solid #ccc;
-				border-radius: 4px;
-				font-size: 0.9em;
-				background: #fff;
 			}
 
 			.preview-container {
@@ -238,9 +224,7 @@
 		</style>
 	</head>
 	<body>
-		<div class="header">
-			<h1>Typographic Density Tool</h1>
-		</div>
+		<h1 class="header">Typographic Density Tool</h1>
 		<div class="container">
 			<div class="panel">
 				<h2 class="panel-title">Font Configuration</h2>
@@ -304,28 +288,19 @@
 			<div class="panel">
 				<h2 class="panel-title">Visualization and Analysis</h2>
 				<div class="controls-bar">
-					<div class="control-group">
-						<span class="zoom-label">Display:</span>
-						<select id="zoom-mode" class="zoom-select">
-							<option value="fit">Fit to View</option>
-							<option value="100">100% Scale</option>
-						</select>
-					</div>
-					<div class="control-group">
-						<span class="zoom-label">Mode:</span>
-						<select id="render-mode" class="zoom-select">
-							<option value="overlay">Overlay</option>
-							<option value="side-by-side">Side-by-side</option>
-						</select>
-					</div>
-					<div class="control-group">
-						<span class="zoom-label">Normalize by:</span>
-						<select id="density-mode" class="zoom-select">
-							<option value="ink-box">Ink Box</option>
-							<option value="em-box">Em box</option>
-						</select>
-					</div>
-					<button id="export-png" class="zoom-select" style="margin-left: auto;">Export PNG</button>
+					<select id="zoom-mode">
+						<option value="fit">Fit to View</option>
+						<option value="100">100% Scale</option>
+					</select>
+					<select id="render-mode">
+						<option value="overlay">Overlay</option>
+						<option value="side-by-side">Side-by-side</option>
+					</select>
+					<select id="density-mode">
+						<option value="ink-box">Ink Box</option>
+						<option value="em-box">Em box</option>
+					</select>
+					<button id="export-png" style="margin-left: auto;">Export PNG</button>
 				</div>
 				<div class="preview-container">
 					<div class="canvas-wrapper">
@@ -363,42 +338,33 @@
 				}
 
 				getUIElements() {
-					const ids = {
-						canvas: 'canvas',
-						zoomMode: 'zoom-mode',
-						renderMode: 'render-mode',
-						densityMode: 'density-mode',
-						exportBtn: 'export-png',
-						font1File: 'font1-file', font1Text: 'font1-text', font1Size: 'font1-size',
-						font1Shift: 'font1-shift', font1LetterSpacing: 'font1-letter-spacing', results1: 'results1',
-						font2File: 'font2-file', font2Text: 'font2-text', font2Size: 'font2-size',
-						font2Shift: 'font2-shift', font2LetterSpacing: 'font2-letter-spacing', results2: 'results2',
-					};
-					return Object.fromEntries(Object.entries(ids).map(([key, id]) => [key, $(id)]));
+					const ids = [
+						'canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png',
+						'font1-file', 'font1-text', 'font1-size', 'font1-shift', 'font1-letter-spacing', 'results1',
+						'font2-file', 'font2-text', 'font2-size', 'font2-shift', 'font2-letter-spacing', 'results2',
+					];
+					return Object.fromEntries(ids.map(id => [id.replace(/-(\w)/g, (_, c) => c.toUpperCase()), $(id)]));
 				}
 
 				_initialize() {
 					this.ui = this.getUIElements();
-					const css = getComputedStyle(document.documentElement);
-
+					const tintCanvas = document.createElement('canvas');
 					Object.assign(this, {
-						colors: ['--font1', '--font2'].map(p => css.getPropertyValue(p).trim()),
+						colors: ['--font1', '--font2'].map(p => getComputedStyle(document.documentElement).getPropertyValue(p).trim()),
 						graphWidth: 150,
 						graphPadding: 20,
 						fonts: [null, null],
 						analyses: [null, null],
 						animRefs: {},
-						tintCanvas: document.createElement('canvas'),
+						tintCanvas,
+						ctx: this.ui.canvas.getContext('2d'),
+						tintContext: tintCanvas.getContext('2d', { willReadFrequently: true }),
+						fontUIs: [1, 2].map(i => ({
+							file: this.ui[`font${i}File`], text: this.ui[`font${i}Text`],
+							size: this.ui[`font${i}Size`], shift: this.ui[`font${i}Shift`],
+							letterSpacing: this.ui[`font${i}LetterSpacing`], results: this.ui[`results${i}`]
+						}))
 					});
-
-					this.ctx = this.ui.canvas.getContext('2d');
-					this.tintContext = this.tintCanvas.getContext('2d', { willReadFrequently: true });
-
-					this.fontUIs = [1, 2].map(i => ({
-						file: this.ui[`font${i}File`], text: this.ui[`font${i}Text`],
-						size: this.ui[`font${i}Size`], shift: this.ui[`font${i}Shift`],
-						letterSpacing: this.ui[`font${i}LetterSpacing`], results: this.ui[`results${i}`]
-					}));
 				}
 
 				_bindEvents() {
@@ -409,15 +375,13 @@
 					this.requestAnalysis = queue(this.analyzeAndRender, 'analyze');
 					this.requestScaling = queue(this.updateDisplayScale, 'scale');
 
-					const addInputListeners = (element, handler) => {
-						['input', 'change'].forEach(evt => element.addEventListener(evt, handler));
-					};
+					const addInputListeners = (element, handler) => ['input', 'change'].forEach(evt => element.addEventListener(evt, handler));
 
 					const listeners = {
 						zoomMode: ['change', this.requestScaling],
 						renderMode: ['change', this.requestAnalysis],
 						densityMode: ['change', this.requestAnalysis],
-						exportBtn: ['click', () => this.exportPNG()],
+						exportPng: ['click', () => this.exportPNG()],
 					};
 
 					for (const key in listeners) {
@@ -431,7 +395,6 @@
 
 					window.addEventListener('resize', this.requestScaling);
 				}
-
 
 				async loadFont(file, index) {
 					let font = null;
@@ -463,33 +426,30 @@
 					const scale = fontSize / font.unitsPerEm;
 					const glyphs = font.stringToGlyphs(text);
 
-					let actualAscent = 0, actualDescent = 0;
-					for (const glyph of glyphs) {
+					const { actualAscent, actualDescent } = glyphs.reduce(({ actualAscent, actualDescent }, glyph) => {
 						const b = glyph.path?.getBoundingBox();
-						if (b && isFinite(b.y1) && isFinite(b.y2)) {
-							actualAscent = Math.max(actualAscent, b.y2 * scale);
-							actualDescent = Math.max(actualDescent, -b.y1 * scale);
-						}
-					}
+						return b && isFinite(b.y1) && isFinite(b.y2)
+							? { actualAscent: Math.max(actualAscent, b.y2), actualDescent: Math.max(actualDescent, -b.y1) }
+							: { actualAscent, actualDescent };
+					}, { actualAscent: 0, actualDescent: 0 });
 
-					if (actualAscent === 0 && actualDescent === 0) {
-						actualAscent = font.ascender * scale;
-						actualDescent = Math.abs(font.descender * scale);
-					}
+					const scaledAscent = actualAscent * scale || font.ascender * scale;
+					const scaledDescent = actualDescent * scale || Math.abs(font.descender * scale);
 
 					const { os2, hhea } = font.tables;
-					const getMaxMetric = (metrics) => Math.max(...metrics.filter(isFinite).map(m => m * scale));
+					const getMaxMetric = (metrics, mapper = v => v) => Math.max(...metrics.filter(isFinite).map(mapper)) * scale;
+
 					const fontAscent = getMaxMetric([font.ascender, os2?.sTypoAscender, os2?.usWinAscent, hhea?.ascender]);
-					const fontDescent = getMaxMetric([font.descender, os2?.sTypoDescender, os2?.usWinDescent, hhea?.descender].map(Math.abs));
+					const fontDescent = getMaxMetric([font.descender, os2?.sTypoDescender, os2?.usWinDescent, hhea?.descender], Math.abs);
 
 					const options = { tracking: letterSpacing || 0 };
 					const path = font.getPath(text, 0, 0, fontSize, options);
 					const bounds = path.getBoundingBox();
 
 					return {
-						ascent: Math.max(actualAscent, fontAscent),
-						descent: Math.max(actualDescent, fontDescent),
-						actualAscent, actualDescent, fontAscent, fontDescent,
+						ascent: Math.max(scaledAscent, fontAscent),
+						descent: Math.max(scaledDescent, fontDescent),
+						actualAscent: scaledAscent, actualDescent: scaledDescent, fontAscent, fontDescent,
 						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
 					};
@@ -497,37 +457,35 @@
 
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
+
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
-
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
-					const tempCanvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
-					font.draw(tempCanvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
+					const canvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
+					font.draw(canvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 
-					const pixelData = this.getPixelData(tempCanvas);
+					const pixelData = this.getPixelData(canvas);
 					if (pixelData.minY > pixelData.maxY) return null;
 
-					const density = this._calculateDensity(pixelData, metrics, finalSize);
-
 					return {
-						...pixelData, density: density.toFixed(1), canvas: tempCanvas,
-						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
-						baseline, baselineShift, letterSpacing, fontSize: finalSize, font, metrics,
+						...pixelData, ...metrics, canvas, baseline, baselineShift, letterSpacing, fontSize: finalSize, font,
+						density: this._calculateDensity(pixelData, metrics, finalSize).toFixed(1),
+						yMin: Math.round(baseline - pixelData.maxY),
+						yMax: Math.round(baseline - pixelData.minY),
 					};
 				}
 
 				getPixelData(canvas) {
-					const ctx = canvas.getContext('2d', { willReadFrequently: true });
-					const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+					const { data, width, height } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
 					let inkVolume = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
 					for (let y = 0; y < height; y++) {
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
-							if ((data[i] / 255) >= 0.5) {
+							if (data[i] >= 128) {
 								minY = Math.min(minY, y); maxY = Math.max(maxY, y);
 								minX = Math.min(minX, x); maxX = Math.max(maxX, x);
 								inkVolume++;
@@ -538,11 +496,9 @@
 					return { densityMap, inkVolume, minX, maxX, minY, maxY };
 				}
 
-				_calculateDensity(pixelAnalysis, metrics, fontSize) {
-					const { inkVolume, maxX, minX, maxY, minY } = pixelAnalysis;
-					const w = (maxX - minX + 1) || 1;
-					const h = (maxY - minY + 1) || 1;
-					const area = this.ui.densityMode.value === 'ink-box' ? (w * h) : (metrics.advanceWidth * fontSize);
+				_calculateDensity({ inkVolume, maxX, minX, maxY, minY }, metrics, fontSize) {
+					const w = (maxX - minX + 1) || 1, h = (maxY - minY + 1) || 1;
+					const area = this.ui.densityMode.value === 'ink-box' ? w * h : metrics.advanceWidth * fontSize;
 					return (inkVolume / area) * 100;
 				}
 
@@ -648,25 +604,15 @@
 				_formatAnalysisResults(analysis) {
 					if (!analysis) return this.fonts[this.analyses.indexOf(analysis)] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 
-					const formatMetric = ([key, value]) => {
-						const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
-						return `${formattedKey}: ${Math.round(value)}px`;
-					};
-
-					const metrics = Object.entries(analysis.metrics)
+					const metrics = Object.entries(analysis)
 						.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
-						.map(formatMetric);
+						.map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}: ${Math.round(value)}px`);
 
-					const coreMetrics = [
-						`Y Min: ${analysis.yMin}px`,
-						`Y Max: ${analysis.yMax}px`,
-						`Density: ${analysis.density}%`,
-						`Font Size: ${analysis.fontSize}px`,
-						`Baseline Shift: ${analysis.baselineShift}px`,
-						`Letter Spacing: ${analysis.letterSpacing}px`,
-					];
-
-					return [...coreMetrics, ...metrics].join('\n');
+					return [
+						`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`,
+						`Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`,
+						...metrics
+					].join('\n');
 				}
 
 				updateResults() {
