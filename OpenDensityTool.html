@@ -527,7 +527,7 @@
 					this.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
-						if (isSideBySide && i > 0) currentX += this.analyses[i-1].canvas.width;
+						if (isSideBySide && i > 0 && this.analyses[i-1]) currentX += this.analyses[i-1].canvas.width;
 
 						const blend = this.analyses[0] && this.analyses[1] && i > 0;
 						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
@@ -601,8 +601,8 @@
 					style.transform = `scale(${Math.min(available / width, 1)})`;
 				}
 
-				_formatAnalysisResults(analysis) {
-					if (!analysis) return this.fonts[this.analyses.indexOf(analysis)] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
+				_formatAnalysisResults(analysis, index) {
+					if (!analysis) return this.fonts[index] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 
 					const metrics = Object.entries(analysis)
 						.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
@@ -617,7 +617,7 @@
 
 				updateResults() {
 					this.fontUIs.forEach((ui, i) => {
-						ui.results.textContent = this._formatAnalysisResults(this.analyses[i]);
+						ui.results.textContent = this._formatAnalysisResults(this.analyses[i], i);
 					});
 				}
 
