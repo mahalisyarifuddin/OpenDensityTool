@@ -590,13 +590,15 @@
 				updateDisplayScale() {
 					const { canvas } = this.ui;
 					const wrapper = canvas.parentElement;
+					const previewContainer = wrapper.parentElement;
 					if (this.ui.zoomMode.value !== 'fit' || !canvas.width) {
 						wrapper.style.transform = 'none';
 						return;
 					}
-					const pad = parseFloat(getComputedStyle(wrapper).paddingLeft) * 2;
-					const available = wrapper.parentElement.clientWidth - pad;
-					const scale = Math.min(available / canvas.width, 1);
+					const wrapperStyle = getComputedStyle(wrapper);
+					const totalWrapperWidth = canvas.width + parseFloat(wrapperStyle.paddingLeft) + parseFloat(wrapperStyle.paddingRight);
+					const availableWidth = previewContainer.clientWidth;
+					const scale = Math.min(availableWidth / totalWrapperWidth, 1);
 					wrapper.style.transform = `scale(${scale})`;
 					wrapper.style.transformOrigin = 'top left';
 				}
