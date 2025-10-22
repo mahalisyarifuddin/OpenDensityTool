@@ -591,14 +591,20 @@
 					const { canvas } = this.ui;
 					const wrapper = canvas.parentElement;
 					const previewContainer = wrapper.parentElement;
+					// Reset styles before calculations
+					wrapper.style.width = 'auto';
+					wrapper.style.height = 'auto';
+					canvas.style.transform = 'none';
 					if (this.ui.zoomMode.value !== 'fit' || !canvas.width) {
-						wrapper.style.zoom = 1;
 						return;
 					}
-					const wrapperStyle = getComputedStyle(wrapper);
-					const totalWrapperWidth = canvas.width + parseFloat(wrapperStyle.paddingLeft) + parseFloat(wrapperStyle.paddingRight);
 					const availableWidth = previewContainer.clientWidth;
-					wrapper.style.zoom = Math.min(availableWidth / totalWrapperWidth, 1);
+					const scale = Math.min(availableWidth / canvas.width, 1);
+					canvas.style.transform = `scale(${scale})`;
+					canvas.style.transformOrigin = 'top left';
+					// Adjust wrapper size to match the scaled canvas
+					wrapper.style.width = `${canvas.width * scale}px`;
+					wrapper.style.height = `${canvas.height * scale}px`;
 				}
 
 				_formatAnalysisResults(analysis, index) {
