@@ -170,7 +170,6 @@
 
 			#canvas {
 				display: block;
-				transform-origin: top left;
 			}
 
 			.results-section {
@@ -589,14 +588,17 @@
 				}
 
 				updateDisplayScale() {
-					const { style, parentElement, width } = this.ui.canvas;
-					if (this.ui.zoomMode.value !== 'fit' || !width) {
-						style.transform = 'none';
+					const { canvas } = this.ui;
+					const wrapper = canvas.parentElement;
+					if (this.ui.zoomMode.value !== 'fit' || !canvas.width) {
+						wrapper.style.transform = 'none';
 						return;
 					}
-					const pad = parseFloat(getComputedStyle(parentElement).paddingLeft) * 2;
-					const available = parentElement.parentElement.clientWidth - pad;
-					style.transform = `scale(${Math.min(available / width, 1)})`;
+					const pad = parseFloat(getComputedStyle(wrapper).paddingLeft) * 2;
+					const available = wrapper.parentElement.clientWidth - pad;
+					const scale = Math.min(available / canvas.width, 1);
+					wrapper.style.transform = `scale(${scale})`;
+					wrapper.style.transformOrigin = 'top left';
 				}
 
 				_formatAnalysisResults(analysis, index) {
