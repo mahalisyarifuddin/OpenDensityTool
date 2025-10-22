@@ -53,6 +53,7 @@
 				border: 1px solid var(--border);
 				border-radius: 8px;
 				padding: 24px;
+				min-width: 0;
 			}
 
 			.panel-title {
@@ -63,7 +64,8 @@
 				padding-bottom: 12px;
 			}
 
-			.font-section, .result-card {
+			.font-section,
+			.result-card {
 				padding: 16px;
 				border-radius: 6px;
 				background: #fdfdfd;
@@ -74,11 +76,15 @@
 				margin-bottom: 20px;
 			}
 
-			.font-header {
+			.font-header,
+			.result-header {
 				display: flex;
 				align-items: center;
-				margin: 0 0 16px;
 				font-weight: 600;
+			}
+
+			.font-header {
+				margin: 0 0 16px;
 			}
 
 			.color-indicator {
@@ -105,7 +111,7 @@
 				margin-bottom: 0;
 			}
 
-			.form-label, .zoom-label {
+			.form-label {
 				display: block;
 				font-weight: 500;
 				margin-bottom: 6px;
@@ -120,7 +126,7 @@
 				border-radius: 4px;
 				font-size: 0.95em;
 				background: #fff;
-				transition: border-color .2s, box-shadow .2s;
+				transition: border-color .2s,box-shadow .2s;
 			}
 
 			.controls-bar > * {
@@ -170,6 +176,7 @@
 
 			#canvas {
 				display: block;
+				transform-origin: top left;
 			}
 
 			.results-section {
@@ -182,11 +189,9 @@
 				gap: 16px;
 			}
 
+
 			.result-header {
-				display: flex;
-				align-items: center;
 				margin: 0 0 10px;
-				font-weight: 600;
 			}
 
 			.result-data {
@@ -451,24 +456,21 @@
 
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
+
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
+
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
 					const canvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(canvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
+
 					const pixelData = this.getPixelData(canvas);
 					if (pixelData.minY > pixelData.maxY) return null;
+
 					return {
-						...pixelData,
-						...metrics,
-						canvas,
-						baseline,
-						baselineShift,
-						letterSpacing,
-						fontSize: finalSize,
-						font,
+						...pixelData, ...metrics, canvas, baseline, baselineShift, letterSpacing, fontSize: finalSize, font,
 						density: this._calculateDensity(pixelData, metrics, finalSize).toFixed(1),
 						yMin: Math.round(baseline - pixelData.maxY),
 						yMax: Math.round(baseline - pixelData.minY),
@@ -588,23 +590,14 @@
 				}
 
 				updateDisplayScale() {
-					const { canvas } = this.ui;
-					const wrapper = canvas.parentElement;
-					const previewContainer = wrapper.parentElement;
-					// Reset styles before calculations
-					wrapper.style.width = 'auto';
-					wrapper.style.height = 'auto';
-					canvas.style.transform = 'none';
-					if (this.ui.zoomMode.value !== 'fit' || !canvas.width) {
+					const { style, parentElement, width } = this.ui.canvas;
+					if (this.ui.zoomMode.value !== 'fit' || !width) {
+						style.transform = 'none';
 						return;
 					}
-					const availableWidth = previewContainer.clientWidth;
-					const scale = Math.min(availableWidth / canvas.width, 1);
-					canvas.style.transform = `scale(${scale})`;
-					canvas.style.transformOrigin = 'top left';
-					// Adjust wrapper size to match the scaled canvas
-					wrapper.style.width = `${canvas.width * scale}px`;
-					wrapper.style.height = `${canvas.height * scale}px`;
+					const pad = parseFloat(getComputedStyle(parentElement).paddingLeft) * 2;
+					const available = parentElement.parentElement.clientWidth - pad;
+					style.transform = `scale(${Math.min(available / width, 1)})`;
 				}
 
 				_formatAnalysisResults(analysis, index) {
