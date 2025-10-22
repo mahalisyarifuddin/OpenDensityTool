@@ -592,15 +592,13 @@
 					const wrapper = canvas.parentElement;
 					const previewContainer = wrapper.parentElement;
 					if (this.ui.zoomMode.value !== 'fit' || !canvas.width) {
-						wrapper.style.transform = 'none';
+						wrapper.style.zoom = 1;
 						return;
 					}
 					const wrapperStyle = getComputedStyle(wrapper);
 					const totalWrapperWidth = canvas.width + parseFloat(wrapperStyle.paddingLeft) + parseFloat(wrapperStyle.paddingRight);
 					const availableWidth = previewContainer.clientWidth;
-					const scale = Math.min(availableWidth / totalWrapperWidth, 1);
-					wrapper.style.transform = `scale(${scale})`;
-					wrapper.style.transformOrigin = 'top left';
+					wrapper.style.zoom = Math.min(availableWidth / totalWrapperWidth, 1);
 				}
 
 				_formatAnalysisResults(analysis, index) {
