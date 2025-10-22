@@ -53,7 +53,6 @@
 				border: 1px solid var(--border);
 				border-radius: 8px;
 				padding: 24px;
-				min-width: 0;
 			}
 
 			.panel-title {
@@ -64,12 +63,15 @@
 				padding-bottom: 12px;
 			}
 
-			.font-section {
+			.font-section, .result-card {
 				padding: 16px;
-				margin-bottom: 20px;
 				border-radius: 6px;
 				background: #fdfdfd;
 				border: 1px solid var(--border);
+			}
+
+			.font-section {
+				margin-bottom: 20px;
 			}
 
 			.font-header {
@@ -118,7 +120,7 @@
 				border-radius: 4px;
 				font-size: 0.95em;
 				background: #fff;
-				transition: border-color .2s,box-shadow .2s;
+				transition: border-color .2s, box-shadow .2s;
 			}
 
 			.controls-bar > * {
@@ -179,13 +181,6 @@
 				display: grid;
 				grid-template-columns: 1fr 1fr;
 				gap: 16px;
-			}
-
-			.result-card {
-				border: 1px solid var(--border);
-				border-radius: 6px;
-				padding: 16px;
-				background: #fdfdfd;
 			}
 
 			.result-header {
@@ -457,21 +452,24 @@
 
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
-
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
-
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
 					const canvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(canvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
-
 					const pixelData = this.getPixelData(canvas);
 					if (pixelData.minY > pixelData.maxY) return null;
-
 					return {
-						...pixelData, ...metrics, canvas, baseline, baselineShift, letterSpacing, fontSize: finalSize, font,
+						...pixelData,
+						...metrics,
+						canvas,
+						baseline,
+						baselineShift,
+						letterSpacing,
+						fontSize: finalSize,
+						font,
 						density: this._calculateDensity(pixelData, metrics, finalSize).toFixed(1),
 						yMin: Math.round(baseline - pixelData.maxY),
 						yMax: Math.round(baseline - pixelData.minY),
