@@ -590,14 +590,22 @@
 				}
 
 				updateDisplayScale() {
-					const { style, parentElement, width } = this.ui.canvas;
-					if (this.ui.zoomMode.value !== 'fit' || !width) {
-						style.transform = 'none';
-						return;
-					}
-					const pad = parseFloat(getComputedStyle(parentElement).paddingLeft) * 2;
-					const available = parentElement.parentElement.clientWidth - pad;
-					style.transform = `scale(${Math.min(available / width, 1)})`;
+					const { style, parentElement, width, height } = this.ui.canvas;
+					const wrapper = parentElement;
+					const shouldFit = this.ui.zoomMode.value === 'fit';
+
+					Object.assign(wrapper.style, { width: null, height: null });
+					style.transform = 'none';
+					if (!shouldFit || !width) return;
+
+					const pad = parseFloat(getComputedStyle(wrapper).paddingLeft) * 2;
+					const available = wrapper.parentElement.clientWidth - pad;
+					const scale = Math.min(available / width, 1);
+					style.transform = `scale(${scale})`;
+					Object.assign(wrapper.style, {
+						width: `${width * scale}px`,
+						height: `${height * scale}px`
+					});
 				}
 
 				_formatAnalysisResults(analysis, index) {
