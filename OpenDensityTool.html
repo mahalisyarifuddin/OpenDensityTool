@@ -336,17 +336,14 @@
 					this.render();
 				}
 
-				getUIElements() {
+				_initialize() {
+					const ui = (this.ui = {});
 					const ids = [
 						'canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png',
-						'font1-file', 'font1-text', 'font1-size', 'font1-shift', 'font1-letter-spacing', 'results1',
-						'font2-file', 'font2-text', 'font2-size', 'font2-shift', 'font2-letter-spacing', 'results2',
+						...[1, 2].flatMap(i => [`font${i}-file`, `font${i}-text`, `font${i}-size`, `font${i}-shift`, `font${i}-letter-spacing`, `results${i}`])
 					];
-					return Object.fromEntries(ids.map(id => [id.replace(/-(\w)/g, (_, c) => c.toUpperCase()), $(id)]));
-				}
+					ids.forEach(id => ui[id.replace(/-(\w)/g, (_, c) => c.toUpperCase())] = $(id));
 
-				_initialize() {
-					this.ui = this.getUIElements();
 					const tintCanvas = document.createElement('canvas');
 					Object.assign(this, {
 						colors: ['--font1', '--font2'].map(p => getComputedStyle(document.documentElement).getPropertyValue(p).trim()),
@@ -356,12 +353,11 @@
 						analyses: [null, null],
 						animRefs: {},
 						tintCanvas,
-						ctx: this.ui.canvas.getContext('2d'),
+						ctx: ui.canvas.getContext('2d'),
 						tintContext: tintCanvas.getContext('2d', { willReadFrequently: true }),
 						fontUIs: [1, 2].map(i => ({
-							file: this.ui[`font${i}File`], text: this.ui[`font${i}Text`],
-							size: this.ui[`font${i}Size`], shift: this.ui[`font${i}Shift`],
-							letterSpacing: this.ui[`font${i}LetterSpacing`], results: this.ui[`results${i}`]
+							file: ui[`font${i}File`], text: ui[`font${i}Text`], size: ui[`font${i}Size`],
+							shift: ui[`font${i}Shift`], letterSpacing: ui[`font${i}LetterSpacing`], results: ui[`results${i}`]
 						}))
 					});
 				}
@@ -374,22 +370,22 @@
 					this.requestAnalysis = queue(this.analyzeAndRender, 'analyze');
 					this.requestScaling = queue(this.updateDisplayScale, 'scale');
 
-					const addInputListeners = (element, handler) => ['input', 'change'].forEach(evt => element.addEventListener(evt, handler));
-
 					const listeners = {
-						zoomMode: ['change', this.requestScaling],
-						renderMode: ['change', this.requestAnalysis],
-						densityMode: ['change', this.requestAnalysis],
-						exportPng: ['click', () => this.exportPNG()],
+						'zoom-mode': this.requestScaling,
+						'render-mode': this.requestAnalysis,
+						'density-mode': this.requestAnalysis,
+						'export-png': () => this.exportPNG(),
 					};
 
-					for (const key in listeners) {
-						this.ui[key].addEventListener(...listeners[key]);
+					for (const id in listeners) {
+						$(id).addEventListener(id === 'export-png' ? 'click' : 'change', listeners[id]);
 					}
 
 					this.fontUIs.forEach((ui, i) => {
 						ui.file.addEventListener('change', e => this.loadFont(e.target.files?.[0], i));
-						[ui.text, ui.size, ui.shift, ui.letterSpacing].forEach(el => addInputListeners(el, this.requestAnalysis));
+						['text', 'size', 'shift', 'letterSpacing'].forEach(prop => {
+							['input', 'change'].forEach(evt => ui[prop].addEventListener(evt, this.requestAnalysis));
+						});
 					});
 
 					window.addEventListener('resize', this.requestScaling);
@@ -424,56 +420,51 @@
 				getFontMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					const glyphs = font.stringToGlyphs(text);
-
-					const { actualAscent, actualDescent } = glyphs.reduce(({ actualAscent, actualDescent }, glyph) => {
-						const b = glyph.path?.getBoundingBox();
-						return b && isFinite(b.y1) && isFinite(b.y2)
-							? { actualAscent: Math.max(actualAscent, b.y2), actualDescent: Math.max(actualDescent, -b.y1) }
-							: { actualAscent, actualDescent };
+					const { actualAscent, actualDescent } = glyphs.reduce((acc, g) => {
+						const b = g.path?.getBoundingBox();
+						if (b && isFinite(b.y1) && isFinite(b.y2)) {
+							acc.actualAscent = Math.max(acc.actualAscent, b.y2);
+							acc.actualDescent = Math.max(acc.actualDescent, -b.y1);
+						}
+						return acc;
 					}, { actualAscent: 0, actualDescent: 0 });
 
+					const { os2, hhea } = font.tables;
+					const getMaxMetric = (keys, mapper = v => v) => Math.max(...keys.map(k => mapper(font[k] || os2?.[k] || hhea?.[k] || 0))) * scale;
+
+					const fontAscent = getMaxMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
+					const fontDescent = getMaxMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
 					const scaledAscent = actualAscent * scale || font.ascender * scale;
 					const scaledDescent = actualDescent * scale || Math.abs(font.descender * scale);
 
-					const { os2, hhea } = font.tables;
-					const getMaxMetric = (metrics, mapper = v => v) => Math.max(...metrics.filter(isFinite).map(mapper)) * scale;
-
-					const fontAscent = getMaxMetric([font.ascender, os2?.sTypoAscender, os2?.usWinAscent, hhea?.ascender]);
-					const fontDescent = getMaxMetric([font.descender, os2?.sTypoDescender, os2?.usWinDescent, hhea?.descender], Math.abs);
-
 					const options = { tracking: letterSpacing || 0 };
 					const path = font.getPath(text, 0, 0, fontSize, options);
-					const bounds = path.getBoundingBox();
-
 					return {
-						ascent: Math.max(scaledAscent, fontAscent),
-						descent: Math.max(scaledDescent, fontDescent),
+						ascent: Math.max(scaledAscent, fontAscent), descent: Math.max(scaledDescent, fontDescent),
 						actualAscent: scaledAscent, actualDescent: scaledDescent, fontAscent, fontDescent,
-						bboxWidth: Math.ceil(bounds.x2 - bounds.x1),
-						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
+						bboxWidth: Math.ceil(path.getBoundingBox().x2 - path.getBoundingBox().x1),
+						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options)),
 					};
 				}
 
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize) return null;
-
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
+
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 
 					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
 					const canvas = Object.assign(document.createElement('canvas'), { width: metrics.advanceWidth, height });
 					font.draw(canvas.getContext('2d'), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
-
 					const pixelData = this.getPixelData(canvas);
-					if (pixelData.minY > pixelData.maxY) return null;
 
+					if (pixelData.minY > pixelData.maxY) return null;
 					return {
 						...pixelData, ...metrics, canvas, baseline, baselineShift, letterSpacing, fontSize: finalSize, font,
 						density: this._calculateDensity(pixelData, metrics, finalSize).toFixed(1),
-						yMin: Math.round(baseline - pixelData.maxY),
-						yMax: Math.round(baseline - pixelData.minY),
+						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
 					};
 				}
 
@@ -515,72 +506,52 @@
 						this.updateResults();
 						return;
 					}
-
-					const dims = this.calculateDimensions(validAnalyses);
+					const dims = this._calculateDimensions(validAnalyses);
 					Object.assign(this.ui.canvas, dims);
 					this.ctx.clearRect(0, 0, dims.width, dims.height);
-
 					const isSideBySide = this.ui.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
 					let currentX = this.graphWidth + this.graphPadding;
-
 					this.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
-						if (isSideBySide && i > 0 && this.analyses[i-1]) currentX += this.analyses[i-1].canvas.width;
-
 						const blend = this.analyses[0] && this.analyses[1] && i > 0;
-						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
-						this.drawText(analysis, this.colors[i], currentX, yOffset, blend);
+						this._drawDensityGraph(analysis, this.colors[i], yOffset, blend);
+						this._drawText(analysis, this.colors[i], currentX, yOffset, blend);
+						if (isSideBySide && this.analyses[i]) currentX += analysis.canvas.width;
 					});
-
 					this.requestScaling();
 					this.updateResults();
 				}
-
-				calculateDimensions(analyses) {
+				_calculateDimensions(analyses) {
 					const isSideBySide = this.ui.renderMode.value === 'side-by-side' && analyses.length > 1;
 					const asc = Math.max(0, ...analyses.map(a => a.baseline - a.baselineShift));
 					const desc = Math.max(0, ...analyses.map(a => (a.canvas.height - a.baseline) + a.baselineShift));
-
-					let totalW = isSideBySide
-						? analyses.reduce((sum, a) => sum + a.canvas.width, 0)
-						: Math.max(0, ...analyses.map(a => a.canvas.width));
-
+					const totalW = isSideBySide ? analyses.reduce((sum, a) => sum + a.canvas.width, 0) : Math.max(0, ...analyses.map(a => a.canvas.width));
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + totalW),
 						height: Math.ceil(asc + desc),
-						baseline: Math.ceil(asc)
+						baseline: Math.ceil(asc),
 					};
 				}
-
-				drawDensityGraph({ densityMap }, color, yOffset, blend) {
+				_drawDensityGraph({ densityMap }, color, yOffset, blend) {
 					const max = Math.max(1, ...densityMap);
-					Object.assign(this.ctx, {
-						fillStyle: color,
-						globalCompositeOperation: blend ? 'multiply' : 'source-over'
-					});
+					Object.assign(this.ctx, { fillStyle: color, globalCompositeOperation: blend ? 'multiply' : 'source-over' });
 					densityMap.forEach((val, y) => {
-						const w = (val / max) * this.graphWidth;
-						if (w > 0) this.ctx.fillRect(this.graphWidth - w, y + yOffset, w, 1);
+						if (val > 0) this.ctx.fillRect(this.graphWidth - (val / max) * this.graphWidth, y + yOffset, (val / max) * this.graphWidth, 1);
 					});
 					this.ctx.globalCompositeOperation = 'source-over';
 				}
-
-				drawText({ canvas: src }, color, x, y, blend) {
-					const { tintContext, tintCanvas, ctx } = this;
-					Object.assign(tintCanvas, { width: src.width, height: src.height });
-
-					tintContext.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
-					tintContext.fillStyle = color;
-					tintContext.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
-					tintContext.globalCompositeOperation = 'destination-in';
-					tintContext.drawImage(src, 0, 0);
-
+				_drawText({ canvas: src }, color, x, y, blend) {
+					const { tintContext: tctx, tintCanvas: tcvs, ctx } = this;
+					Object.assign(tcvs, { width: src.width, height: src.height });
+					tctx.clearRect(0, 0, tcvs.width, tcvs.height);
+					tctx.fillStyle = color;
+					tctx.fillRect(0, 0, tcvs.width, tcvs.height);
+					tctx.globalCompositeOperation = 'destination-in';
+					tctx.drawImage(src, 0, 0);
 					ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					ctx.drawImage(tintCanvas, x, y);
-
-					tintContext.globalCompositeOperation = 'source-over';
-					ctx.globalCompositeOperation = 'source-over';
+					ctx.drawImage(tcvs, x, y);
+					tctx.globalCompositeOperation = ctx.globalCompositeOperation = 'source-over';
 				}
 
 				renderEmpty() {
@@ -590,27 +561,28 @@
 				}
 
 				updateDisplayScale() {
-					const { style, parentElement, width } = this.ui.canvas;
-					if (this.ui.zoomMode.value !== 'fit' || !width) {
-						style.transform = 'none';
-						return;
-					}
-					const pad = parseFloat(getComputedStyle(parentElement).paddingLeft) * 2;
-					const available = parentElement.parentElement.clientWidth - pad;
-					style.transform = `scale(${Math.min(available / width, 1)})`;
+					const { style, parentElement, width, height } = this.ui.canvas;
+					const wrapperStyle = parentElement.style;
+					const fitMode = this.ui.zoomMode.value === 'fit' && width;
+					style.transform = 'none';
+					Object.assign(wrapperStyle, { width: '', height: '', overflow: '' });
+					if (!fitMode) return;
+					const cs = getComputedStyle(parentElement);
+					const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+					const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+					const scale = Math.min((parentElement.parentElement.clientWidth - padX) / width, 1);
+					style.transform = `scale(${scale})`;
+					Object.assign(wrapperStyle, {
+						width: `${width * scale + padX}px`, height: `${height * scale + padY}px`, overflow: 'hidden'
+					});
 				}
-
 				_formatAnalysisResults(analysis, index) {
 					if (!analysis) return this.fonts[index] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
-
-					const metrics = Object.entries(analysis)
-						.filter(([k]) => k.includes('Ascent') || k.includes('Descent'))
-						.map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}: ${Math.round(value)}px`);
-
+					const formatVal = (key, unit = 'px') => `${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, c => c.toUpperCase())}: ${Math.round(analysis[key])}${unit}`;
+					const metrics = Object.keys(analysis).filter(k => k.includes('Ascent') || k.includes('Descent')).map(k => formatVal(k));
 					return [
 						`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`,
-						`Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`,
-						...metrics
+						`Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`, ...metrics,
 					].join('\n');
 				}
 
