@@ -463,7 +463,7 @@
 					if (pixelData.minY > pixelData.maxY) return null;
 					return {
 						...pixelData, ...metrics, canvas, baseline, baselineShift, letterSpacing, fontSize: finalSize, font,
-						density: this._calculateDensity(pixelData, metrics, finalSize).toFixed(1),
+						density: this._calculateDensity(pixelData, metrics, finalSize, font).toFixed(1),
 						yMin: Math.round(baseline - pixelData.maxY), yMax: Math.round(baseline - pixelData.minY),
 					};
 				}
@@ -486,9 +486,10 @@
 					return { densityMap, inkVolume, minX, maxX, minY, maxY };
 				}
 
-				_calculateDensity({ inkVolume, maxX, minX, maxY, minY }, metrics, fontSize) {
+				_calculateDensity({ inkVolume, maxX, minX, maxY, minY }, metrics, fontSize, font) {
 					const w = (maxX - minX + 1) || 1, h = (maxY - minY + 1) || 1;
-					const area = this.ui.densityMode.value === 'ink-box' ? w * h : metrics.advanceWidth * fontSize;
+					const emHeight = (font.ascender - font.descender) * (fontSize / font.unitsPerEm);
+					const area = this.ui.densityMode.value === 'ink-box' ? w * h : metrics.advanceWidth * emHeight;
 					return (inkVolume / area) * 100;
 				}
 
