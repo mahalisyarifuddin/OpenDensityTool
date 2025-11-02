@@ -614,9 +614,6 @@
 				calculateDensity({ inkVolume, maxX, minX, maxY, minY }, metrics, fontSize) {
 					const inkBoxWidth = (maxX - minX + 1) || 1;
 					const inkBoxHeight = (maxY - minY + 1) || 1;
-
-					// "Em box" density calculates density based on the area defined by the font's metrics
-					// (advance width * (ascent + descent)), as opposed to the tight "ink box" around the pixels.
 					const area = this.ui.densityMode.value === "ink-box"
 						? inkBoxWidth * inkBoxHeight
 						: metrics.advanceWidth * (metrics.ascent + metrics.descent);
