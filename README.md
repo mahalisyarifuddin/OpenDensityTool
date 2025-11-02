@@ -13,11 +13,11 @@ I also use this tool personally to pair Latin with East Asian fonts (e.g., choos
 All processing happens locally in your browser using opentype.js; fonts are not uploaded.
 
 ## How It Works
-- Renders your text to an off‑screen canvas for each font.
-- Reads vertical metrics from the font (OS/2 and hhea tables) and estimates "actual" ascent/descent from glyph outlines.
-- Computes a per‑row coverage ("ink") density from alpha pixels to form the left‑side density graph.
-- Tints each font (cyan/magenta) and overlays them using multiply blending to reveal differences in texture, weight, and alignment.
-- Reports yMin/yMax (relative to baseline), density %, actual vs. font ascent/descent, and your inputs (size and baseline shift).
+- Renders text to an off-screen canvas for each font, ensuring robust handling of various font file types.
+- Reads vertical metrics from the font's OS/2 and hhea tables, and estimates "actual" ascent/descent from glyph outlines.
+- Computes per-row "ink" density from pixel data to generate the density graph on the left.
+- Tints each font (cyan/magenta) and overlays them using multiply blending to highlight differences in texture, weight, and alignment.
+- Reports yMin/yMax (relative to the baseline), density percentage, actual vs. font ascent/descent, and user-defined inputs like size and baseline shift.
 
 ## Quick Start
 1. Download OpenDensityTool.html.
@@ -67,7 +67,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - OpenType feature coverage: opentype.js now supports shaping for Arabic and Thai. For other scripts, it primarily supports GPOS "kern" and GSUB "liga." Complex shaping and features beyond these are limited.
 - Complex scripts: While Arabic and Thai are now supported, other shaping-intensive scripts (e.g., Indic, other Southeast Asian languages) may not render ideally. Consider the results approximate.
 - No vertical writing / ideographic baseline: The tool measures in horizontal layout only.
-- Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU.
+- Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU. The tool is also sensitive to the browser's font rendering engine, which may vary.
 - Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs and complex OpenType features can be slow to process.
 
 ## Privacy & Data
