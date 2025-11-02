@@ -83,3 +83,9 @@ MIT License. See LICENSE for details.
 
 ## Contributions
 Contributions, issues, and suggestions are welcome. Please open an issue to discuss ideas or submit a PR.
+
+## Changelog
+- **v1.1 (2025-11-02):**
+  - Refactored the JavaScript codebase for improved conciseness and readability using modern syntax.
+  - Implemented robust error handling for font loading and parsing, displaying errors in the analysis panel instead of using alerts.
+  - Added safeguards for oversized font files and other invalid user inputs.
