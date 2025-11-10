@@ -441,92 +441,77 @@
 				bindEvents() {
 					const queue = (fn, key) => (...args) => {
 						cancelAnimationFrame(this.state.animRefs[key]);
-						this.state.animRefs[key] = requestAnimationFrame(() => fn.apply(this, args));
+						this.state.animRefs[key] = requestAnimationFrame(() => fn(...args));
 					};
-					this.requestAnalysis = queue(this.analyzeAndRender, "analyze");
-					this.requestScaling = queue(this.updateDisplayScale, "scale");
 
-					this.ui.zoomMode.addEventListener("change", this.requestScaling);
-					this.ui.renderMode.addEventListener("change", this.requestAnalysis);
-					this.ui.densityMode.addEventListener("change", this.requestAnalysis);
-					this.ui.exportPng.addEventListener("click", () => this.exportPNG());
-					this.ui.themeSelect.addEventListener("change", e => {
+					this.requestAnalysis = queue(() => this.analyzeAndRender(), "analyze");
+					this.requestScaling = queue(() => this.updateDisplayScale(), "scale");
+
+					this.ui.zoomMode.onchange = this.requestScaling;
+					this.ui.renderMode.onchange = this.requestAnalysis;
+					this.ui.densityMode.onchange = this.requestAnalysis;
+					this.ui.exportPng.onclick = () => this.exportPNG();
+					this.ui.themeSelect.onchange = e => {
 						this.state.theme = e.target.value;
 						this.applyTheme();
-					});
+					};
 
 					this.ui.fontUIs.forEach((ui, i) => {
-						ui.file.addEventListener("change", e => this.loadFont(e.target.files?.[0], i));
+						ui.file.onchange = e => this.loadFont(e.target.files?.[0], i);
 						["text", "size", "shift", "letterSpacing"].forEach(prop => {
-							ui[prop].addEventListener("input", this.requestAnalysis);
-							ui[prop].addEventListener("change", this.requestAnalysis);
+							ui[prop].oninput = this.requestAnalysis;
 						});
 					});
-					window.addEventListener("resize", this.requestScaling);
+					window.onresize = this.requestScaling;
 				}
+
 				applyTheme() {
 					document.documentElement.classList.remove("light", "dark");
-					if (this.state.theme !== "auto")
-						document.documentElement.classList.add(this.state.theme)
+					if (this.state.theme !== "auto") {
+						document.documentElement.classList.add(this.state.theme);
+					}
 				}
 				async loadFont(file, index) {
-					let font = null;
 					const ui = this.ui.fontUIs[index];
 					const MAX_SIZE_MB = 30;
-					const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-					if (file) {
-						if (file.size > MAX_SIZE_BYTES) {
-							alert(`Font file is too large (${(file.size / 1048576).toFixed(1)}MB). Max size is ${MAX_SIZE_MB}MB.`);
-						} else {
-							try {
-								const buffer = await file.arrayBuffer();
-								font = opentype.parse(buffer);
-								if (!font || typeof font.draw !== 'function') {
-									throw new Error("Invalid font data.");
-								}
-							} catch (err) {
-								console.error("Font loading failed:", err);
-								alert(`Failed to parse font: ${file.name}.`);
-								font = null;
-							}
+					let font = null;
+					try {
+						if (!file) return;
+						if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+							throw new Error(`File exceeds ${MAX_SIZE_MB}MB`);
 						}
-					}
-					this.state.fonts[index] = font;
-					if (!font) {
+						const buffer = await file.arrayBuffer();
+						font = opentype.parse(buffer);
+						if (!font?.draw || !font.unitsPerEm) throw new Error("Invalid or unsupported font file.");
+					} catch (err) {
+						alert(`Error loading font: ${err.message}`);
+						console.error("Font loading failed:", err);
 						ui.file.value = "";
+					} finally {
+						this.state.fonts[index] = font;
+						this.requestAnalysis();
 					}
-					this.requestAnalysis();
 				}
 				getFontMetrics(font, text, fontSize, letterSpacing) {
+					if (!font.unitsPerEm) throw new Error("Invalid font data: missing unitsPerEm.");
 					const scale = fontSize / font.unitsPerEm;
-					const glyphs = font.stringToGlyphs(text);
-					const { actualAscent, actualDescent } = glyphs.reduce((acc, g) => {
-						const b = g.path?.getBoundingBox();
-						if (b && isFinite(b.y1) && isFinite(b.y2)) {
-							acc.actualAscent = Math.max(acc.actualAscent, b.y2);
-							acc.actualDescent = Math.max(acc.actualDescent, -b.y1);
-						}
-						return acc;
-					}, { actualAscent: 0, actualDescent: 0 });
-
-					const { os2, hhea } = font.tables;
-					const getMaxMetric = (keys, mapper = v => v) => Math.max(...keys.map(k => mapper(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0))) * scale;
-					const fontAscent = getMaxMetric(["ascender", "sTypoAscender", "usWinAscent"]);
-					const fontDescent = getMaxMetric(["descender", "sTypoDescender", "usWinDescent"], Math.abs);
-					const scaledAscent = actualAscent * scale || font.ascender * scale;
-					const scaledDescent = actualDescent * scale || Math.abs(font.descender * scale);
 					const options = { tracking: letterSpacing || 0 };
 					const path = font.getPath(text, 0, 0, fontSize, options);
+					const { x1, y1, x2, y2 } = path.getBoundingBox();
+
+					const { os2, hhea } = font.tables;
+					const getMaxMetric = (keys, mapper = v => v) => Math.max(...keys.map(k => mapper(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0)));
+					const fontAscent = getMaxMetric(["ascender", "sTypoAscender", "usWinAscent"]) * scale;
+					const fontDescent = Math.abs(getMaxMetric(["descender", "sTypoDescender", "usWinDescent"])) * scale;
 
 					return {
-						ascent: Math.max(scaledAscent, fontAscent),
-						descent: Math.max(scaledDescent, fontDescent),
-						actualAscent: scaledAscent,
-						actualDescent: scaledDescent,
+						ascent: Math.max(y2, fontAscent),
+						descent: Math.max(-y1, fontDescent),
+						actualAscent: y2,
+						actualDescent: -y1,
 						fontAscent,
 						fontDescent,
-						bboxWidth: Math.ceil(path.getBoundingBox().x2 - path.getBoundingBox().x1),
+						bboxWidth: Math.ceil(x2 - x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options)),
 					};
 				}
@@ -538,14 +523,12 @@
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 
-					const height = Math.ceil(metrics.ascent + metrics.descent);
+					const canvas = document.createElement("canvas");
 					const baseline = Math.ceil(metrics.ascent);
-					const canvas = Object.assign(document.createElement("canvas"), {
-						width: metrics.advanceWidth,
-						height,
-					});
-					font.draw(canvas.getContext("2d"), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
+					canvas.width = metrics.advanceWidth;
+					canvas.height = Math.ceil(metrics.ascent + metrics.descent);
 
+					font.draw(canvas.getContext("2d"), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 					const pixelData = this.getPixelData(canvas);
 					if (pixelData.minY > pixelData.maxY) return null;
 
@@ -557,60 +540,46 @@
 						baselineShift,
 						letterSpacing,
 						fontSize: finalSize,
-						font,
 						density: this.calculateDensity(pixelData, metrics, finalSize).toFixed(1),
 						yMin: Math.round(baseline - pixelData.maxY),
 						yMax: Math.round(baseline - pixelData.minY),
 					};
 				}
 				getPixelData(canvas) {
-					const {data, width, height} = canvas.getContext("2d", {
-						willReadFrequently: true
-					}).getImageData(0, 0, canvas.width, canvas.height)
-					  , densityMap = new Float32Array(height);
-					let inkVolume = 0
-					  , minX = width
-					  , maxX = -1
-					  , minY = height
-					  , maxY = -1;
-					for (let y = 0; y < height; y++) {
-						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
-						i += 4) {
-							if (data[i] >= 128) {
-								minY = Math.min(minY, y);
-								maxY = Math.max(maxY, y);
-								minX = Math.min(minX, x);
-								maxX = Math.max(maxX, x);
-								inkVolume++;
-								densityMap[y]++
-							}
+					const { data, width, height } = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, width, height);
+					const densityMap = new Float32Array(height);
+					let inkVolume = 0, minX = width, maxX = -1, minY = height, maxY = -1;
+
+					for (let i = 3; i < data.length; i += 4) {
+						if (data[i] >= 128) {
+							const pixelIndex = (i - 3) / 4;
+							const y = Math.floor(pixelIndex / width);
+							const x = pixelIndex % width;
+							minY = Math.min(minY, y);
+							maxY = Math.max(maxY, y);
+							minX = Math.min(minX, x);
+							maxX = Math.max(maxX, x);
+							inkVolume++;
+							densityMap[y]++;
 						}
 					}
-					return {
-						densityMap,
-						inkVolume,
-						minX,
-						maxX,
-						minY,
-						maxY
-					}
+					return { densityMap, inkVolume, minX, maxX, minY, maxY };
 				}
-				calculateDensity({inkVolume, maxX, minX, maxY, minY}, metrics, fontSize) {
-					const w = (maxX - minX + 1) || 1
-					  , h = (maxY - minY + 1) || 1
-					  , area = this.ui.densityMode.value === "ink-box" ? w * h : metrics.advanceWidth * fontSize;
-					return (inkVolume / area) * 100
+
+				calculateDensity({ inkVolume, maxX, minX, maxY, minY }, metrics, fontSize) {
+					const inkBoxArea = ((maxX - minX + 1) || 1) * ((maxY - minY + 1) || 1);
+					const area = this.ui.densityMode.value === "ink-box" ? inkBoxArea : metrics.advanceWidth * fontSize;
+					return (inkVolume / area) * 100;
 				}
 				analyzeAndRender() {
 					this.state.analyses = this.ui.fontUIs.map((ui,i)=>this.analyzeFont(this.state.fonts[i], ui.text.value.trim(), +ui.size.value || 0, +ui.shift.value || 0, +ui.letterSpacing.value || 0));
-					this.render()
+					this.render();
+					this.updateResults();
 				}
 				render() {
 					const validAnalyses = this.state.analyses.filter(Boolean);
 					if (validAnalyses.length === 0) {
-						this.renderEmpty();
-						this.updateResults();
-						return;
+						return this.renderEmpty();
 					}
 
 					const dims = this.calculateDimensions(validAnalyses);
@@ -623,14 +592,13 @@
 					this.state.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = this.state.analyses[0] && this.state.analyses[1] && i > 0;
+						const blend = this.state.analyses.every(Boolean) && i > 0;
 						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
-						this.drawText(analysis, this.colors[i], currentX, yOffset, blend);
+						this.drawText(analysis.canvas, this.colors[i], currentX, yOffset, blend);
 						if (isSideBySide) currentX += analysis.canvas.width;
 					});
 
 					this.requestScaling();
-					this.updateResults();
 				}
 
 				calculateDimensions(analyses) {
@@ -640,9 +608,10 @@
 					const totalW = isSideBySide
 						? analyses.reduce((sum, a) => sum + a.canvas.width, 0)
 						: Math.max(0, ...analyses.map(a => a.canvas.width));
+					const fullWidth = this.state.graphWidth + this.state.graphPadding + totalW;
 
 					return {
-						width: Math.ceil(this.state.graphWidth + this.state.graphPadding + totalW),
+						width: Math.ceil(fullWidth),
 						height: Math.ceil(asc + desc),
 						baseline: Math.ceil(asc),
 					};
@@ -663,34 +632,33 @@
 					this.ctx.globalCompositeOperation = "source-over";
 				}
 
-				drawText({ canvas: src }, color, x, y, blend) {
+				drawText(canvas, color, x, y, blend) {
 					const { tintCtx, tintCanvas, ctx } = this;
-					Object.assign(tintCanvas, { width: src.width, height: src.height });
+					tintCanvas.width = canvas.width;
+					tintCanvas.height = canvas.height;
 					tintCtx.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
 					tintCtx.fillStyle = color;
 					tintCtx.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
 					tintCtx.globalCompositeOperation = "destination-in";
-					tintCtx.drawImage(src, 0, 0);
+					tintCtx.drawImage(canvas, 0, 0);
 
 					ctx.globalCompositeOperation = blend ? "multiply" : "source-over";
 					ctx.drawImage(tintCanvas, x, y);
 					ctx.globalCompositeOperation = "source-over";
 				}
+
 				renderEmpty() {
-					Object.assign(this.ui.canvas, {
-						width: 400,
-						height: 200
-					});
+					this.ui.canvas.width = 400;
+					this.ui.canvas.height = 200;
 					this.ctx.clearRect(0, 0, 400, 200);
-					this.requestScaling()
+					this.requestScaling();
 				}
 				updateDisplayScale() {
 					const { style, parentElement, width, height } = this.ui.canvas;
-					const wrapperStyle = parentElement.style;
 					const fitMode = this.ui.zoomMode.value === "fit" && width;
 
 					style.transform = "none";
-					Object.assign(wrapperStyle, { width: "", height: "", overflow: "" });
+					Object.assign(parentElement.style, { width: "", height: "", overflow: "" });
 
 					if (!fitMode) return;
 
@@ -700,44 +668,34 @@
 					const scale = Math.min((parentElement.parentElement.clientWidth - padX) / width, 1);
 
 					style.transform = `scale(${scale})`;
-					Object.assign(wrapperStyle, {
+					Object.assign(parentElement.style, {
 						width: `${width * scale + padX}px`,
 						height: `${height * scale + padY}px`,
 						overflow: "hidden",
 					});
 				}
 
-				formatAnalysisResults(analysis, index) {
-					if (!analysis) {
-						return this.state.fonts[index] ? "Enter text to analyze." : "Load a font to see analysis.";
-					}
-					const formatVal = (key, unit = "px") => `${key.replace(/([A-Z])/g, " $1").replace(/^\w/, c => c.toUpperCase())}: ${Math.round(analysis[key])}${unit}`;
-					const metrics = Object.keys(analysis)
-						.filter(k => k.includes("Ascent") || k.includes("Descent"))
-						.map(k => formatVal(k));
-
-					return [
-						`Y Min: ${analysis.yMin}px`,
-						`Y Max: ${analysis.yMax}px`,
-						`Density: ${analysis.density}%`,
-						`Font Size: ${analysis.fontSize}px`,
-						`Baseline Shift: ${analysis.baselineShift}px`,
-						`Letter Spacing: ${analysis.letterSpacing}px`,
-						...metrics,
-					].join("\n");
-				}
-
 				updateResults() {
 					this.ui.fontUIs.forEach((ui, i) => {
-						ui.results.textContent = this.formatAnalysisResults(this.state.analyses[i], i);
+						const analysis = this.state.analyses[i];
+						if (!analysis) {
+							ui.results.textContent = this.state.fonts[i] ? "Enter text to analyze." : "Load a font to see analysis.";
+							return;
+						}
+						const formatVal = (key, unit = "px") => `${key.replace(/([A-Z])/g, " $1").replace(/^\w/, c => c.toUpperCase())}: ${Math.round(analysis[key])}${unit}`;
+						const metrics = Object.keys(analysis).filter(k => k.includes("Ascent") || k.includes("Descent")).map(k => formatVal(k));
+						ui.results.textContent = [
+							`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`,
+							`Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`,
+							`Letter Spacing: ${analysis.letterSpacing}px`, ...metrics
+						].join("\n");
 					});
 				}
 
 				exportPNG() {
-					const link = Object.assign(document.createElement("a"), {
-						href: this.ui.canvas.toDataURL("image/png"),
-						download: "typographic-density.png",
-					});
+					const link = document.createElement("a");
+					link.href = this.ui.canvas.toDataURL("image/png");
+					link.download = "typographic-density.png";
 					link.click();
 				}
 			}
