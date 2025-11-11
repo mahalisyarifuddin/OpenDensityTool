@@ -429,9 +429,7 @@
 
 					const cs = getComputedStyle(document.documentElement);
 					this.colors = ["--font1", "--font2"].map(p => cs.getPropertyValue(p).trim());
-					this.tintCanvas = document.createElement("canvas");
 					this.ctx = this.ui.canvas.getContext("2d");
-					this.tintCtx = this.tintCanvas.getContext("2d", { willReadFrequently: true });
 
 					this.bindEvents();
 					this.applyTheme();
