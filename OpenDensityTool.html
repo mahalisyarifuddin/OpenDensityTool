@@ -516,26 +516,30 @@
 					};
 				}
 
-				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
+				analyzeFont(font, text, fontSize, baselineShift, letterSpacing, color) {
 					if (!font || !text || !fontSize) return null;
 
 					const finalSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.getFontMetrics(font, text, finalSize, letterSpacing);
 					if (!isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
 
-					const canvas = document.createElement("canvas");
+					const textCanvas = document.createElement("canvas");
 					const baseline = Math.ceil(metrics.ascent);
-					canvas.width = metrics.advanceWidth;
-					canvas.height = Math.ceil(metrics.ascent + metrics.descent);
+					textCanvas.width = metrics.advanceWidth;
+					textCanvas.height = Math.ceil(metrics.ascent + metrics.descent);
+					font.draw(textCanvas.getContext("2d"), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
 
-					font.draw(canvas.getContext("2d"), text, 0, baseline, finalSize, { tracking: letterSpacing || 0 });
-					const pixelData = this.getPixelData(canvas);
+					const pixelData = this.getPixelData(textCanvas);
 					if (pixelData.minY > pixelData.maxY) return null;
+
+					const tintedTextCanvas = this.tintCanvas(textCanvas, color);
+					const graphCanvas = this.drawDensityGraph(pixelData.densityMap, color, textCanvas.height);
 
 					return {
 						...pixelData,
 						...metrics,
-						canvas,
+						textCanvas: tintedTextCanvas,
+						graphCanvas,
 						baseline,
 						baselineShift,
 						letterSpacing,
@@ -573,81 +577,77 @@
 					return (inkVolume / area) * 100;
 				}
 				analyzeAndRender() {
-					this.state.analyses = this.ui.fontUIs.map((ui,i)=>this.analyzeFont(this.state.fonts[i], ui.text.value.trim(), +ui.size.value || 0, +ui.shift.value || 0, +ui.letterSpacing.value || 0));
+					this.state.analyses = this.ui.fontUIs.map((ui,i)=>this.analyzeFont(this.state.fonts[i], ui.text.value.trim(), +ui.size.value || 0, +ui.shift.value || 0, +ui.letterSpacing.value || 0, this.colors[i]));
 					this.render();
 					this.updateResults();
 				}
 				render() {
-					const validAnalyses = this.state.analyses.filter(Boolean);
-					if (validAnalyses.length === 0) {
-						return this.renderEmpty();
-					}
+					const { ctx, ui, state } = this;
+					const validAnalyses = state.analyses.filter(Boolean);
+					if (validAnalyses.length === 0) return this.renderEmpty();
 
 					const dims = this.calculateDimensions(validAnalyses);
-					Object.assign(this.ui.canvas, dims);
-					this.ctx.clearRect(0, 0, dims.width, dims.height);
+					Object.assign(ui.canvas, dims);
+					ctx.clearRect(0, 0, dims.width, dims.height);
 
-					const isSideBySide = this.ui.renderMode.value === "side-by-side" && validAnalyses.length > 1;
-					this.ctx.translate(this.state.graphWidth + this.state.graphPadding, 0);
+					const isSideBySide = ui.renderMode.value === "side-by-side" && validAnalyses.length > 1;
+					let x = 0;
 
-					this.state.analyses.forEach((analysis, i) => {
+					state.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
-						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = this.state.analyses.every(Boolean) && i > 0;
-						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
-						this.drawText(analysis.canvas, this.colors[i], 0, yOffset, blend);
-						if (isSideBySide) this.ctx.translate(analysis.canvas.width, 0);
+						const y = dims.baseline - analysis.baseline - analysis.baselineShift;
+						ctx.globalCompositeOperation = state.analyses.every(Boolean) && i > 0 ? "multiply" : "source-over";
+						ctx.drawImage(analysis.graphCanvas, x, y);
+						ctx.drawImage(analysis.textCanvas, x + state.graphWidth + state.graphPadding, y);
+						if (isSideBySide) x += analysis.textCanvas.width + state.graphWidth + state.graphPadding;
 					});
 
-					this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+					ctx.globalCompositeOperation = "source-over";
 					this.requestScaling();
 				}
 
 				calculateDimensions(analyses) {
 					const isSideBySide = this.ui.renderMode.value === "side-by-side" && analyses.length > 1;
 					const asc = Math.max(0, ...analyses.map(a => a.baseline - a.baselineShift));
-					const desc = Math.max(0, ...analyses.map(a => a.canvas.height - a.baseline + a.baselineShift));
+					const desc = Math.max(0, ...analyses.map(a => a.textCanvas.height - a.baseline + a.baselineShift));
 					const totalW = isSideBySide
-						? analyses.reduce((sum, a) => sum + a.canvas.width, 0)
-						: Math.max(0, ...analyses.map(a => a.canvas.width));
-					const fullWidth = this.state.graphWidth + this.state.graphPadding + totalW;
+						? analyses.reduce((sum, a) => sum + a.textCanvas.width + this.state.graphWidth + this.state.graphPadding, 0)
+						: Math.max(0, ...analyses.map(a => a.textCanvas.width + this.state.graphWidth + this.state.graphPadding));
 
 					return {
-						width: Math.ceil(fullWidth),
+						width: Math.ceil(totalW),
 						height: Math.ceil(asc + desc),
 						baseline: Math.ceil(asc),
 					};
 				}
 
-				drawDensityGraph({ densityMap }, color, yOffset, blend) {
+				drawDensityGraph(densityMap, color, height) {
+					const canvas = document.createElement("canvas");
+					const ctx = canvas.getContext("2d");
+					const { graphWidth } = this.state;
+					canvas.width = graphWidth;
+					canvas.height = height;
 					const max = Math.max(1, ...densityMap);
-					const { ctx, state } = this;
-					Object.assign(ctx, {
-						fillStyle: color,
-						globalCompositeOperation: blend ? "multiply" : "source-over",
-					});
+					ctx.fillStyle = color;
 					densityMap.forEach((val, y) => {
 						if (val > 0) {
-							const barWidth = (val / max) * state.graphWidth;
-							ctx.fillRect(-state.graphWidth - state.graphPadding, y + yOffset, barWidth, 1);
+							const barWidth = (val / max) * graphWidth;
+							ctx.fillRect(graphWidth - barWidth, y, barWidth, 1);
 						}
 					});
-					ctx.globalCompositeOperation = "source-over";
+					return canvas;
 				}
 
-				drawText(canvas, color, x, y, blend) {
-					const { tintCtx, tintCanvas, ctx } = this;
-					tintCanvas.width = canvas.width;
-					tintCanvas.height = canvas.height;
-					tintCtx.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
+				tintCanvas(canvas, color) {
+					const tint = document.createElement("canvas");
+					const tintCtx = tint.getContext("2d");
+					tint.width = canvas.width;
+					tint.height = canvas.height;
 					tintCtx.fillStyle = color;
-					tintCtx.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+					tintCtx.fillRect(0, 0, tint.width, tint.height);
 					tintCtx.globalCompositeOperation = "destination-in";
 					tintCtx.drawImage(canvas, 0, 0);
-
-					ctx.globalCompositeOperation = blend ? "multiply" : "source-over";
-					ctx.drawImage(tintCanvas, x, y);
-					ctx.globalCompositeOperation = "source-over";
+					return tint;
 				}
 
 				renderEmpty() {
