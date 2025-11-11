@@ -612,7 +612,7 @@
 					const desc = Math.max(0, ...analyses.map(a => a.textCanvas.height - a.baseline + a.baselineShift));
 					const totalW = isSideBySide
 						? analyses.reduce((sum, a) => sum + a.textCanvas.width + this.state.graphWidth + this.state.graphPadding, 0)
-						_-						: Math.max(0, ...analyses.map(a => a.textCanvas.width + this.state.graphWidth + this.state.graphPadding));
+						: Math.max(0, ...analyses.map(a => a.textCanvas.width + this.state.graphWidth + this.state.graphPadding));
 
 					return {
 						width: Math.ceil(totalW),
