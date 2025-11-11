@@ -588,17 +588,18 @@
 					this.ctx.clearRect(0, 0, dims.width, dims.height);
 
 					const isSideBySide = this.ui.renderMode.value === "side-by-side" && validAnalyses.length > 1;
-					let currentX = this.state.graphWidth + this.state.graphPadding;
+					this.ctx.translate(this.state.graphWidth + this.state.graphPadding, 0);
 
 					this.state.analyses.forEach((analysis, i) => {
 						if (!analysis) return;
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
 						const blend = this.state.analyses.every(Boolean) && i > 0;
 						this.drawDensityGraph(analysis, this.colors[i], yOffset, blend);
-						this.drawText(analysis.canvas, this.colors[i], currentX, yOffset, blend);
-						if (isSideBySide) currentX += analysis.canvas.width;
+						this.drawText(analysis.canvas, this.colors[i], 0, yOffset, blend);
+						if (isSideBySide) this.ctx.translate(analysis.canvas.width, 0);
 					});
 
+					this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 					this.requestScaling();
 				}
 
@@ -620,17 +621,18 @@
 
 				drawDensityGraph({ densityMap }, color, yOffset, blend) {
 					const max = Math.max(1, ...densityMap);
-					Object.assign(this.ctx, {
+					const { ctx, state } = this;
+					Object.assign(ctx, {
 						fillStyle: color,
 						globalCompositeOperation: blend ? "multiply" : "source-over",
 					});
 					densityMap.forEach((val, y) => {
 						if (val > 0) {
-							const barWidth = (val / max) * this.state.graphWidth;
-							this.ctx.fillRect(this.state.graphWidth - barWidth, y + yOffset, barWidth, 1);
+							const barWidth = (val / max) * state.graphWidth;
+							ctx.fillRect(-state.graphWidth - state.graphPadding, y + yOffset, barWidth, 1);
 						}
 					});
-					this.ctx.globalCompositeOperation = "source-over";
+					ctx.globalCompositeOperation = "source-over";
 				}
 
 				drawText(canvas, color, x, y, blend) {
