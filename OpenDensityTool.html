@@ -546,7 +546,8 @@
 					};
 				}
 				getPixelData(canvas) {
-					const { data, width, height } = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, width, height);
+					const { width, height } = canvas;
+					const { data } = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, width, height);
 					const densityMap = new Float32Array(height);
 					let inkVolume = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
