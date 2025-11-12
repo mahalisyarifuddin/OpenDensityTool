@@ -46,8 +46,8 @@
 			}
 
 			body {
-				background: var(--bkg);
-				color: var(--text);
+				background: var(--background);
+				color: var(--text-color);
 				font-family: sans-serif;
 				line-height: 1.6;
 				padding: 24px
@@ -72,8 +72,8 @@
 			}
 
 			.panel {
-				background: var(--bkg-container);
-				border: 1px solid var(--border);
+				background: var(--background-container);
+				border: 1px solid var(--border-color);
 				border-radius: 8px;
 				padding: 24px
 			}
@@ -82,7 +82,7 @@
 				margin: 0 0 24px;
 				font-size: 1.2em;
 				font-weight: 600;
-				border-bottom: 1px solid var(--border);
+				border-bottom: 1px solid var(--border-color);
 				padding-bottom: 12px
 			}
 
@@ -90,20 +90,26 @@
 			.result-card {
 				padding: 16px;
 				border-radius: 6px;
-				background: var(--panel-bkg);
-				border: 1px solid var(--border)
+				background: var(--panel-background);
+				border: 1px solid var(--border-color)
 			}
 
 			.font-section {
 				margin-bottom: 20px
 			}
 
-			.font-header,
-			.result-header {
+			.font-header {
 				display: flex;
 				align-items: center;
 				font-weight: 600;
 				margin-bottom: 16px
+			}
+
+			.result-header {
+				display: flex;
+				align-items: center;
+				font-weight: 600;
+				margin: 0 0 10px
 			}
 
 			.color-indicator {
@@ -111,7 +117,7 @@
 				height: 16px;
 				border-radius: 4px;
 				margin-right: 10px;
-				flex-shrink: 0
+				flex: 0 0 16px
 			}
 
 			.font-one .color-indicator {
@@ -197,12 +203,12 @@
 			}
 
 			.button-primary:hover {
-				background: var(--primary-hover)
+				background: var(--primary-color-hover)
 			}
 
 			.preview-container {
-				background: var(--input-bkg);
-				border: 1px solid var(--border);
+				background: var(--input-background);
+				border: 1px solid var(--border-color);
 				border-radius: 6px;
 				overflow: auto
 			}
@@ -228,7 +234,7 @@
 				font-family: monospace;
 				font-size: .95em;
 				line-height: 1.5;
-				background: var(--panel-bkg);
+				background: var(--panel-background);
 				padding: 10px;
 				border-radius: 4px;
 				white-space: pre-wrap;
@@ -242,7 +248,10 @@
 				font-size: .9rem;
 				padding: 5px;
 				width: auto;
-				background: var(--bkg-container)
+				background: var(--background-container);
+				border: 1px solid var(--border-color);
+				border-radius: 4px;
+				color: var(--text-color)
 			}
 
 			@media(max-width: 900px) {
@@ -385,8 +394,8 @@
 			</div>
 		</div>
 		<script>
-			const qs = (selector,scope=document)=>scope.querySelector(selector);
-			const ce = type=>document.createElement(type);
+			const querySelector = (selector,scope=document)=>scope.querySelector(selector);
+			const createElement = type=>document.createElement(type);
 
 			class DensityTool {
 				constructor() {
@@ -411,13 +420,13 @@
 						graphPadding: 20
 					};
 
-					this.elements = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'].reduce((acc,id)=>(acc[id.replace(/-(\w)/g, (_, c)=>c.toUpperCase())] = qs(`#${id}`),
+					this.elements = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'].reduce((acc,id)=>(acc[id.replace(/-(\w)/g, (_, c)=>c.toUpperCase())] = querySelector(`#${id}`),
 					acc), {});
 					this.context = this.elements.canvas.getContext('2d');
 
-					this.fontConfigs = [1, 2].map(i=>Object.fromEntries(['file', 'text', 'size', 'shift', 'letter-spacing', 'results'].map(type=>[type.replace(/-(\w)/g, (_, c)=>c.toUpperCase()), qs(`#font${i}-${type}`)])));
+					this.fontConfigs = [1, 2].map(i=>Object.fromEntries(['file', 'text', 'size', 'shift', 'letter-spacing', 'results'].map(type=>[type.replace(/-(\w)/g, (_, c)=>c.toUpperCase()), querySelector(`#font${i}-${type}`)])));
 
-					this.tintCanvas = ce('canvas');
+					this.tintCanvas = createElement('canvas');
 					this.tintContext = this.tintCanvas.getContext('2d', {
 						willReadFrequently: true
 					});
@@ -462,27 +471,31 @@
 
 				async handleFontLoad(file, index) {
 					const config = this.fontConfigs[index];
-					let font = null;
+					this.state.fonts[index] = null;
+
 					if (!file) {
 						config.file.value = '';
-					} else if (file.size > 30 * 1024 * 1024) {
+						return this.queueAnalysis();
+					}
+
+					if (file.size > 30 * 1024 * 1024) {
 						alert(`Font too large (${(file.size / 1048576).toFixed(1)}MB). Max 30MB.`);
 						config.file.value = '';
-					} else {
-						try {
-							const buffer = await file.arrayBuffer();
-							font = opentype.parse(buffer);
-							if (!font?.draw || !font.unitsPerEm)
-								throw new Error('Invalid font.');
-						} catch (error) {
-							console.error('Font loading failed:', error);
-							alert(`Failed to parse font: ${file.name}`);
-							font = null;
-						}
+						return this.queueAnalysis();
 					}
-					this.state.fonts[index] = font;
-					if (!font)
+
+					try {
+						const buffer = await file.arrayBuffer();
+						const font = opentype.parse(buffer);
+						if (!font?.draw || !font.unitsPerEm) {
+							throw new Error('Invalid font.');
+						}
+						this.state.fonts[index] = font;
+					} catch (error) {
+						console.error('Font loading failed:', error);
+						alert(`Failed to parse font: ${file.name}`);
 						config.file.value = '';
+					}
 					this.queueAnalysis();
 				}
 
@@ -549,21 +562,21 @@
 				analyzePixelData(canvas) {
 					const {data, width, height} = canvas.getContext('2d', {
 						willReadFrequently: true
-					}).getImageData(0, 0, width, height);
+					}).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
-					let inkVolume = 0
-					  , minX = width
-					  , maxX = -1
-					  , minY = height
-					  , maxY = -1;
+					let inkVolume = 0,
+						minimumX = width,
+						maximumX = -1,
+						minimumY = height,
+						maximumY = -1;
 					for (let y = 0; y < height; ++y) {
-						for (let x = 0, i = y * width * 4 + 3; x < width; ++x,
-						i += 4) {
-							if (data[i] > 128) {
-								minY = Math.min(minY, y);
-								maxY = Math.max(maxY, y);
-								minX = Math.min(minX, x);
-								maxX = Math.max(maxX, x);
+						for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; ++x,
+						alphaIndex += 4) {
+							if (data[alphaIndex] >= 128) {
+								minimumY = Math.min(minimumY, y);
+								maximumY = Math.max(maximumY, y);
+								minimumX = Math.min(minimumX, x);
+								maximumX = Math.max(maximumX, x);
 								inkVolume++;
 								densityMap[y]++;
 							}
@@ -572,10 +585,10 @@
 					return {
 						densityMap,
 						inkVolume,
-						minimumX: minX,
-						maximumX: maxX,
-						minimumY: minY,
-						maximumY: maxY
+						minimumX,
+						maximumX,
+						minimumY,
+						maximumY
 					};
 				}
 
@@ -667,12 +680,12 @@
 					container.style.cssText = '';
 					if (!isFit)
 						return;
-					const padH = parseFloat(getComputedStyle(container).paddingLeft) + parseFloat(getComputedStyle(container).paddingRight);
-					const padV = parseFloat(getComputedStyle(container).paddingTop) + parseFloat(getComputedStyle(container).paddingBottom);
-					const scale = Math.min((container.parentElement.clientWidth - padH) / canvas.width, 1);
+					const paddingHorizontal = parseFloat(getComputedStyle(container).paddingLeft) + parseFloat(getComputedStyle(container).paddingRight);
+					const paddingVertical = parseFloat(getComputedStyle(container).paddingTop) + parseFloat(getComputedStyle(container).paddingBottom);
+					const scale = Math.min((container.parentElement.clientWidth - paddingHorizontal) / canvas.width, 1);
 					canvas.style.transform = `scale(${scale})`;
-					container.style.width = `${canvas.width * scale + padH}px`;
-					container.style.height = `${canvas.height * scale + padV}px`;
+					container.style.width = `${canvas.width * scale + paddingHorizontal}px`;
+					container.style.height = `${canvas.height * scale + paddingVertical}px`;
 					container.style.overflow = 'hidden';
 				}
 
@@ -693,7 +706,7 @@
 				}
 
 				exportImage() {
-					Object.assign(ce('a'), {
+					Object.assign(createElement('a'), {
 						href: this.elements.canvas.toDataURL('image/png'),
 						download: 'typographic-density.png'
 					}).click();
