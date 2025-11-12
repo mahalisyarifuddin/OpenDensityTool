@@ -499,28 +499,35 @@
 					const config = this.fontConfigs[index];
 					const maximumFileSize = 30 * 1024 * 1024;
 					let font = null;
-
-					if (file) {
-						if (file.size > maximumFileSize) {
-							const sizeMegabytes = (file.size / 1048576).toFixed(1);
-							alert(`Font file is too large (${sizeMegabytes}MB). Maximum size is 30MB.`);
-						} else {
-							try {
-								const buffer = await file.arrayBuffer();
-								font = opentype.parse(buffer);
-								if (!font?.draw || !font.unitsPerEm) {
-									throw new Error('Invalid or unsupported font file.');
-								}
-							} catch (error) {
-								console.error('Font loading failed:', error);
-								alert(`Failed to parse font: ${file.name}`);
-							}
-						}
-					}
-
-					this.state.fonts[index] = font;
-					if (!font)
+					if (!file) {
+						this.state.fonts[index] = null;
 						config.file.value = '';
+						this.queueAnalysis();
+						return;
+					}
+					if (file.size > maximumFileSize) {
+						const sizeMegabytes = (file.size / 1048576).toFixed(1);
+						alert(`Font file is too large (${sizeMegabytes}MB). Maximum size is 30MB.`);
+						this.state.fonts[index] = null;
+						config.file.value = '';
+						this.queueAnalysis();
+						return;
+					}
+					try {
+						const buffer = await file.arrayBuffer();
+						font = opentype.parse(buffer);
+						if (!font?.draw || !font.unitsPerEm) {
+							throw new Error('Invalid or unsupported font file.');
+						}
+					} catch (error) {
+						console.error('Font loading failed:', error);
+						alert(`Failed to parse font: ${file.name}`);
+						font = null;
+					}
+					this.state.fonts[index] = font;
+					if (!font) {
+						config.file.value = '';
+					}
 					this.queueAnalysis();
 				}
 
