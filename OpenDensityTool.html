@@ -713,9 +713,9 @@
 				renderEmpty() {
 					Object.assign(this.elements.canvas, {
 						width: 400,
-						height: 200
+						height: 150
 					});
-					this.context.clearRect(0, 0, 400, 200);
+					this.context.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
 					this.queueScaling();
 				}
 
