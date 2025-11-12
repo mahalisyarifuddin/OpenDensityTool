@@ -437,75 +437,50 @@
 				}
 
 				initializeElements() {
-					const elementMap = {
-						canvas: 'canvas',
-						zoomMode: 'zoom-mode',
-						renderMode: 'render-mode',
-						densityMode: 'density-mode',
-						exportPng: 'export-png',
-						themeSelect: 'themeSelect',
-						font1File: 'font1-file',
-						font1Text: 'font1-text',
-						font1Size: 'font1-size',
-						font1Shift: 'font1-shift',
-						font1LetterSpacing: 'font1-letter-spacing',
-						font2File: 'font2-file',
-						font2Text: 'font2-text',
-						font2Size: 'font2-size',
-						font2Shift: 'font2-shift',
-						font2LetterSpacing: 'font2-letter-spacing',
-						results1: 'results1',
-						results2: 'results2'
-					};
-
-					this.elements = Object.fromEntries(Object.entries(elementMap).map(([key,htmlId])=>[key, getElement(htmlId)]));
-
+					const ids = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'];
+					this.elements = Object.fromEntries(ids.map(id=>[id.replace(/-(\w)/g, (_, c)=>c.toUpperCase()), getElement(id)]));
 					this.context = this.elements.canvas.getContext('2d');
-
-					this.fontConfigs = [{
-						file: this.elements.font1File,
-						text: this.elements.font1Text,
-						size: this.elements.font1Size,
-						shift: this.elements.font1Shift,
-						letterSpacing: this.elements.font1LetterSpacing,
-						results: this.elements.results1
-					}, {
-						file: this.elements.font2File,
-						text: this.elements.font2Text,
-						size: this.elements.font2Size,
-						shift: this.elements.font2Shift,
-						letterSpacing: this.elements.font2LetterSpacing,
-						results: this.elements.results2
-					}];
+					this.fontConfigs = [1, 2].map(i=>{
+						return {
+							file: getElement(`font${i}-file`),
+							text: getElement(`font${i}-text`),
+							size: getElement(`font${i}-size`),
+							shift: getElement(`font${i}-shift`),
+							letterSpacing: getElement(`font${i}-letter-spacing`),
+							results: getElement(`results${i}`)
+						};
+					}
+					);
 				}
 
 				bindEventListeners() {
-					const createQueuedCallback = (callback,key)=>(...args)=>{
+					const createQueuedCallback = (callback, key)=>(...args)=>{
 						cancelAnimationFrame(this.state.animationRefs[key]);
 						this.state.animationRefs[key] = requestAnimationFrame(()=>callback.apply(this, args));
 					}
 					;
-
 					this.queueAnalysis = createQueuedCallback(this.analyzeAndRender, 'analyze');
 					this.queueScaling = createQueuedCallback(this.updateDisplayScale, 'scale');
-
-					this.elements.zoomMode.onchange = ()=>this.queueScaling();
-					this.elements.renderMode.onchange = ()=>this.queueAnalysis();
-					this.elements.densityMode.onchange = ()=>this.queueAnalysis();
+					const UIElements = {
+						zoomMode: this.queueScaling,
+						renderMode: this.queueAnalysis,
+						densityMode: this.queueAnalysis
+					};
+					for (const key in UIElements) {
+						this.elements[key].onchange = UIElements[key];
+					}
 					this.elements.exportPng.onclick = ()=>this.exportImage();
-					this.elements.themeSelect.onchange = event=>this.handleThemeChange(event.target.value);
-
+					this.elements.themeSelect.onchange = e=>this.handleThemeChange(e.target.value);
 					this.fontConfigs.forEach((config,index)=>{
-						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
-						['text', 'size', 'shift', 'letterSpacing'].forEach(property=>{
-							config[property].oninput = ()=>this.queueAnalysis();
-							config[property].onchange = ()=>this.queueAnalysis();
+						config.file.onchange = e=>this.handleFontLoad(e.target.files?.[0], index);
+						['text', 'size', 'shift', 'letterSpacing'].forEach(prop=>{
+							config[prop].oninput = this.queueAnalysis;
+							config[prop].onchange = this.queueAnalysis;
 						}
 						);
 					}
 					);
-
-					window.onresize = ()=>this.queueScaling();
+					window.onresize = this.queueScaling;
 				}
 
 				handleThemeChange(theme) {
@@ -524,60 +499,62 @@
 					const config = this.fontConfigs[index];
 					const maximumFileSize = 30 * 1024 * 1024;
 					let font = null;
-
-					if (file) {
-						if (file.size > maximumFileSize) {
-							const sizeMegabytes = (file.size / 1048576).toFixed(1);
-							alert(`Font file is too large (${sizeMegabytes}MB). Maximum size is 30MB.`);
-						} else {
-							try {
-								const buffer = await file.arrayBuffer();
-								font = opentype.parse(buffer);
-								if (!font?.draw || !font.unitsPerEm) {
-									throw new Error('Invalid or unsupported font file.');
-								}
-							} catch (error) {
-								console.error('Font loading failed:', error);
-								alert(`Failed to parse font: ${file.name}`);
-							}
-						}
-					}
-
-					this.state.fonts[index] = font;
-					if (!font)
+					if (!file) {
+						this.state.fonts[index] = null;
 						config.file.value = '';
+						this.queueAnalysis();
+						return;
+					}
+					if (file.size > maximumFileSize) {
+						const sizeMegabytes = (file.size / 1048576).toFixed(1);
+						alert(`Font file is too large (${sizeMegabytes}MB). Maximum size is 30MB.`);
+						this.state.fonts[index] = null;
+						config.file.value = '';
+						this.queueAnalysis();
+						return;
+					}
+					try {
+						const buffer = await file.arrayBuffer();
+						font = opentype.parse(buffer);
+						if (!font?.draw || !font.unitsPerEm) {
+							throw new Error('Invalid or unsupported font file.');
+						}
+					} catch (error) {
+						console.error('Font loading failed:', error);
+						alert(`Failed to parse font: ${file.name}`);
+						font = null;
+					}
+					this.state.fonts[index] = font;
+					if (!font) {
+						config.file.value = '';
+					}
 					this.queueAnalysis();
 				}
 
 				calculateFontMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
-
-					const getMaximumMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
-
-					const {actualAscent, actualDescent} = font.stringToGlyphs(text).reduce((accumulator,glyph)=>{
-						const boundingBox = glyph.path?.getBoundingBox();
-						if (boundingBox && isFinite(boundingBox.y1) && isFinite(boundingBox.y2)) {
-							accumulator.actualAscent = Math.max(accumulator.actualAscent, boundingBox.y2);
-							accumulator.actualDescent = Math.max(accumulator.actualDescent, -boundingBox.y1);
+					const getMetric = (keys,transform=v=>v)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
+					const {actualAscent, actualDescent} = font.stringToGlyphs(text).reduce((acc,glyph)=>{
+						const bbox = glyph.path?.getBoundingBox();
+						if (bbox && isFinite(bbox.y1) && isFinite(bbox.y2)) {
+							acc.actualAscent = Math.max(acc.actualAscent, bbox.y2);
+							acc.actualDescent = Math.max(acc.actualDescent, -bbox.y1);
 						}
-						return accumulator;
+						return acc;
 					}
 					, {
 						actualAscent: 0,
 						actualDescent: 0
 					});
-
-					const fontAscent = getMaximumMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
-					const fontDescent = getMaximumMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
+					const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
+					const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
 					const scaledAscent = actualAscent * scale || font.ascender * scale;
 					const scaledDescent = actualDescent * scale || Math.abs(font.descender * scale);
-
 					const pathOptions = {
 						tracking: letterSpacing || 0
 					};
-					const {x1, x2} = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
-
+					const pathBbox = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
 					return {
 						ascent: Math.max(scaledAscent, fontAscent),
 						descent: Math.max(scaledDescent, fontDescent),
@@ -585,7 +562,7 @@
 						actualDescent: scaledDescent,
 						fontAscent,
 						fontDescent,
-						bboxWidth: Math.ceil(x2 - x1),
+						bboxWidth: Math.ceil(pathBbox.x2 - pathBbox.x1),
 						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
 					};
 				}
@@ -593,31 +570,21 @@
 				analyzeFont(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize)
 						return null;
-
 					const clampedSize = Math.max(1, Math.min(fontSize, 2000));
 					const metrics = this.calculateFontMetrics(font, text, clampedSize, letterSpacing);
-
-					if (!metrics || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) {
+					if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0)
 						return null;
-					}
-
 					const baseline = Math.ceil(metrics.ascent);
 					const canvas = Object.assign(document.createElement('canvas'), {
 						width: metrics.advanceWidth,
 						height: Math.ceil(metrics.ascent + metrics.descent)
 					});
-
-					const context = canvas.getContext('2d');
-					font.draw(context, text, 0, baseline, clampedSize, {
+					font.draw(canvas.getContext('2d'), text, 0, baseline, clampedSize, {
 						tracking: letterSpacing || 0
 					});
-
 					const pixelData = this.analyzePixelData(canvas);
 					if (pixelData.minimumY > pixelData.maximumY)
 						return null;
-
-					const density = this.calculateDensity(pixelData, metrics, clampedSize);
-
 					return {
 						...pixelData,
 						...metrics,
@@ -627,7 +594,7 @@
 						letterSpacing,
 						fontSize: clampedSize,
 						font,
-						density: density.toFixed(1),
+						density: this.calculateDensity(pixelData, metrics, clampedSize).toFixed(1),
 						yMin: Math.round(baseline - pixelData.maximumY),
 						yMax: Math.round(baseline - pixelData.minimumY)
 					};
@@ -684,79 +651,61 @@
 				}
 
 				render() {
-					const validAnalyses = this.state.analyses.filter(Boolean);
-					if (!validAnalyses.length)
+					const analyses = this.state.analyses.filter(Boolean);
+					if (!analyses.length)
 						return this.renderEmpty();
-
-					const dimensions = this.calculateCanvasDimensions(validAnalyses);
-					Object.assign(this.elements.canvas, dimensions);
-					this.context.clearRect(0, 0, dimensions.width, dimensions.height);
-
-					const isSideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+					const dims = this.calculateCanvasDimensions(analyses);
+					Object.assign(this.elements.canvas, dims);
+					this.context.clearRect(0, 0, dims.width, dims.height);
+					const isSideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
 					let xOffset = this.config.graphWidth + this.config.graphPadding;
-
-					this.state.analyses.forEach((analysis,index)=>{
-						if (!analysis)
-							return;
-
-						const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const shouldBlend = this.state.analyses.every(Boolean) && index > 0;
-
-						this.renderDensityGraph(analysis, this.state.colors[index], yOffset, shouldBlend);
-						this.renderText(analysis, this.state.colors[index], xOffset, yOffset, shouldBlend);
-
+					analyses.forEach((analysis,index)=>{
+						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
+						const blend = this.state.analyses.every(Boolean) && index > 0;
+						this.renderDensityGraph(analysis, this.state.colors[index], yOffset, blend);
+						this.renderText(analysis, this.state.colors[index], xOffset, yOffset, blend);
 						if (isSideBySide)
 							xOffset += analysis.canvas.width;
 					}
 					);
-
 					this.queueScaling();
 				}
 
 				calculateCanvasDimensions(analyses) {
 					const isSideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
-
-					const maximumAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
-					const maximumDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
-					const totalWidth = isSideBySide ? analyses.reduce((sum,analysis)=>sum + analysis.canvas.width, 0) : Math.max(0, ...analyses.map(analysis=>analysis.canvas.width));
-
+					const maxAscent = Math.max(0, ...analyses.map(a=>a.baseline - a.baselineShift));
+					const maxDescent = Math.max(0, ...analyses.map(a=>a.canvas.height - a.baseline + a.baselineShift));
+					const totalWidth = isSideBySide ? analyses.reduce((sum,a)=>sum + a.canvas.width, 0) : Math.max(0, ...analyses.map(a=>a.canvas.width));
 					return {
 						width: Math.ceil(this.config.graphWidth + this.config.graphPadding + totalWidth),
-						height: Math.ceil(maximumAscent + maximumDescent),
-						baseline: Math.ceil(maximumAscent)
+						height: Math.ceil(maxAscent + maxDescent),
+						baseline: Math.ceil(maxAscent)
 					};
 				}
 
 				renderDensityGraph({densityMap}, color, yOffset, shouldBlend) {
-					const maximumDensity = Math.max(1, ...densityMap);
-
+					const maxDensity = Math.max(1, ...densityMap);
 					this.context.fillStyle = color;
 					this.context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-
-					densityMap.forEach((value,rowIndex)=>{
-						if (value > 0) {
-							const barWidth = (value / maximumDensity) * this.config.graphWidth;
-							this.context.fillRect(this.config.graphWidth - barWidth, rowIndex + yOffset, barWidth, 1);
+					densityMap.forEach((val,i)=>{
+						if (val > 0) {
+							const barWidth = (val / maxDensity) * this.config.graphWidth;
+							this.context.fillRect(this.config.graphWidth - barWidth, i + yOffset, barWidth, 1);
 						}
 					}
 					);
-
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
-				renderText({canvas: sourceCanvas}, color, xPosition, yPosition, shouldBlend) {
-					Object.assign(this.tintCanvas, {
-						width: sourceCanvas.width,
-						height: sourceCanvas.height
-					});
-
+				renderText({canvas}, color, x, y, blend) {
+					this.tintCanvas.width = canvas.width;
+					this.tintCanvas.height = canvas.height;
 					this.tintContext.fillStyle = color;
-					this.tintContext.fillRect(0, 0, this.tintCanvas.width, this.tintCanvas.height);
+					this.tintContext.fillRect(0, 0, canvas.width, canvas.height);
 					this.tintContext.globalCompositeOperation = 'destination-in';
-					this.tintContext.drawImage(sourceCanvas, 0, 0);
-
-					this.context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-					this.context.drawImage(this.tintCanvas, xPosition, yPosition);
+					this.tintContext.drawImage(canvas, 0, 0);
+					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					this.context.drawImage(this.tintCanvas, x, y);
 					this.context.globalCompositeOperation = 'source-over';
 					this.tintContext.globalCompositeOperation = 'source-over';
 				}
@@ -764,9 +713,9 @@
 				renderEmpty() {
 					Object.assign(this.elements.canvas, {
 						width: 400,
-						height: 200
+						height: 150
 					});
-					this.context.clearRect(0, 0, 400, 200);
+					this.context.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
 					this.queueScaling();
 				}
 
@@ -802,16 +751,9 @@
 					if (!analysis) {
 						return this.state.fonts[index] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 					}
-
-					const formatMetric = key=>{
-						const label = key.replace(/([A-Z])/g, ' $1').replace(/^\w/, char=>char.toUpperCase());
-						return `${label}: ${Math.round(analysis[key])}px`;
-					}
-					;
-
-					const ascentDescentMetrics = Object.keys(analysis).filter(key=>key.includes('Ascent') || key.includes('Descent')).map(formatMetric);
-
-					return [`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`, `Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`, ...ascentDescentMetrics].join('\n');
+					const format = key=>`${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, c=>c.toUpperCase())}: ${Math.round(analysis[key])}px`;
+					const metrics = Object.keys(analysis).filter(key=>key.includes('Ascent') || key.includes('Descent')).map(format);
+					return [`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`, `Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`, ...metrics].join('\n');
 				}
 
 				updateResults() {
