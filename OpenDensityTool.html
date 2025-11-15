@@ -104,6 +104,16 @@
 				font-weight: 600
 			}
 
+			.color-indicator {
+				display: inline-block;
+				width: 14px;
+				height: 14px;
+				border-radius: 4px;
+				border: 1px solid var(--border-color);
+				margin-right: 8px;
+				vertical-align: middle;
+			}
+
 			.font-header {
 				display: flex;
 				align-items: center;
@@ -421,12 +431,14 @@
 					<div class="results-layout">
 						<div class="result-card">
 							<div class="result-header">
+								<span class="color-indicator" id="font1-color-indicator"></span>
 								Font 1 Analysis
 							</div>
 							<div id="results1" class="result-data">Load a font to see analysis.</div>
 						</div>
 						<div class="result-card">
 							<div class="result-header">
+								<span class="color-indicator" id="font2-color-indicator"></span>
 								Font 2 Analysis
 							</div>
 							<div id="results2" class="result-data">Load a font to see analysis.</div>
@@ -483,19 +495,17 @@
 				}
 
 				initializeElements() {
+					const toCamelCase = s=>s.replace(/-(\w)/g, (_,c)=>c.toUpperCase());
 					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'];
-					this.elements = Object.fromEntries(names.map(name=>[name.replace(/-(\w)/g, (_,char)=>char.toUpperCase()), getElement(name)]));
+					this.elements = Object.fromEntries(names.map(name=>[toCamelCase(name), getElement(name)]));
 					this.context = this.elements.canvas.getContext('2d');
-					this.fontConfigs = [1, 2].map(index=>({
-						file: getElement(`font${index}-file`),
-						text: getElement(`font${index}-text`),
-						size: getElement(`font${index}-size`),
-						shift: getElement(`font${index}-shift`),
-						letterSpacing: getElement(`font${index}-letter-spacing`),
-						results: getElement(`results${index}`),
-						preset: getElement(`font${index}-preset`),
-						color: getElement(`font${index}-color`)
-					}));
+					this.fontConfigs = [1, 2].map(index=>{
+						const config = {};
+						const props = ['file', 'text', 'size', 'shift', 'letter-spacing', 'results', 'preset', 'color', 'color-indicator'];
+						props.forEach(prop=>config[toCamelCase(prop)] = getElement(`font${index}-${prop}`));
+						return config;
+					}
+					);
 				}
 
 				populatePresets() {
@@ -516,41 +526,43 @@
 				}
 
 				bindEventListeners() {
-					const createQueuedCallback = (callback,animationKey)=>(...args)=>{
-						cancelAnimationFrame(this.state.animationRefs[animationKey]);
-						this.state.animationRefs[animationKey] = requestAnimationFrame(()=>callback.apply(this, args));
+					const queue = (key,fn)=>(...args)=>{
+						cancelAnimationFrame(this.state.animationRefs[key]);
+						this.state.animationRefs[key] = requestAnimationFrame(()=>fn.apply(this, args));
 					}
 					;
-
-					this.queueAnalysis = createQueuedCallback(this.analyzeAndRender, 'analyze');
-					this.queueScaling = createQueuedCallback(this.updateDisplayScale, 'scale');
+					this.queueAnalysis = queue('analyze', this.analyzeAndRender);
+					this.queueScaling = queue('scale', this.updateDisplayScale);
 
 					const handlers = {
-						zoomMode: this.queueScaling,
-						renderMode: this.queueAnalysis,
-						densityMode: this.queueAnalysis
+						'zoom-mode': this.queueScaling,
+						'render-mode': this.queueAnalysis,
+						'density-mode': this.queueAnalysis,
+						'export-png': ()=>this.exportImage(),
+						'themeSelect': e=>this.handleThemeChange(e.target.value)
 					};
-
-					for (const elementName in handlers) {
-						this.elements[elementName].onchange = handlers[elementName];
+					for (const id in handlers) {
+						getElement(id)[id === 'export-png' ? 'onclick' : 'onchange'] = handlers[id];
 					}
 
-					this.elements.exportPng.onclick = ()=>this.exportImage();
-					this.elements.themeSelect.onchange = event=>this.handleThemeChange(event.target.value);
-
 					this.fontConfigs.forEach((config,index)=>{
-						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
-						config.preset.onchange = event=>this.handlePresetChange(config, event.target.value);
-						config.color.oninput = event=>{
-							this.state.colors[index] = event.target.value;
+						config.file.onchange = e=>this.handleFontLoad(e.target.files?.[0], index);
+						config.preset.onchange = e=>this.handlePresetChange(config, e.target.value);
+						config.color.oninput = e=>{
+							this.state.colors[index] = e.target.value;
+							config.colorIndicator.style.backgroundColor = e.target.value;
 							this.queueAnalysis();
 						}
 						;
-						['text', 'size', 'shift', 'letterSpacing'].forEach(property=>{
-							config[property].oninput = this.queueAnalysis;
-							config[property].onchange = this.queueAnalysis;
+						['text', 'size', 'shift', 'letterSpacing'].forEach(prop=>{
+							config[prop].oninput = this.queueAnalysis;
 						}
 						);
+					}
+					);
+
+					this.fontConfigs.forEach((config,index)=>{
+						config.colorIndicator.style.backgroundColor = this.state.colors[index];
 					}
 					);
 
@@ -570,43 +582,32 @@
 					this.applyTheme();
 				}
 
+
+
 				applyTheme() {
 					document.documentElement.classList.remove('light', 'dark');
-					if (this.state.theme !== 'auto') {
-						document.documentElement.classList.add(this.state.theme);
-					}
+					this.state.theme !== 'auto' && document.documentElement.classList.add(this.state.theme);
 				}
 
 				async handleFontLoad(file, index) {
-					const config = this.fontConfigs[index];
-					const MAX_SIZE = 30 * 1024 * 1024;
-					let font = null;
+					this.state.fonts[index] = null;
+					this.fontConfigs[index].file.value = '';
 
-					const resetFont = ()=>{
-						this.state.fonts[index] = null;
-						config.file.value = '';
-						this.queueAnalysis();
-					}
-					;
-
-					if (!file)
-						return resetFont();
-					if (file.size > MAX_SIZE) {
-						alert(`File size exceeds ${MAX_SIZE / 1048576}MB.`);
-						return resetFont();
+					if (!file) return this.queueAnalysis();
+					if (file.size >= 30 * 1024 * 1024) {
+						alert('File size exceeds 30MB.');
+						return this.queueAnalysis();
 					}
 
 					try {
 						const buffer = await file.arrayBuffer();
-						font = opentype.parse(buffer);
-						if (!font?.draw || !font.unitsPerEm)
-							throw new Error('Invalid font file');
+						const font = opentype.parse(buffer);
+						if (!font?.draw || !font.unitsPerEm) throw new Error('Invalid font file');
+						this.state.fonts[index] = font;
 					} catch (error) {
 						alert(`Error parsing font: ${error.message}`);
-						return resetFont();
 					}
 
-					this.state.fonts[index] = font;
 					this.queueAnalysis();
 				}
 
@@ -690,30 +691,29 @@
 				}
 
 				analyzePixelData(canvas) {
-					const context = canvas.getContext('2d', {
+					const {data, width, height} = canvas.getContext('2d', {
 						willReadFrequently: true
-					});
-					const {data, width, height} = context.getImageData(0, 0, canvas.width, canvas.height);
+					}).getImageData(0, 0, width, height);
 					const densityMap = new Float32Array(height);
-					let[inkVolume,minX,maxX,minY,maxY] = [0, width, -1, height, -1];
+					let[ink,minX,maxX,minY,maxY] = [0, width, -1, height, -1];
 
-					for (let row = 0; row < height; row++) {
-						for (let col = 0, alphaIndex = row * width * 4 + 3; col < width; col++,
-						alphaIndex += 4) {
-							if (data[alphaIndex] >= 128) {
-								minY = Math.min(minY, row);
-								maxY = Math.max(maxY, row);
-								minX = Math.min(minX, col);
-								maxX = Math.max(maxX, col);
-								inkVolume++;
-								densityMap[row]++;
-							}
+					for (let i = 3; i < data.length; i += 4) {
+						if (data[i] >= 128) {
+							const pixelIndex = (i - 3) / 4;
+							const row = Math.floor(pixelIndex / width);
+							const col = pixelIndex % width;
+							minY = Math.min(minY, row);
+							maxY = Math.max(maxY, row);
+							minX = Math.min(minX, col);
+							maxX = Math.max(maxX, col);
+							ink++;
+							densityMap[row]++;
 						}
 					}
 
 					return {
 						densityMap,
-						inkVolume,
+						inkVolume: ink,
 						minimumX: minX,
 						maximumX: maxX,
 						minimumY: minY,
@@ -752,8 +752,7 @@
 						const color = this.state.colors[index] || '#000000';
 						this.renderDensityGraph(analysis, color, yOffset, blend);
 						this.renderText(analysis, color, xOffset, yOffset, blend);
-						if (isSideBySide)
-							xOffset += analysis.canvas.width;
+						xOffset += isSideBySide ? analysis.canvas.width : 0;
 					}
 					);
 					this.queueScaling();
@@ -814,10 +813,8 @@
 				}
 
 				updateDisplayScale() {
-					const {canvas} = this.elements;
+					const {canvas, zoomMode} = this.elements;
 					const container = canvas.parentElement;
-					const isFitMode = this.elements.zoomMode.value === 'fit' && canvas.width;
-
 					canvas.style.transform = 'none';
 					Object.assign(container.style, {
 						width: '',
@@ -825,29 +822,26 @@
 						overflow: ''
 					});
 
-					if (!isFitMode)
-						return;
-					const styles = getComputedStyle(container);
-					const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
-					const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
-					const scale = Math.min((container.parentElement.clientWidth - padX) / canvas.width, 1);
-
-					canvas.style.transform = `scale(${scale})`;
-					Object.assign(container.style, {
-						width: `${canvas.width * scale + padX}px`,
-						height: `${canvas.height * scale + padY}px`,
-						overflow: 'hidden'
-					});
+					if (zoomMode.value === 'fit' && canvas.width) {
+						const styles = getComputedStyle(container);
+						const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+						const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+						const scale = Math.min((container.parentElement.clientWidth - padX) / canvas.width, 1);
+						canvas.style.transform = `scale(${scale})`;
+						Object.assign(container.style, {
+							width: `${canvas.width * scale + padX}px`,
+							height: `${canvas.height * scale + padY}px`,
+							overflow: 'hidden'
+						});
+					}
 				}
 
 				formatAnalysisResults(analysis, index) {
 					if (!analysis)
 						return this.state.fonts[index] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
-
-					const format = prop=>`${prop.replace(/([A-Z])/g, ' $1').replace(/^\w/, c=>c.toUpperCase())}: ${Math.round(analysis[prop])}px`;
-					const metrics = Object.keys(analysis).filter(prop=>/Ascent|Descent/.test(prop)).map(format);
-
-					return [`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`, `Font Size: ${analysis.fontSize}px`, `Baseline Shift: ${analysis.baselineShift}px`, `Letter Spacing: ${analysis.letterSpacing}px`, ...metrics].join('\n');
+					const format = p=>`${p.replace(/([A-Z])/g, ' $1').replace(/^\w/, c=>c.toUpperCase())}: ${Math.round(analysis[p])}px`;
+					const metrics = Object.keys(analysis).filter(p=>/Ascent|Descent/.test(p)).map(format);
+					return [`Y Min: ${analysis.yMin}px`, `Y Max: ${analysis.yMax}px`, `Density: ${analysis.density}%`, ...['fontSize', 'baselineShift', 'letterSpacing'].map(format), ...metrics].join('\n');
 				}
 
 				updateResults() {
