@@ -112,29 +112,29 @@
 				-webkit-appearance: none;
 				-moz-appearance: none;
 				appearance: none;
-				width: 24px;
-				height: 24px;
+				width: 32px;
+				height: 32px;
 				padding: 0;
 				border: none;
-				border-radius: 4px;
+				border-radius: 6px;
 				background-color: transparent;
 				cursor: pointer;
-				margin-right: 10px;
+				margin-right: 12px;
 			}
 
 			input[type="color"]::-webkit-color-swatch-wrapper {
 				padding: 0;
-				border-radius: 4px;
+				border-radius: 6px;
 			}
 
 			input[type="color"]::-webkit-color-swatch {
 				border: 1px solid var(--border-color);
-				border-radius: 4px;
+				border-radius: 6px;
 			}
 
 			input[type="color"]::-moz-color-swatch {
 				border: 1px solid var(--border-color);
-				border-radius: 4px;
+				border-radius: 6px;
 			}
 
 			.color-indicator {
@@ -142,15 +142,7 @@
 				height: 16px;
 				border-radius: 4px;
 				margin-right: 10px;
-				flex: 0 0 16px
-			}
-
-			.font-one .color-indicator {
-				background: var(--font-one-color)
-			}
-
-			.font-two .color-indicator {
-				background: var(--font-two-color)
+				flex: 0 0 16px;
 			}
 
 			.form-field {
@@ -411,7 +403,7 @@
 					<div class="results-layout">
 						<div class="result-card">
 							<div class="result-header">
-								<div class="color-indicator" style="background: var(--font-one-color)"></div>
+								<div id="font1-color-indicator" class="color-indicator"></div>
 								Font 1 Analysis
 
 							</div>
@@ -419,7 +411,7 @@
 						</div>
 						<div class="result-card">
 							<div class="result-header">
-								<div class="color-indicator" style="background: var(--font-two-color)"></div>
+								<div id="font2-color-indicator" class="color-indicator"></div>
 								Font 2 Analysis
 
 							</div>
@@ -473,7 +465,8 @@
 						shift: getElement(`font${index}-shift`),
 						letterSpacing: getElement(`font${index}-letter-spacing`),
 						results: getElement(`results${index}`),
-						color: getElement(`font${index}-color`)
+						color: getElement(`font${index}-color`),
+						colorIndicator: getElement(`font${index}-color-indicator`)
 					}));
 				}
 
@@ -504,6 +497,7 @@
 						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
 						config.color.oninput = event=>{
 							this.state.colors[index] = event.target.value;
+							this.updateColorIndicators();
 							this.queueAnalysis();
 						}
 						;
@@ -514,7 +508,14 @@
 					}
 					);
 
+					this.updateColorIndicators();
 					window.onresize = this.queueScaling;
+				}
+
+				updateColorIndicators() {
+					this.fontConfigs.forEach((config, index) => {
+						config.colorIndicator.style.backgroundColor = this.state.colors[index];
+					});
 				}
 
 				handleThemeChange(theme) {
