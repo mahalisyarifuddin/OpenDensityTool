@@ -153,22 +153,6 @@
 				border-radius: 4px
 			}
 
-			.color-indicator {
-				width: 16px;
-				height: 16px;
-				border-radius: 4px;
-				margin-right: 10px;
-				flex: 0 0 16px
-			}
-
-			.font-one .color-indicator {
-				background: var(--font-one-color)
-			}
-
-			.font-two .color-indicator {
-				background: var(--font-two-color)
-			}
-
 			.form-field {
 				margin-bottom: 16px
 			}
@@ -245,16 +229,6 @@
 
 			.button-primary:hover {
 				background: var(--primary-color-hover)
-			}
-
-			.export-container select {
-				-webkit-appearance: none;
-				-moz-appearance: none;
-				appearance: none;
-				padding-right: 30px;
-				background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M4%206L8%2010L12%206%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
-				background-repeat: no-repeat;
-				background-position: right 8px center;
 			}
 
 			.preview-container {
@@ -356,9 +330,8 @@
 				<h2 class="panel-title">Font Configuration</h2>
 				<div class="font-section font-one">
 					<div class="font-header">
-						<div class="color-indicator"></div>
-						Font 1
 						<input type="color" id="font1-color" class="color-input" value="#00a2a2">
+						Font 1
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font1-file">Font File</label>
@@ -371,7 +344,7 @@
 								<option value="">Select Preset...</option>
 							</select>
 						</div>
-						<textarea id="font1-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000">Idealogy</textarea>
+						<textarea id="font1-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000"></textarea>
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font1-size">Size (px)</label>
@@ -390,9 +363,8 @@
 				</div>
 				<div class="font-section font-two">
 					<div class="font-header">
-						<div class="color-indicator"></div>
-						Font 2
 						<input type="color" id="font2-color" class="color-input" value="#ff00ff">
+						Font 2
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font2-file">Font File</label>
@@ -405,7 +377,7 @@
 								<option value="">Select Preset...</option>
 							</select>
 						</div>
-						<textarea id="font2-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000">Идеология</textarea>
+						<textarea id="font2-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000"></textarea>
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font2-size">Size (px)</label>
@@ -438,12 +410,7 @@
 						<option value="ink-box">Ink Box</option>
 						<option value="em-box">Em box</option>
 					</select>
-					<div class="export-container" style="margin-left: auto;">
-						<select id="export-select" class="button-primary">
-							<option value="png">Export PNG</option>
-							<option value="svg">Export SVG</option>
-						</select>
-					</div>
+					<button id="export-png" class="button-primary" style="margin-left: auto;">Export PNG</button>
 				</div>
 				<div class="preview-container">
 					<div class="canvas-container">
@@ -454,17 +421,13 @@
 					<div class="results-layout">
 						<div class="result-card">
 							<div class="result-header">
-								<div class="color-indicator" style="background: var(--font-one-color)"></div>
 								Font 1 Analysis
-							
 							</div>
 							<div id="results1" class="result-data">Load a font to see analysis.</div>
 						</div>
 						<div class="result-card">
 							<div class="result-header">
-								<div class="color-indicator" style="background: var(--font-two-color)"></div>
 								Font 2 Analysis
-							
 							</div>
 							<div id="results2" class="result-data">Load a font to see analysis.</div>
 						</div>
@@ -520,7 +483,7 @@
 				}
 
 				initializeElements() {
-					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-select', 'themeSelect'];
+					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'];
 					this.elements = Object.fromEntries(names.map(name=>[name.replace(/-(\w)/g, (_,char)=>char.toUpperCase()), getElement(name)]));
 					this.context = this.elements.canvas.getContext('2d');
 					this.fontConfigs = [1, 2].map(index=>({
@@ -572,13 +535,17 @@
 						this.elements[elementName].onchange = handlers[elementName];
 					}
 
-					this.elements.exportSelect.onchange = ()=>this.export();
+					this.elements.exportPng.onclick = ()=>this.exportImage();
 					this.elements.themeSelect.onchange = event=>this.handleThemeChange(event.target.value);
 
 					this.fontConfigs.forEach((config,index)=>{
 						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
 						config.preset.onchange = event=>this.handlePresetChange(config, event.target.value);
-						config.color.oninput = event=>this.handleColorChange(index, event.target.value);
+						config.color.oninput = event=>{
+							this.state.colors[index] = event.target.value;
+							this.queueAnalysis();
+						}
+						;
 						['text', 'size', 'shift', 'letterSpacing'].forEach(property=>{
 							config[property].oninput = this.queueAnalysis;
 							config[property].onchange = this.queueAnalysis;
@@ -596,13 +563,6 @@
 						this.queueAnalysis();
 					}
 					config.preset.value = '';
-				}
-
-				handleColorChange(index, value) {
-					this.state.colors[index] = value;
-					const indicator = this.fontConfigs[index].color.closest('.font-header').querySelector('.color-indicator');
-					indicator.style.background = value;
-					this.queueAnalysis();
 				}
 
 				handleThemeChange(theme) {
@@ -897,92 +857,11 @@
 					);
 				}
 
-				export() {
-					const format = this.elements.exportSelect.value;
-					if (format === 'svg') {
-						this.exportSVG();
-					} else {
-						this.exportPNG();
-					}
-					this.elements.exportSelect.value = 'png';
-				}
-
-				exportPNG() {
+				exportImage() {
 					Object.assign(document.createElement('a'), {
 						href: this.elements.canvas.toDataURL('image/png'),
 						download: 'typographic-density.png'
 					}).click();
-				}
-
-				exportSVG() {
-					const analyses = this.state.analyses.filter(Boolean);
-					if (analyses.length === 0)
-						return;
-
-					const dims = this.calculateCanvasDimensions(analyses);
-					const isSideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
-					const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-					svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-					svg.setAttribute('width', dims.width);
-					svg.setAttribute('height', dims.height);
-					svg.setAttribute('viewBox', `0 0 ${dims.width} ${dims.height}`);
-
-					const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-					const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-					style.textContent = `
-						.font-path { mix-blend-mode: multiply; }
-					`;
-					defs.appendChild(style);
-					svg.appendChild(defs);
-
-					let xOffset = this.config.graphWidth + this.config.graphPadding;
-					analyses.forEach((analysis,index)=>{
-						const yOffset = dims.baseline - analysis.baselineShift;
-						const color = this.state.colors[index] || '#000000';
-						const maxDensity = Math.max(1, ...analysis.densityMap);
-
-						const densityGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-						densityGroup.setAttribute('transform', `translate(0, ${yOffset - analysis.baseline})`);
-
-						analysis.densityMap.forEach((value,i)=>{
-							if (value > 0) {
-								const barWidth = value / maxDensity * this.config.graphWidth;
-								const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-								rect.setAttribute('x', this.config.graphWidth - barWidth);
-								rect.setAttribute('y', i);
-								rect.setAttribute('width', barWidth);
-								rect.setAttribute('height', 1);
-								rect.setAttribute('fill', color);
-								densityGroup.appendChild(rect);
-							}
-						}
-						);
-						svg.appendChild(densityGroup);
-
-						const fontPath = analysis.font.getPath(analysis.font.glyphs.glyphs, 0, 0, analysis.fontSize, {
-							tracking: analysis.letterSpacing || 0
-						});
-						const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-						path.setAttribute('d', fontPath.toPathData());
-						path.setAttribute('fill', color);
-						path.setAttribute('transform', `translate(${xOffset}, ${yOffset})`);
-						if (analyses.length > 1) {
-							path.classList.add('font-path');
-						}
-
-						svg.appendChild(path);
-
-						if (isSideBySide)
-							xOffset += analysis.canvas.width;
-					}
-					);
-
-					const serializer = new XMLSerializer();
-					const source = 'data:image/svg+xml;base64,' + btoa(serializer.serializeToString(svg));
-					const a = document.createElement('a');
-					a.href = source;
-					a.download = 'typographic-density.svg';
-					a.click();
 				}
 			}
 
