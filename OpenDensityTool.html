@@ -98,14 +98,59 @@
 				margin-bottom: 20px
 			}
 
-			.font-header,.result-header {
+			.result-header {
 				display: flex;
 				align-items: center;
 				font-weight: 600
 			}
 
 			.font-header {
+				display: flex;
+				align-items: center;
+				font-weight: 600;
+				gap: 10px;
 				margin: 0 0 16px
+			}
+
+			.field-label-group {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 6px
+			}
+
+			.preset-select {
+				font-size: .85em;
+				padding: 2px 4px;
+				max-width: 50%
+			}
+
+			.color-input {
+				-webkit-appearance: none;
+				-moz-appearance: none;
+				appearance: none;
+				width: 24px;
+				height: 24px;
+				padding: 0;
+				border: none;
+				border-radius: 4px;
+				background-color: transparent;
+				cursor: pointer
+			}
+
+			.color-input::-webkit-color-swatch-wrapper {
+				padding: 0;
+				border-radius: 4px
+			}
+
+			.color-input::-webkit-color-swatch {
+				border: 1px solid var(--border-color);
+				border-radius: 4px
+			}
+
+			.color-input::-moz-color-swatch {
+				border: 1px solid var(--border-color);
+				border-radius: 4px
 			}
 
 			.color-indicator {
@@ -200,6 +245,16 @@
 
 			.button-primary:hover {
 				background: var(--primary-color-hover)
+			}
+
+			.export-container select {
+				-webkit-appearance: none;
+				-moz-appearance: none;
+				appearance: none;
+				padding-right: 30px;
+				background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M4%206L8%2010L12%206%22%20stroke%3D%22white%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
+				background-repeat: no-repeat;
+				background-position: right 8px center;
 			}
 
 			.preview-container {
@@ -302,15 +357,20 @@
 				<div class="font-section font-one">
 					<div class="font-header">
 						<div class="color-indicator"></div>
-						Font 1 (Cyan)
-					
+						Font 1
+						<input type="color" id="font1-color" class="color-input" value="#00a2a2">
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font1-file">Font File</label>
 						<input type="file" id="font1-file" class="form-input" accept=".otf,.ttf,.woff"/>
 					</div>
 					<div class="form-field">
-						<label class="field-label" for="font1-text">Text</label>
+						<div class="field-label-group">
+							<label class="field-label" for="font1-text">Text</label>
+							<select id="font1-preset" class="form-input preset-select">
+								<option value="">Select Preset...</option>
+							</select>
+						</div>
 						<textarea id="font1-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000">Idealogy</textarea>
 					</div>
 					<div class="form-field">
@@ -331,15 +391,20 @@
 				<div class="font-section font-two">
 					<div class="font-header">
 						<div class="color-indicator"></div>
-						Font 2 (Magenta)
-					
+						Font 2
+						<input type="color" id="font2-color" class="color-input" value="#ff00ff">
 					</div>
 					<div class="form-field">
 						<label class="field-label" for="font2-file">Font File</label>
 						<input type="file" id="font2-file" class="form-input" accept=".otf,.ttf,.woff"/>
 					</div>
 					<div class="form-field">
-						<label class="field-label" for="font2-text">Text</label>
+						<div class="field-label-group">
+							<label class="field-label" for="font2-text">Text</label>
+							<select id="font2-preset" class="form-input preset-select">
+								<option value="">Select Preset...</option>
+							</select>
+						</div>
 						<textarea id="font2-text" class="form-input" placeholder="Enter text to analyze" maxlength="1000">Идеология</textarea>
 					</div>
 					<div class="form-field">
@@ -373,7 +438,12 @@
 						<option value="ink-box">Ink Box</option>
 						<option value="em-box">Em box</option>
 					</select>
-					<button id="export-png" class="button-primary" style="margin-left: auto;">Export PNG</button>
+					<div class="export-container" style="margin-left: auto;">
+						<select id="export-select" class="button-primary">
+							<option value="png">Export PNG</option>
+							<option value="svg">Export SVG</option>
+						</select>
+					</div>
 				</div>
 				<div class="preview-container">
 					<div class="canvas-container">
@@ -407,20 +477,33 @@
 
 			class DensityTool {
 				constructor() {
+					this.presets = {
+						'Latin': {
+							'Pangram': 'The quick brown fox jumps over the lazy dog.',
+							'Alphabet (upper)': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+							'Alphabet (lower)': 'abcdefghijklmnopqrstuvwxyz',
+							'Numerals': '0123456789'
+						},
+						'Cyrillic': {
+							'Pangram': 'В чащах юга жил бы цитрус? Да, но фальшивый экземпляр!',
+							'Alphabet (upper)': 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ',
+							'Alphabet (lower)': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+						}
+					};
 					this.initializeState();
 					this.initializeElements();
+					this.populatePresets();
 					this.bindEventListeners();
 					this.applyTheme();
 					this.render();
 				}
 
 				initializeState() {
-					const styles = getComputedStyle(document.documentElement);
 					this.state = {
 						theme: 'auto',
 						fonts: [null, null],
 						analyses: [null, null],
-						colors: ['--font-one-color', '--font-two-color'].map(prop=>styles.getPropertyValue(prop).trim()),
+						colors: [getElement('font1-color').value, getElement('font2-color').value],
 						animationRefs: {}
 					};
 					this.config = {
@@ -437,7 +520,7 @@
 				}
 
 				initializeElements() {
-					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'];
+					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-select', 'themeSelect'];
 					this.elements = Object.fromEntries(names.map(name=>[name.replace(/-(\w)/g, (_,char)=>char.toUpperCase()), getElement(name)]));
 					this.context = this.elements.canvas.getContext('2d');
 					this.fontConfigs = [1, 2].map(index=>({
@@ -446,8 +529,27 @@
 						size: getElement(`font${index}-size`),
 						shift: getElement(`font${index}-shift`),
 						letterSpacing: getElement(`font${index}-letter-spacing`),
-						results: getElement(`results${index}`)
+						results: getElement(`results${index}`),
+						preset: getElement(`font${index}-preset`),
+						color: getElement(`font${index}-color`)
 					}));
+				}
+
+				populatePresets() {
+					this.fontConfigs.forEach(config=>{
+						for (const [group, options] of Object.entries(this.presets)) {
+							const optgroup = document.createElement('optgroup');
+							optgroup.label = group;
+							for (const [name, text] of Object.entries(options)) {
+								const option = document.createElement('option');
+								option.value = text;
+								option.textContent = name;
+								optgroup.appendChild(option);
+							}
+							config.preset.appendChild(optgroup);
+						}
+					}
+					);
 				}
 
 				bindEventListeners() {
@@ -470,11 +572,13 @@
 						this.elements[elementName].onchange = handlers[elementName];
 					}
 
-					this.elements.exportPng.onclick = ()=>this.exportImage();
+					this.elements.exportSelect.onchange = ()=>this.export();
 					this.elements.themeSelect.onchange = event=>this.handleThemeChange(event.target.value);
 
 					this.fontConfigs.forEach((config,index)=>{
 						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
+						config.preset.onchange = event=>this.handlePresetChange(config, event.target.value);
+						config.color.oninput = event=>this.handleColorChange(index, event.target.value);
 						['text', 'size', 'shift', 'letterSpacing'].forEach(property=>{
 							config[property].oninput = this.queueAnalysis;
 							config[property].onchange = this.queueAnalysis;
@@ -484,6 +588,21 @@
 					);
 
 					window.onresize = this.queueScaling;
+				}
+
+				handlePresetChange(config, value) {
+					if (value) {
+						config.text.value = value;
+						this.queueAnalysis();
+					}
+					config.preset.value = '';
+				}
+
+				handleColorChange(index, value) {
+					this.state.colors[index] = value;
+					const indicator = this.fontConfigs[index].color.closest('.font-header').querySelector('.color-indicator');
+					indicator.style.background = value;
+					this.queueAnalysis();
 				}
 
 				handleThemeChange(theme) {
@@ -670,8 +789,9 @@
 					analyses.forEach((analysis,index)=>{
 						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
 						const blend = this.state.analyses.every(Boolean) && index > 0;
-						this.renderDensityGraph(analysis, this.state.colors[index], yOffset, blend);
-						this.renderText(analysis, this.state.colors[index], xOffset, yOffset, blend);
+						const color = this.state.colors[index] || '#000000';
+						this.renderDensityGraph(analysis, color, yOffset, blend);
+						this.renderText(analysis, color, xOffset, yOffset, blend);
 						if (isSideBySide)
 							xOffset += analysis.canvas.width;
 					}
@@ -777,11 +897,92 @@
 					);
 				}
 
-				exportImage() {
+				export() {
+					const format = this.elements.exportSelect.value;
+					if (format === 'svg') {
+						this.exportSVG();
+					} else {
+						this.exportPNG();
+					}
+					this.elements.exportSelect.value = 'png';
+				}
+
+				exportPNG() {
 					Object.assign(document.createElement('a'), {
 						href: this.elements.canvas.toDataURL('image/png'),
 						download: 'typographic-density.png'
 					}).click();
+				}
+
+				exportSVG() {
+					const analyses = this.state.analyses.filter(Boolean);
+					if (analyses.length === 0)
+						return;
+
+					const dims = this.calculateCanvasDimensions(analyses);
+					const isSideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
+					const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+					svg.setAttribute('width', dims.width);
+					svg.setAttribute('height', dims.height);
+					svg.setAttribute('viewBox', `0 0 ${dims.width} ${dims.height}`);
+
+					const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+					const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+					style.textContent = `
+						.font-path { mix-blend-mode: multiply; }
+					`;
+					defs.appendChild(style);
+					svg.appendChild(defs);
+
+					let xOffset = this.config.graphWidth + this.config.graphPadding;
+					analyses.forEach((analysis,index)=>{
+						const yOffset = dims.baseline - analysis.baselineShift;
+						const color = this.state.colors[index] || '#000000';
+						const maxDensity = Math.max(1, ...analysis.densityMap);
+
+						const densityGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+						densityGroup.setAttribute('transform', `translate(0, ${yOffset - analysis.baseline})`);
+
+						analysis.densityMap.forEach((value,i)=>{
+							if (value > 0) {
+								const barWidth = value / maxDensity * this.config.graphWidth;
+								const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+								rect.setAttribute('x', this.config.graphWidth - barWidth);
+								rect.setAttribute('y', i);
+								rect.setAttribute('width', barWidth);
+								rect.setAttribute('height', 1);
+								rect.setAttribute('fill', color);
+								densityGroup.appendChild(rect);
+							}
+						}
+						);
+						svg.appendChild(densityGroup);
+
+						const fontPath = analysis.font.getPath(analysis.font.glyphs.glyphs, 0, 0, analysis.fontSize, {
+							tracking: analysis.letterSpacing || 0
+						});
+						const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+						path.setAttribute('d', fontPath.toPathData());
+						path.setAttribute('fill', color);
+						path.setAttribute('transform', `translate(${xOffset}, ${yOffset})`);
+						if (analyses.length > 1) {
+							path.classList.add('font-path');
+						}
+
+						svg.appendChild(path);
+
+						if (isSideBySide)
+							xOffset += analysis.canvas.width;
+					}
+					);
+
+					const serializer = new XMLSerializer();
+					const source = 'data:image/svg+xml;base64,' + btoa(serializer.serializeToString(svg));
+					const a = document.createElement('a');
+					a.href = source;
+					a.download = 'typographic-density.svg';
+					a.click();
 				}
 			}
 
