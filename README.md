@@ -2,7 +2,7 @@
 Typography, quantified.
 
 ## Introduction
-OpenDensityTool is a single‑file, browser‑based utility for visualizing and comparing how letterforms occupy space. It overlays two fonts (cyan and magenta), plots a per‑scanline "ink" density graph, and reports useful vertical metrics so you can judge alignment and texture across scripts.
+OpenDensityTool is a single‑file, browser‑based utility for visualizing and comparing how letterforms occupy space. It overlays two fonts, plots a per‑scanline "ink" density graph, and reports useful vertical metrics so you can judge alignment and texture across scripts.
 
 This project is inspired by:
 - "Typeface design beyond a single script" by Typotheque: https://www.typotheque.com/articles/typeface-design-beyond-a-single-script
@@ -16,7 +16,7 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 - Renders text to an off-screen canvas for each font, ensuring robust handling of various font file types.
 - Reads vertical metrics from the font's OS/2 and hhea tables, and estimates "actual" ascent/descent from glyph outlines.
 - Computes per-row "ink" density from pixel data to generate the density graph on the left.
-- Tints each font (cyan/magenta) and overlays them using multiply blending to highlight differences in texture, weight, and alignment.
+- Tints each font and overlays them using multiply blending to highlight differences in texture, weight, and alignment.
 - Reports yMin/yMax (relative to the baseline), density percentage, actual vs. font ascent/descent, and user-defined inputs like size and baseline shift.
 
 ## Quick Start
@@ -24,13 +24,15 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 2. Open it in any modern browser (Chrome, Edge, Firefox, Safari).
 3. Load two font files (OTF/TTF/WOFF).
 4. Enter text, set sizes, and adjust baseline shift to align optical baselines.
-5. Choose "Fit to View" or "100% Scale."
-6. Click "Export PNG" to save the visualization.
+5. Customize the overlay colors as needed.
+6. Choose "Fit to View" or "100% Scale."
+7. Click "Export PNG" to save the visualization.
 
 Note: The page loads opentype.js from a CDN. To use fully offline, replace the script tag with a local copy of opentype.js.
 
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
+- Customizable overlay colors
 - Per‑scanline ink density graph to the left of the text
 - Baseline‑aware alignment with per‑font baseline shift
 - Actual vs. nominal (OS/2/hhea) ascent/descent reporting
@@ -39,6 +41,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 
 ## Controls
 - Font File: Load OTF/TTF/WOFF.
+- Color: Choose a custom color for each font overlay.
 - Text: Enter the string to analyze (per font).
 - Size (px): Render size per font.
 - Baseline Shift: Nudge a font up/down to align optical baselines.
@@ -54,7 +57,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
 - Actual Ascent/Descent: Measured from glyph outlines at the chosen size.
 - Font Ascent/Descent: Max of OS/2/hhea/win metrics (when available).
-- Overlay: Cyan vs. magenta differences quickly show mismatched vertical alignment, weight, or texture.
+- Overlay: Color differences quickly show mismatched vertical alignment, weight, or texture.
 
 ## Use Cases
 - Pairing Latin with CJK, Cyrillic, or Greek
