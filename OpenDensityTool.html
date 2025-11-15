@@ -501,8 +501,9 @@
 					this.context = this.elements.canvas.getContext('2d');
 					this.fontConfigs = [1, 2].map(index=>{
 						const config = {};
-						const props = ['file', 'text', 'size', 'shift', 'letter-spacing', 'results', 'preset', 'color', 'color-indicator'];
+						const props = ['file', 'text', 'size', 'shift', 'letter-spacing', 'preset', 'color', 'color-indicator'];
 						props.forEach(prop=>config[toCamelCase(prop)] = getElement(`font${index}-${prop}`));
+						config.results = getElement(`results${index}`);
 						return config;
 					}
 					);
@@ -691,9 +692,13 @@
 				}
 
 				analyzePixelData(canvas) {
-					const {data, width, height} = canvas.getContext('2d', {
+					const {
+						data,
+						width,
+						height
+					} = canvas.getContext('2d', {
 						willReadFrequently: true
-					}).getImageData(0, 0, width, height);
+					}).getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
 					let[ink,minX,maxX,minY,maxY] = [0, width, -1, height, -1];
 
