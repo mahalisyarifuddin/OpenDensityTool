@@ -614,7 +614,7 @@
 					const context = canvas.getContext('2d', {
 						willReadFrequently: true
 					});
-					const {data, width, height} = context.getImageData(0, 0, width, height);
+					const {data, width, height} = context.getImageData(0, 0, canvas.width, canvas.height);
 					const densityMap = new Float32Array(height);
 					let[inkVolume,minX,maxX,minY,maxY] = [0, width, -1, height, -1];
 
