@@ -440,7 +440,11 @@
 					const names = ['canvas', 'zoom-mode', 'render-mode', 'density-mode', 'export-png', 'themeSelect'];
 					this.elements = Object.fromEntries(names.map(name=>[name.replace(/-(\w)/g, (_,char)=>char.toUpperCase()), getElement(name)]));
 					this.context = this.elements.canvas.getContext('2d');
-					this.fontConfigs = [1, 2].map(index=>Object.fromEntries(['file', 'text', 'size', 'shift', 'letterSpacing', 'results'].map(type=>[type, getElement(`font${index}-${type}`)])));
+					this.fontConfigs = [1, 2].map(index=>Object.fromEntries(['file', 'text', 'size', 'shift', 'letterSpacing', 'results'].map(type=>{
+						const id = type === 'results' ? `results${index}` : `font${index}-${type}`;
+						return [type, getElement(id)];
+					}
+					)));
 				}
 
 				bindEventListeners() {
@@ -457,16 +461,13 @@
 						zoomMode: this.queueScaling,
 						renderMode: this.queueAnalysis,
 						densityMode: this.queueAnalysis,
-						exportPng: ()=>this.exportImage(),
 						themeSelect: event=>this.handleThemeChange(event.target.value)
 					};
-					Object.entries(handlers).forEach(([elementName,{
-						onchange
+
+					for (const elementName in handlers) {
+						this.elements[elementName].onchange = handlers[elementName];
 					}
-					])=>{
-						this.elements[elementName].onchange = onchange;
-					}
-					);
+					this.elements.exportPng.onclick = ()=>this.exportImage();
 
 					this.fontConfigs.forEach((config,index)=>{
 						config.file.onchange = event=>this.handleFontLoad(event.target.files?.[0], index);
