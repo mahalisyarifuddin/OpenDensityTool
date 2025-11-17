@@ -548,142 +548,8 @@
 					}
 				}
 
-				computeFontMetrics(fontFace, text, fontSize, letterSpacing) {
-					const scale = fontSize / fontFace.unitsPerEm;
-					const {os2: os2Table, hhea: hheaTable} = fontFace.tables;
-
-					const glyphs = fontFace.stringToGlyphs(text);
-					const verticalExtents = glyphs.reduce((result,glyph)=>{
-						const path = glyph.path;
-						if (!path || !path.getBoundingBox)
-							return result;
-						const bounds = path.getBoundingBox();
-						if (!isFinite(bounds.y1) || !isFinite(bounds.y2))
-							return result;
-						result.actualAscent = Math.max(result.actualAscent, bounds.y2);
-						result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
-						return result;
-					}
-					, {
-						actualAscent: 0,
-						actualDescent: 0
-					});
-
-					const fontAscent = (os2Table?.sTypoAscender ?? os2Table?.usWinAscent ?? fontFace.ascender ?? 0) * scale;
-					const fontDescent = Math.abs(os2Table?.sTypoDescender ?? os2Table?.usWinDescent ?? fontFace.descender ?? 0) * scale;
-
-					const scaledAscent = verticalExtents.actualAscent * scale || fontFace.ascender * scale;
-					const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(fontFace.descender * scale);
-
-					const pathOptions = {
-						tracking: letterSpacing || 0
-					};
-					const textBounds = fontFace.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
-
-					return {
-						ascent: Math.max(scaledAscent, fontAscent),
-						descent: Math.max(scaledDescent, fontDescent),
-						actualAscent: scaledAscent,
-						actualDescent: scaledDescent,
-						fontAscent,
-						fontDescent,
-						boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
-						advanceWidth: Math.ceil(fontFace.getAdvanceWidth(text, fontSize, pathOptions))
-					};
-				}
-
-				analyzeFont(fontFace, text, fontSize, baselineShift, letterSpacing) {
-					if (!fontFace || !text || !fontSize)
-						return null;
-
-					const clampedSize = Math.max(1, Math.min(fontSize, 2000));
-					const metrics = this.computeFontMetrics(fontFace, text, clampedSize, letterSpacing);
-
-					if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0)
-						return null;
-
-					const baseline = Math.ceil(metrics.ascent);
-					const offscreenCanvas = Object.assign(document.createElement('canvas'), {
-						width: metrics.advanceWidth,
-						height: Math.ceil(metrics.ascent + metrics.descent)
-					});
-					const offscreenContext = offscreenCanvas.getContext('2d');
-
-					fontFace.draw(offscreenContext, text, 0, baseline, clampedSize, {
-						tracking: letterSpacing || 0
-					});
-
-					const pixelAnalysis = this.analyzePixels(offscreenCanvas);
-					if (pixelAnalysis.minimumY > pixelAnalysis.maximumY)
-						return null;
-
-					const density = this.computeDensity(pixelAnalysis, metrics, clampedSize);
-
-					return {
-						...pixelAnalysis,
-						...metrics,
-						canvas: offscreenCanvas,
-						baseline,
-						baselineShift,
-						letterSpacing,
-						fontSize: clampedSize,
-						fontFace,
-						density: density.toFixed(1),
-						yMin: Math.round(baseline - pixelAnalysis.maximumY),
-						yMax: Math.round(baseline - pixelAnalysis.minimumY)
-					};
-				}
-
-				analyzePixels(canvas) {
-					const context = canvas.getContext('2d', {
-						willReadFrequently: true
-					});
-					const {data, width, height} = context.getImageData(0, 0, canvas.width, canvas.height);
-
-					const densityByRow = new Float32Array(height);
-					let inkPixelCount = 0;
-					let minimumX = width;
-					let maximumX = -1;
-					let minimumY = height;
-					let maximumY = -1;
-
-					for (let y = 0; y < height; y++) {
-						for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++,
-						alphaIndex += 4) {
-							if (data[alphaIndex] >= 128) {
-								if (y < minimumY)
-									minimumY = y;
-								if (y > maximumY)
-									maximumY = y;
-								if (x < minimumX)
-									minimumX = x;
-								if (x > maximumX)
-									maximumX = x;
-								inkPixelCount++;
-								densityByRow[y]++;
-							}
-						}
-					}
-
-					return {
-						densityByRow,
-						inkPixelCount,
-						minimumX,
-						maximumX,
-						minimumY,
-						maximumY
-					};
-				}
-
-				computeDensity(pixelAnalysis, metrics, fontSize) {
-					const width = (pixelAnalysis.maximumX - pixelAnalysis.minimumX + 1) || 1;
-					const height = (pixelAnalysis.maximumY - pixelAnalysis.minimumY + 1) || 1;
-					const area = this.elements.densityMode.value === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
-					return (pixelAnalysis.inkPixelCount / area) * 100;
-				}
-
 				updateAnalysesAndRender() {
-					this.state.analyses = this.fontConfigurations.map((configuration,index)=>this.analyzeFont(this.state.fontFaces[index], configuration.textInput.value.trim(), Number(configuration.sizeInput.value) || 0, Number(configuration.baselineShiftInput.value) || 0, Number(configuration.letterSpacingInput.value) || 0));
+					this.state.analyses = this.fontConfigurations.map((configuration, index) => analyzeFont(this.state.fontFaces[index], configuration.textInput.value.trim(), Number(configuration.sizeInput.value) || 0, Number(configuration.baselineShiftInput.value) || 0, Number(configuration.letterSpacingInput.value) || 0, this.elements.densityMode.value));
 					this.render();
 					this.updateResultText();
 				}
@@ -828,7 +694,120 @@
 				}
 			}
 
-			document.addEventListener('DOMContentLoaded', ()=>new DensityTool());
+			function computeFontMetrics(fontFace, text, fontSize, letterSpacing) {
+				const scale = fontSize / fontFace.unitsPerEm;
+				const {
+					os2: os2Table,
+					hhea: hheaTable
+				} = fontFace.tables;
+				const glyphs = fontFace.stringToGlyphs(text);
+				const verticalExtents = glyphs.reduce((result, glyph) => {
+					const path = glyph.path;
+					if (!path || !path.getBoundingBox) return result;
+					const bounds = path.getBoundingBox();
+					if (!isFinite(bounds.y1) || !isFinite(bounds.y2)) return result;
+					result.actualAscent = Math.max(result.actualAscent, bounds.y2);
+					result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
+					return result;
+				}, {
+					actualAscent: 0,
+					actualDescent: 0
+				});
+				const fontAscent = (os2Table ? .sTypoAscender ? ? os2Table ? .usWinAscent ? ? fontFace.ascender ? ? 0) * scale;
+				const fontDescent = Math.abs(os2Table ? .sTypoDescender ? ? os2Table ? .usWinDescent ? ? fontFace.descender ? ? 0) * scale;
+				const scaledAscent = verticalExtents.actualAscent * scale || fontFace.ascender * scale;
+				const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(fontFace.descender * scale);
+				const pathOptions = {
+					tracking: letterSpacing || 0
+				};
+				const textBounds = fontFace.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
+				return {
+					ascent: Math.max(scaledAscent, fontAscent),
+					descent: Math.max(scaledDescent, fontDescent),
+					actualAscent: scaledAscent,
+					actualDescent: scaledDescent,
+					fontAscent,
+					fontDescent,
+					boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
+					advanceWidth: Math.ceil(fontFace.getAdvanceWidth(text, fontSize, pathOptions))
+				};
+			}
+
+			function analyzePixels(canvas) {
+				const context = canvas.getContext('2d', {
+					willReadFrequently: true
+				});
+				const {
+					data,
+					width,
+					height
+				} = context.getImageData(0, 0, canvas.width, canvas.height);
+				const densityByRow = new Float32Array(height);
+				let inkPixelCount = 0;
+				let minimumX = width;
+				let maximumX = -1;
+				let minimumY = height;
+				let maximumY = -1;
+				for (let y = 0; y < height; y++) {
+					for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++, alphaIndex += 4) {
+						if (data[alphaIndex] >= 128) {
+							if (y < minimumY) minimumY = y;
+							if (y > maximumY) maximumY = y;
+							if (x < minimumX) minimumX = x;
+							if (x > maximumX) maximumX = x;
+							inkPixelCount++;
+							densityByRow[y]++;
+						}
+					}
+				}
+				return {
+					densityByRow,
+					inkPixelCount,
+					minimumX,
+					maximumX,
+					minimumY,
+					maximumY
+				};
+			}
+
+			function computeDensity(pixelAnalysis, metrics, fontSize, densityMode) {
+				const width = (pixelAnalysis.maximumX - pixelAnalysis.minimumX + 1) || 1;
+				const height = (pixelAnalysis.maximumY - pixelAnalysis.minimumY + 1) || 1;
+				const area = densityMode === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
+				return (pixelAnalysis.inkPixelCount / area) * 100;
+			}
+
+			function analyzeFont(fontFace, text, fontSize, baselineShift, letterSpacing, densityMode) {
+				if (!fontFace || !text || !fontSize) return null;
+				const clampedSize = Math.max(1, Math.min(fontSize, 2000));
+				const metrics = computeFontMetrics(fontFace, text, clampedSize, letterSpacing);
+				if (!metrics ? .advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) return null;
+				const baseline = Math.ceil(metrics.ascent);
+				const offscreenCanvas = Object.assign(document.createElement('canvas'), {
+					width: metrics.advanceWidth,
+					height: Math.ceil(metrics.ascent + metrics.descent)
+				});
+				const offscreenContext = offscreenCanvas.getContext('2d');
+				fontFace.draw(offscreenContext, text, 0, baseline, clampedSize, {
+					tracking: letterSpacing || 0
+				});
+				const pixelAnalysis = analyzePixels(offscreenCanvas);
+				if (pixelAnalysis.minimumY > pixelAnalysis.maximumY) return null;
+				const density = computeDensity(pixelAnalysis, metrics, clampedSize, densityMode);
+				return { ...pixelAnalysis,
+					...metrics,
+					canvas: offscreenCanvas,
+					baseline,
+					baselineShift,
+					letterSpacing,
+					fontSize: clampedSize,
+					fontFace,
+					density: density.toFixed(1),
+					yMin: Math.round(baseline - pixelAnalysis.maximumY),
+					yMax: Math.round(baseline - pixelAnalysis.minimumY)
+				};
+			}
+			document.addEventListener('DOMContentLoaded', () => new DensityTool());
 		</script>
 	</body>
 </html>
