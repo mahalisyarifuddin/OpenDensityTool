@@ -754,20 +754,20 @@
 						return this.state.fontFaces[index] ? 'Enter text to analyze.' : 'Load a font to see analysis.';
 					}
 
-					const metricNames = ['ascent', 'descent', 'actualAscent', 'actualDescent', 'fontAscent', 'fontDescent'];
-					const metricLines = metricNames.map(name=>{
-						const label = name.replace(/([A-Z])/g, ' $1').replace(/^\w/, c=>c.toUpperCase());
-						return `${label}: ${Math.round(analysis[name])}px`;
-					});
-
 					return [
-						`Y Min: ${analysis.yMin}px`,
-						`Y Max: ${analysis.yMax}px`,
 						`Density: ${analysis.density}%`,
-						`Font Size: ${analysis.fontSize}px`,
-						`Baseline Shift: ${analysis.baselineShift}px`,
-						`Letter Spacing: ${analysis.letterSpacing}px`,
-						...metricLines
+						``,
+						`Ink Bounds:`,
+						`- Y Min: ${analysis.yMin}px`,
+						`- Y Max: ${analysis.yMax}px`,
+						``,
+						`Actual Ink:`,
+						`- Ascent: ${Math.round(analysis.actualAscent)}px`,
+						`- Descent: ${Math.round(analysis.actualDescent)}px`,
+						``,
+						`Font Metrics:`,
+						`- Ascent: ${Math.round(analysis.fontAscent)}px`,
+						`- Descent: ${Math.round(analysis.fontDescent)}px`
 					].join('\n');
 				}
 
