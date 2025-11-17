@@ -552,8 +552,6 @@
 					const scale = fontSize / fontFace.unitsPerEm;
 					const {os2: os2Table, hhea: hheaTable} = fontFace.tables;
 
-					const getMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(fontFace[key] ?? os2Table?.[key] ?? hheaTable?.[key] ?? 0))) * scale;
-
 					const glyphs = fontFace.stringToGlyphs(text);
 					const verticalExtents = glyphs.reduce((result,glyph)=>{
 						const path = glyph.path;
@@ -571,8 +569,8 @@
 						actualDescent: 0
 					});
 
-					const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
-					const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
+					const fontAscent = (os2Table?.sTypoAscender ?? os2Table?.usWinAscent ?? fontFace.ascender ?? 0) * scale;
+					const fontDescent = Math.abs(os2Table?.sTypoDescender ?? os2Table?.usWinDescent ?? fontFace.descender ?? 0) * scale;
 
 					const scaledAscent = verticalExtents.actualAscent * scale || fontFace.ascender * scale;
 					const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(fontFace.descender * scale);
