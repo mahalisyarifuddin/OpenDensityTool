@@ -501,7 +501,6 @@
 
 				async loadFont(file, index) {
 					const config = this.fontConfigurations[index];
-					const maxSize = 30 * 1024 * 1024;
 					const reset = ()=>{
 						this.state.fontFaces[index] = null;
 						config.fileInput.value = '';
@@ -509,8 +508,8 @@
 					};
 
 					if (!file) return reset();
-					if (file.size > maxSize) {
-						alert(`File size exceeds ${maxSize / 1048576}MB.`);
+					if (file.size > 30 * 1024 * 1024) {
+						alert('File size exceeds 30MB.');
 						return reset();
 					}
 
