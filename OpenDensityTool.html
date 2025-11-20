@@ -448,9 +448,10 @@
                 analyses.forEach((analysis, index) => {
                     const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
                     const blendWithPrevious = this.applicationState.analyses.every(Boolean) && index > 0;
+                    const color = this.applicationState.colors[this.applicationState.analyses.indexOf(analysis)];
 
-                    this.renderDensityGraph(analysis, this.applicationState.colors[index], yOffset, blendWithPrevious);
-                    this.renderGlyphs(analysis, this.applicationState.colors[index], textX, yOffset, blendWithPrevious);
+                    this.renderDensityGraph(analysis, color, yOffset, blendWithPrevious);
+                    this.renderGlyphs(analysis, color, textX, yOffset, blendWithPrevious);
                     if (renderSideBySide) textX += analysis.canvas.width;
                 });
 
