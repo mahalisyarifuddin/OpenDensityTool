@@ -539,7 +539,7 @@
                 this.fontInputs.forEach((input, index) => {
                     const analysis = this.applicationState.analyses[index];
                     input.result.textContent = analysis ?
-                        `Density: ${analysis.density}%\n\nInk Bounds:\n- Min Y: ${analysis.yMin}\n- Max Y: ${analysis.yMax}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`
+                        `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`
                         : (this.applicationState.loadedFonts[index] ? 'Enter text.' : 'Load font.');
                 });
             }
