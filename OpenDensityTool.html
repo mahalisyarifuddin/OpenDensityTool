@@ -426,13 +426,25 @@
                 const wrapper = this.elements.canvasWrapper;
 
                 canvas.style.transform = 'none';
-                wrapper.style.width = ''; wrapper.style.height = '';
+                wrapper.style.width = ''; wrapper.style.height = ''; wrapper.style.overflow = '';
 
-                if (this.elements.zoomMode.value === 'fit' && canvas.width) {
-                    const scale = Math.min(wrapper.clientWidth / canvas.width, 1);
-                    canvas.style.transform = `scale(${scale})`;
-                    wrapper.style.height = `${canvas.height * scale}px`;
-                }
+                if (this.elements.zoomMode.value !== 'fit' || !canvas.width) return;
+
+                const section = wrapper.parentElement;
+                const sectionStyle = getComputedStyle(section);
+                const wrapperStyle = getComputedStyle(wrapper);
+
+                const sectionWidth = section.clientWidth - parseFloat(sectionStyle.paddingLeft) - parseFloat(sectionStyle.paddingRight);
+                const wrapperHorizontalDecoration = parseFloat(wrapperStyle.borderLeftWidth) + parseFloat(wrapperStyle.borderRightWidth);
+                const wrapperVerticalDecoration = parseFloat(wrapperStyle.borderTopWidth) + parseFloat(wrapperStyle.borderBottomWidth);
+
+                const availableWidth = sectionWidth - wrapperHorizontalDecoration;
+                const scale = Math.min(availableWidth / canvas.width, 1);
+
+                canvas.style.transform = `scale(${scale})`;
+                wrapper.style.width = `${canvas.width * scale + wrapperHorizontalDecoration}px`;
+                wrapper.style.height = `${canvas.height * scale + wrapperVerticalDecoration}px`;
+                wrapper.style.overflow = 'hidden';
             }
 
             updateResults() {
