@@ -655,20 +655,10 @@
 
                     const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
 
-                    let textWidth;
-                    if (sideBySide) {
-                        textWidth = analyses.reduce((totalWidth, analysis) => totalWidth + analysis.canvas.width, 0);
-                    } else {
-                        // In overlay mode, we align origins.
-                        // The required width spans from minX (adjusted by maxDrawOffset) to maxX.
-                        // Leftmost point is 0 relative to aligned origin - maxDrawOffsetX.
-                        // But we place origin at graphWidth + padding + maxDrawOffsetX.
-                        // So the canvas starts at 0.
-                        // We need to find the extent to the right relative to origin.
-                        // Extent right = analysis.canvas.width - analysis.drawOffsetX.
-                        const maxRightExtent = Math.max(0, ...analyses.map(analysis => analysis.canvas.width - analysis.drawOffsetX));
-                        textWidth = maxDrawOffsetX + maxRightExtent;
-                    }
+                    const overlayWidth = maxDrawOffsetX + Math.max(0, ...analyses.map(analysis => analysis.canvas.width - analysis.drawOffsetX));
+                    const sideBySideWidth = analyses.reduce((totalWidth, analysis) => totalWidth + analysis.canvas.width, 0);
+
+                    const textWidth = sideBySide ? sideBySideWidth : overlayWidth;
 
                     return {
                         width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
