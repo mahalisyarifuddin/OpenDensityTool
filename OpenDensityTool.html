@@ -3,16 +3,16 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <title>PreferenceRank</title>
+        <title>Typographic Density Tool</title>
+        <script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
         <style>
             :root {
                 --primary: #0070ea;
-                --primary-hover: #005bc0;
-                --background: #f9f9ff;
+                --background: #f7f7f8;
                 --surface: #fff;
-                --text: #414754;
-                --border: #c1c6d7;
-                --hover: #d7d9e5;
+                --text: #333;
+                --border: #e0e0e0;
+                --input: #fff;
             }
 
             @media (prefers-color-scheme: dark) {
@@ -21,7 +21,7 @@
                     --surface: #181c23;
                     --text: #c1c6d7;
                     --border: #414754;
-                    --hover: #10131b;
+                    --input: #0f1218;
                 }
             }
 
@@ -30,399 +30,301 @@
                 --surface: #181c23;
                 --text: #c1c6d7;
                 --border: #414754;
-                --hover: #10131b;
+                --input: #0f1218;
             }
 
             * {
                 box-sizing: border-box;
-                margin: 0;
-                padding: 0;
             }
 
             body {
                 background: var(--background);
                 color: var(--text);
                 font-family: sans-serif;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                padding: 1rem;
+                line-height: 1.5;
+                margin: 0;
+                padding: 24px;
             }
 
-            .container {
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 32px;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: 1.8em;
+            }
+
+            main {
+                display: grid;
+                grid-template-columns: 340px 1fr;
+                gap: 24px;
+                max-width: 1600px;
+                margin: 0 auto;
+            }
+
+            section {
                 background: var(--surface);
                 border: 1px solid var(--border);
                 border-radius: 8px;
-                max-width: 720px;
-                padding: 2rem;
-                width: 100%;
-                position: relative;
+                padding: 24px;
+                min-width: 0;
             }
 
-            .hidden {
-                display: none !important;
+            h2 {
+                margin-top: 0;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 12px;
+                font-size: 1.2em;
             }
 
-            h1, h2 {
-                margin: 0.5rem 0;
+            .font-group {
+                background: var(--background);
+                border: 1px solid var(--border);
+                padding: 16px;
+                border-radius: 6px;
+                margin-bottom: 16px;
+            }
+
+            .font-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 12px;
+                font-weight: bold;
+            }
+
+            input[type="color"] {
+                width: 24px;
+                height: 24px;
+                border: none;
+                background: none;
+                padding: 0;
+                margin-right: 8px;
+                cursor: pointer;
             }
 
             label {
                 display: block;
-                font-weight: 700;
-                margin-bottom: 0.5rem;
+                margin-bottom: 12px;
+                font-size: 0.9em;
+                opacity: 0.9;
             }
 
-            input, select, textarea, button {
-                background: var(--surface);
+            input:not([type="color"]), textarea, select {
+                width: 100%;
+                padding: 8px;
                 border: 1px solid var(--border);
                 border-radius: 4px;
+                background: var(--input);
                 color: var(--text);
-                font-size: 1rem;
-                padding: 0.5rem;
-                width: 100%;
+                margin-top: 4px;
+                font-family: inherit;
             }
 
             textarea {
-                min-height: 80px;
                 resize: vertical;
+                min-height: 60px;
+            }
+
+            .row {
+                display: flex;
+                gap: 12px;
+            }
+
+            .controls {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 16px;
+            }
+
+            .controls select {
+                width: auto;
             }
 
             button {
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-
-            .button-primary {
                 background: var(--primary);
-                border: none;
                 color: #fff;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-left: auto;
             }
 
-            .button-primary:hover {
-                background: var(--primary-hover);
+            button:hover {
+                opacity: 0.9;
             }
 
-            .button-secondary:hover {
-                background: var(--hover);
+            #previewContainer {
+                background: var(--input);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                overflow: auto;
+                margin-bottom: 24px;
             }
 
-            .selectors {
-                position: absolute;
-                right: 2rem;
-                top: 1rem;
+            #canvasContainer {
+                padding: 15px;
                 display: flex;
-                gap: 8px;
+                align-items: flex-start;
             }
 
-            .selectors select {
-                font-size: 0.9rem;
-                padding: 5px;
-                width: auto;
+            canvas {
+                transform-origin: top left;
+                display: block;
+                flex-shrink: 0;
             }
 
-            .checkbox-container {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin: 0.75rem 0;
+            .results {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
             }
 
-            .checkbox-container input {
-                width: auto;
-            }
-
-            .checkbox-container label {
-                margin: 0;
-            }
-
-            #battleContainer, #tieButtonContainer, #restartButtonContainer {
-                display: flex;
-                gap: 1rem;
-                margin-top: 1rem;
-            }
-
-            #battleContainer button, #tieButtonContainer button, #restartButtonContainer button {
-                flex: 1;
-            }
-
-            #battleContainer button, #tieButtonContainer button {
-                font-size: 1.2rem;
-                min-height: 100px;
-            }
-
-            #progressDisplay {
-                font-size: 1.1rem;
-                margin-top: 1rem;
-                text-align: center;
-            }
-
-            #keyboardShortcutTip {
+            .result-card {
                 background: var(--background);
                 border: 1px solid var(--border);
-                border-radius: 4px;
-                font-size: 0.85rem;
-                line-height: 1.5;
-                margin-top: 15px;
-                opacity: 0.9;
-                padding: 8px;
-                text-align: center;
+                padding: 16px;
+                border-radius: 6px;
             }
 
-            #keyboardShortcutTip kbd {
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 3px;
-                box-shadow: 0 1px 1px rgba(0,0,0,0.2);
-                display: inline-block;
+            .result-text {
+                white-space: pre-wrap;
                 font-family: monospace;
                 font-size: 0.9em;
-                margin: 0 3px;
-                padding: 2px 5px;
+                margin-top: 8px;
             }
 
-            #keyboardShortcutToggle {
-                background: none;
-                border: none;
-                color: var(--primary);
-                cursor: pointer;
-                display: block;
-                font-size: 0.85rem;
-                margin: 10px auto 0;
-                text-decoration: underline;
-                width: auto;
+            .indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                display: inline-block;
+                margin-right: 8px;
             }
 
-            #resultsContainer table {
-                border-collapse: collapse;
-                margin-top: 1rem;
-                width: 100%;
-            }
-
-            #resultsContainer th, #resultsContainer td {
-                border: 1px solid var(--border);
-                padding: 0.5rem;
-                text-align: left;
-            }
-
-            #resultsContainer th {
-                background: var(--primary);
-                color: #fff;
-            }
-
-            #undoButton {
-                width: auto;
-            }
-
-            #undoButton:disabled {
-                background: var(--hover);
-                cursor: not-allowed;
-            }
-
-            .selected {
-                background: var(--primary) !important;
-                color: #fff !important;
-            }
-
-            @media (max-width: 768px) {
-                body {
-                    padding: 0.75rem;
-                }
-
-                .container {
-                    padding: 1.5rem;
-                }
-
-                .selectors {
-                    gap: 4px;
-                    right: 0.5rem;
-                    top: 0.5rem;
-                }
-
-                .selectors select {
-                    font-size: 0.8rem;
-                    padding: 4px;
-                }
-
-                #battleContainer, #tieButtonContainer, #restartButtonContainer {
-                    flex-direction: column;
-                }
-
-                #battleContainer button, #tieButtonContainer button {
-                    width: 100%;
+            @media (max-width: 900px) {
+                main {
+                    grid-template-columns: 1fr;
                 }
             }
         </style>
     </head>
     <body>
-        <div class="container">
-            <div id="inputSection">
-                <h1 id="mainTitle">PreferenceRank</h1>
-                <div class="selectors">
-                    <select id="languageSelection">
-                        <option value="en">English</option>
-                        <option value="id">Bahasa Indonesia</option>
+        <header>
+            <h1>Typographic Density Tool</h1>
+            <select id="themeSelector" style="width:auto">
+                <option value="auto">Auto Theme</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </header>
+        <main>
+            <section>
+                <h2>Configuration</h2>
+                <div class="font-group">
+                    <div class="font-header">
+                        <input type="color" id="font1Color" value="#00a2a2">Font 1
+                    </div>
+                    <label>
+                        Font File
+					<input type="file" id="font1File" accept=".otf,.ttf,.woff">
+                    </label>
+                    <label>
+                        Text
+					<textarea id="font1Text" maxlength="1000">Idealogy</textarea>
+                    </label>
+                    <label>
+                        Size (px)
+					<input type="number" id="font1Size" value="100" min="8" max="500">
+                    </label>
+                    <div class="row">
+                        <label>
+                            Letter Spacing
+						<input type="number" id="font1Spacing" value="0" min="-100" max="100">
+                        </label>
+                        <label>
+                            Baseline Shift
+						<input type="number" id="font1Shift" value="0" min="-200" max="200">
+                        </label>
+                    </div>
+                </div>
+                <div class="font-group">
+                    <div class="font-header">
+                        <input type="color" id="font2Color" value="#ff00ff">Font 2
+                    </div>
+                    <label>
+                        Font File
+					<input type="file" id="font2File" accept=".otf,.ttf,.woff">
+                    </label>
+                    <label>
+                        Text
+					<textarea id="font2Text" maxlength="1000">Идеология</textarea>
+                    </label>
+                    <label>
+                        Size (px)
+					<input type="number" id="font2Size" value="100" min="8" max="500">
+                    </label>
+                    <div class="row">
+                        <label>
+                            Letter Spacing
+						<input type="number" id="font2Spacing" value="0" min="-100" max="100">
+                        </label>
+                        <label>
+                            Baseline Shift
+						<input type="number" id="font2Shift" value="0" min="-200" max="200">
+                        </label>
+                    </div>
+                </div>
+            </section>
+            <section>
+                <h2>Visualization</h2>
+                <div class="controls">
+                    <select id="zoomMode">
+                        <option value="fit">Fit to View</option>
+                        <option value="100">100% Scale</option>
                     </select>
-                    <select id="themeSelection">
-                        <option value="auto"/>
-                        <option value="light"/>
-                        <option value="dark"/>
+                    <select id="renderMode">
+                        <option value="overlay">Overlay</option>
+                        <option value="side-by-side">Side-by-side</option>
                     </select>
+                    <select id="densityMode">
+                        <option value="ink-box">Ink Box</option>
+                        <option value="em-box">Em Box</option>
+                    </select>
+                    <button id="exportButton">Export PNG</button>
                 </div>
-                <div class="form-group">
-                    <label for="itemInputArea" id="itemInputLabel"/></label>
-                    <textarea id="itemInputArea" rows="5" spellcheck="false"></textarea>
+                <div id="previewContainer">
+                    <div id="canvasContainer">
+                        <canvas id="mainCanvas"></canvas>
+                    </div>
                 </div>
-                <div class="checkbox-container">
-                    <input type="checkbox" id="allowTiesCheckbox">
-                    <label for="allowTiesCheckbox" id="allowTiesLabel"/>
+                <div class="results">
+                    <div class="result-card">
+                        <div class="font-header">
+                            <div id="result1Color" class="indicator"></div>
+                            Font 1 Analysis
+					
+                        </div>
+                        <div id="result1Text" class="result-text">Load a font.</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="font-header">
+                            <div id="result2Color" class="indicator"></div>
+                            Font 2 Analysis
+					
+                        </div>
+                        <div id="result2Text" class="result-text">Load a font.</div>
+                    </div>
                 </div>
-                <div class="checkbox-container">
-                    <input type="checkbox" id="quickRankCheckbox">
-                    <label for="quickRankCheckbox" id="quickRankLabel"/>
-                </div>
-                <button id="startRankingButton" class="button-primary"/>
-            </div>
-            <div id="battleSection" class="hidden">
-                <button id="undoButton" class="button-secondary" disabled></button>
-                <div id="battleContainer">
-                    <button id="leftItemButton" class="button-secondary"></button>
-                    <button id="rightItemButton" class="button-secondary"></button>
-                </div>
-                <div id="tieButtonContainer" class="hidden">
-                    <button id="tieButton" class="button-secondary"/>
-                </div>
-                <div id="progressDisplay"></div>
-                <button id="keyboardShortcutToggle"/>
-                <div id="keyboardShortcutTip" class="hidden"></div>
-            </div>
-            <div id="resultsContainer" class="hidden"></div>
-            <div id="restartButtonContainer" class="hidden">
-                <button id="restartBattleButton" class="button-primary"/>
-                <button id="restartNewButton" class="button-primary"/>
-            </div>
-        </div>
+            </section>
+        </main>
         <script>
-            const languageStrings = {
-                en: {
-                    title: 'PreferenceRank',
-                    automaticTheme: 'Auto Theme',
-                    lightTheme: 'Light',
-                    darkTheme: 'Dark',
-                    itemInputLabel: 'Enter items, one per line:',
-                    allowTiesLabel: 'Allow Ties',
-                    quickRankLabel: 'Use Quick Rank (fewer comparisons)',
-                    alertMessage: 'Please enter at least two items.',
-                    duplicateAlertMessage: '{count} duplicate item(s) were found and have been removed.',
-                    startRankingButton: 'Start Ranking',
-                    tieButton: "It's a Tie",
-                    undoButton: 'Undo',
-                    progressLabel: 'Progress',
-                    keyboardShortcutToggle: 'Show keyboard shortcuts',
-                    keyboardShortcutHide: 'Hide keyboard shortcuts',
-                    keyboardShortcutTipWithTies: 'Keyboard Shortcuts:<br><kbd>←</kbd> Choose left item<br><kbd>→</kbd> Choose right item<br><kbd>↑</kbd> / <kbd>↓</kbd> It\'s a Tie<br><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> Undo last choice',
-                    keyboardShortcutTipNoTies: 'Keyboard Shortcuts:<br><kbd>←</kbd> Choose left item<br><kbd>→</kbd> Choose right item<br><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> Undo last choice',
-                    resultsTitle: 'Results',
-                    rankColumn: 'Rank',
-                    itemColumn: 'Item',
-                    scoreColumn: 'Score',
-                    restartBattleButton: 'Restart Battle',
-                    restartNewButton: 'Start with New Items'
-                },
-                id: {
-                    title: 'PreferenceRank',
-                    automaticTheme: 'Tema Otomatis',
-                    lightTheme: 'Terang',
-                    darkTheme: 'Gelap',
-                    itemInputLabel: 'Masukkan pilihan, satu per baris:',
-                    allowTiesLabel: 'Izinkan Seri',
-                    quickRankLabel: 'Gunakan Peringkat Cepat (lebih sedikit perbandingan)',
-                    alertMessage: 'Harap masukkan setidaknya dua pilihan.',
-                    duplicateAlertMessage: '{count} item duplikat ditemukan dan telah dihapus.',
-                    startRankingButton: 'Mulai Peringkat',
-                    tieButton: 'Seri',
-                    undoButton: 'Urungkan',
-                    progressLabel: 'Kemajuan',
-                    keyboardShortcutToggle: 'Tampilkan pintasan papan ketik',
-                    keyboardShortcutHide: 'Sembunyikan pintasan papan ketik',
-                    keyboardShortcutTipWithTies: 'Pintasan Papan Ketik:<br><kbd>←</kbd> Pilih pilihan kiri<br><kbd>→</kbd> Pilih pilihan kanan<br><kbd>↑</kbd> / <kbd>↓</kbd> Seri<br><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> Urungkan pilihan terakhir',
-                    keyboardShortcutTipNoTies: 'Pintasan Papan Ketik:<br><kbd>←</kbd> Pilih pilihan kiri<br><kbd>→</kbd> Pilih pilihan kanan<br><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> Urungkan pilihan terakhir',
-                    resultsTitle: 'Hasil',
-                    rankColumn: 'Peringkat',
-                    itemColumn: 'Nama',
-                    scoreColumn: 'Skor',
-                    restartBattleButton: 'Mulai Ulang Pertarungan',
-                    restartNewButton: 'Mulai dengan Pilihan Baru'
-                }
-            };
-
-            const escapeHtml = text=>{
-                const element = document.createElement('p');
-                element.textContent = text;
-                return element.innerHTML;
-            }
-            ;
-
-            class PairProvider {
-                constructor(itemCount) {
-                    this.itemCount = itemCount;
-                    this.comparedPairKeys = new Set();
-                }
-                createPairKey([firstIndex,secondIndex]) {
-                    return `${Math.min(firstIndex, secondIndex)}-${Math.max(firstIndex, secondIndex)}`;
-                }
-                markCompared(pair) {
-                    this.comparedPairKeys.add(this.createPairKey(pair));
-                }
-                unmarkCompared(pair) {
-                    this.comparedPairKeys.delete(this.createPairKey(pair));
-                }
-                hasBeenCompared(pair) {
-                    return this.comparedPairKeys.has(this.createPairKey(pair));
-                }
-            }
-
-            class FullPairProvider extends PairProvider {
-                constructor(itemCount) {
-                    super(itemCount);
-                    this.pairs = [];
-                    for (let i = 0; i < itemCount - 1; i++) {
-                        for (let j = i + 1; j < itemCount; j++) {
-                            this.pairs.push([i, j]);
-                        }
-                    }
-                    for (let i = this.pairs.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        const temporary = this.pairs[i];
-                        this.pairs[i] = this.pairs[j];
-                        this.pairs[j] = temporary;
-                    }
-                }
-                getNextPair(state) {
-                    return this.pairs[state.progress];
-                }
-                getTotalPairs() {
-                    return this.pairs.length;
-                }
-            }
-
-            class QuickPairProvider extends PairProvider {
-                getNextPair(state) {
-                    const sortedIndices = Array.from({
-                        length: this.itemCount
-                    }, (_,index)=>index).sort((a,b)=>state.scores[b] - state.scores[a]);
-
-                    for (let i = 0; i < this.itemCount - 1; i++) {
-                        const pair = [sortedIndices[i], sortedIndices[i + 1]];
-                        if (!this.hasBeenCompared(pair))
-                            return pair;
-                    }
-                    return null;
-                }
-            }
-
-            class PreferenceRank {
+            class DensityTool {
                 constructor() {
                     this.elements = {};
                     document.querySelectorAll('[id]').forEach(element=>{
@@ -430,405 +332,418 @@
                     }
                     );
 
-                    const detectedLanguageCode = navigator.language?.startsWith('id') ? 'id' : 'en';
-
                     this.state = {
-                        items: [],
-                        scores: [],
-                        currentPair: null,
-                        isSwapped: false,
-                        progress: 0,
-                        totalPairs: 0,
-                        allowTies: false,
-                        history: [],
-                        keyboardEnabled: false,
-                        isChoosing: false,
-                        language: detectedLanguageCode,
                         theme: 'auto',
-                        pairProvider: null,
-                        pairSwaps: new Map()
+                        fonts: [null, null],
+                        analyses: [null, null],
+                        colors: [this.elements.font1Color.value, this.elements.font2Color.value],
+                        animationFrames: {},
+                        graphWidth: 150,
+                        graphPadding: 20
                     };
 
+                    const mainCanvasElement = this.elements.mainCanvas;
+                    this.mainCanvasContext = mainCanvasElement.getContext('2d');
+
+                    this.tintCanvasElement = document.createElement('canvas');
+                    this.tintCanvasContext = this.tintCanvasElement.getContext('2d', {
+                        willReadFrequently: true
+                    });
+
+                    this.fontInputConfigs = [1, 2].map(index=>({
+                        fileInput: this.elements[`font${index}File`],
+                        textArea: this.elements[`font${index}Text`],
+                        sizeInput: this.elements[`font${index}Size`],
+                        spacingInput: this.elements[`font${index}Spacing`],
+                        shiftInput: this.elements[`font${index}Shift`],
+                        colorInput: this.elements[`font${index}Color`],
+                        resultElement: this.elements[`result${index}Text`],
+                        indicatorElement: this.elements[`result${index}Color`]
+                    }));
+
                     this.initialize();
-                }
-
-                translate(key) {
-                    return languageStrings[this.state.language][key];
-                }
-
-                formatString(key, replacements) {
-                    let text = this.translate(key);
-                    if (replacements) {
-                        for (const [placeholder,value] of Object.entries(replacements)) {
-                            text = text.replace(`{${placeholder}}`, value);
-                        }
-                    }
-                    return text;
                 }
 
                 initialize() {
                     this.bindEvents();
                     this.setTheme('auto');
-                    this.updateLanguage(this.state.language);
+                    this.update();
                 }
 
                 bindEvents() {
-                    const elements = this.elements;
-
-                    elements.startRankingButton.addEventListener('click', ()=>this.startRanking());
-                    elements.leftItemButton.addEventListener('click', ()=>this.handleChoice('left'));
-                    elements.rightItemButton.addEventListener('click', ()=>this.handleChoice('right'));
-                    elements.tieButton.addEventListener('click', ()=>this.handleChoice('tie'));
-                    elements.restartBattleButton.addEventListener('click', ()=>this.restartBattle());
-                    elements.restartNewButton.addEventListener('click', ()=>this.restartWithNewItems());
-                    elements.undoButton.addEventListener('click', ()=>this.undoLastChoice());
-                    elements.keyboardShortcutToggle.addEventListener('click', ()=>this.toggleKeyboardTip());
-
-                    elements.languageSelection.addEventListener('change', event=>{
-                        this.updateLanguage(event.target.value);
+                    const scheduleAnimation = (key,callback)=>()=>{
+                        if (this.state.animationFrames[key]) {
+                            cancelAnimationFrame(this.state.animationFrames[key]);
+                        }
+                        this.state.animationFrames[key] = requestAnimationFrame(callback);
                     }
-                    );
+                    ;
 
-                    elements.themeSelection.addEventListener('change', event=>{
+                    const scheduleUpdate = scheduleAnimation('refresh', ()=>this.update());
+                    const scheduleScaleUpdate = scheduleAnimation('resize', ()=>this.updateScale());
+
+                    this.elements.zoomMode.addEventListener('change', scheduleScaleUpdate);
+                    this.elements.renderMode.addEventListener('change', scheduleUpdate);
+                    this.elements.densityMode.addEventListener('change', scheduleUpdate);
+                    this.elements.exportButton.addEventListener('click', ()=>this.exportImage());
+                    this.elements.themeSelector.addEventListener('change', event=>{
                         this.setTheme(event.target.value);
                     }
                     );
 
-                    elements.allowTiesCheckbox.addEventListener('change', event=>{
-                        this.handleAllowTiesChange(event.target.checked);
+                    window.addEventListener('resize', scheduleScaleUpdate);
+
+                    this.fontInputConfigs.forEach((fontInputConfig,index)=>{
+                        fontInputConfig.fileInput.addEventListener('change', event=>{
+                            this.loadFont(event.target.files[0], index);
+                        }
+                        );
+
+                        fontInputConfig.colorInput.addEventListener('input', event=>{
+                            this.state.colors[index] = event.target.value;
+                            scheduleUpdate();
+                        }
+                        );
+
+                        [fontInputConfig.textArea, fontInputConfig.sizeInput, fontInputConfig.spacingInput, fontInputConfig.shiftInput].forEach(element=>{
+                            element.addEventListener('input', scheduleUpdate);
+                        }
+                        );
                     }
                     );
-
-                    document.addEventListener('keydown', event=>this.handleKeyboard(event));
                 }
 
                 setTheme(theme) {
                     const documentRoot = document.documentElement;
                     documentRoot.classList.remove('light', 'dark');
+
                     if (theme !== 'auto') {
                         documentRoot.classList.add(theme);
                     }
-                    this.elements.themeSelection.value = theme;
+
+                    this.elements.themeSelector.value = theme;
                     this.state.theme = theme;
                 }
 
-                updateLanguage(language) {
-                    this.state.language = language;
-                    this.elements.languageSelection.value = language;
-                    document.documentElement.lang = language;
-
-                    const elements = this.elements;
-                    const strings = languageStrings[language];
-
-                    elements.mainTitle.textContent = strings.title;
-
-                    const themeOptions = elements.themeSelection.options;
-                    themeOptions[0].textContent = strings.automaticTheme;
-                    themeOptions[1].textContent = strings.lightTheme;
-                    themeOptions[2].textContent = strings.darkTheme;
-
-                    elements.itemInputLabel.textContent = strings.itemInputLabel;
-                    elements.allowTiesLabel.textContent = strings.allowTiesLabel;
-                    elements.quickRankLabel.textContent = strings.quickRankLabel;
-                    elements.startRankingButton.textContent = strings.startRankingButton;
-                    elements.tieButton.textContent = strings.tieButton;
-                    elements.undoButton.textContent = strings.undoButton;
-                    elements.restartBattleButton.textContent = strings.restartBattleButton;
-                    elements.restartNewButton.textContent = strings.restartNewButton;
-
-                    this.updateKeyboardTip();
-                    this.updateProgressDisplay();
-
-                    if (!elements.resultsContainer.classList.contains('hidden')) {
-                        this.displayResults();
-                    }
-                }
-
-                updateKeyboardTip() {
-                    const keyboardShortcutTipElement = this.elements.keyboardShortcutTip;
-                    const keyboardShortcutToggleElement = this.elements.keyboardShortcutToggle;
-                    const isHidden = keyboardShortcutTipElement.classList.contains('hidden');
-
-                    keyboardShortcutToggleElement.textContent = isHidden ? this.translate('keyboardShortcutToggle') : this.translate('keyboardShortcutHide');
-
-                    keyboardShortcutTipElement.innerHTML = this.translate(this.state.allowTies ? 'keyboardShortcutTipWithTies' : 'keyboardShortcutTipNoTies');
-                }
-
-                handleAllowTiesChange(checked) {
-                    this.state.allowTies = checked;
-                    if (!this.elements.battleSection.classList.contains('hidden')) {
-                        this.elements.tieButtonContainer.classList.toggle('hidden', !checked);
-                    }
-                    this.updateKeyboardTip();
-                }
-
-                resetBattleState() {
-                    const itemCount = this.state.items.length;
-                    const isQuickRank = this.elements.quickRankCheckbox.checked;
-
-                    this.state.scores = Array(itemCount).fill(1000);
-                    this.state.progress = 0;
-                    this.state.history = [];
-                    this.state.pairSwaps = new Map();
-                    this.elements.undoButton.disabled = true;
-
-                    this.state.pairProvider = isQuickRank ? new QuickPairProvider(itemCount) : new FullPairProvider(itemCount);
-
-                    this.state.totalPairs = isQuickRank ? 0 : this.state.pairProvider.getTotalPairs();
-                }
-
-                startRanking() {
-                    const rawItems = this.elements.itemInputArea.value.split('\n').map(line=>line.trim()).filter(Boolean);
-
-                    const uniqueItems = [...new Set(rawItems)];
-                    const duplicateCount = rawItems.length - uniqueItems.length;
-
-                    if (duplicateCount > 0) {
-                        alert(this.formatString('duplicateAlertMessage', {
-                            count: duplicateCount
-                        }));
-                    }
-                    if (uniqueItems.length < 2) {
-                        alert(this.translate('alertMessage'));
+                async loadFont(file, index) {
+                    if (!file)
+                        return;
+                    if (file.size > 30 * 1024 * 1024) {
+                        alert('File too large');
                         return;
                     }
 
-                    this.state.items = uniqueItems;
-                    this.state.allowTies = this.elements.allowTiesCheckbox.checked;
-
-                    this.resetBattleState();
-                    this.elements.tieButtonContainer.classList.toggle('hidden', !this.state.allowTies);
-                    this.toggleKeyboardTip(true);
-                    this.updateKeyboardTip();
-                    this.showSection('battleSection');
-                    this.showNextBattle();
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const font = opentype.parse(arrayBuffer);
+                        if (!font.draw)
+                            throw new Error('Invalid font');
+                        this.state.fonts[index] = font;
+                        this.update();
+                    } catch (error) {
+                        alert(error.message);
+                    }
                 }
 
-                calculateScores(winner) {
-                    const {currentPair, isSwapped, scores} = this.state;
-                    const isFirstWinner = (winner === 'left' && !isSwapped) || (winner === 'right' && isSwapped);
-                    const resultScore = winner === 'tie' ? 0.5 : isFirstWinner ? 1 : 0;
+                computeFontMetrics(font, text, fontSize, letterSpacing) {
+                    const scale = fontSize / font.unitsPerEm;
+                    const {os2, hhea} = font.tables;
 
-                    const [firstIndex,secondIndex] = currentPair;
-                    const firstScore = scores[firstIndex];
-                    const secondScore = scores[secondIndex];
+                    const getMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
 
-                    const expectedFirst = 1 / (1 + 10 ** ((secondScore - firstScore) / 400));
-                    const adjustment = 32;
+                    const glyphs = font.stringToGlyphs(text);
+                    const verticalExtents = glyphs.reduce((result,glyph)=>{
+                        const path = glyph.path;
+                        if (!path?.getBoundingBox)
+                            return result;
+                        const bounds = path.getBoundingBox();
+                        if (!isFinite(bounds.y1) || !isFinite(bounds.y2))
+                            return result;
 
-                    scores[firstIndex] += adjustment * (resultScore - expectedFirst);
-                    scores[secondIndex] += adjustment * (expectedFirst - resultScore);
-                }
-
-                handleChoice(winner) {
-                    if (this.state.isChoosing)
-                        return;
-                    this.state.isChoosing = true;
-
-                    this.state.history.push({
-                        pair: this.state.currentPair,
-                        scores: [...this.state.scores],
-                        progress: this.state.progress,
-                        isSwapped: this.state.isSwapped
+                        result.actualAscent = Math.max(result.actualAscent, bounds.y2);
+                        result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
+                        return result;
+                    }
+                    , {
+                        actualAscent: 0,
+                        actualDescent: 0
                     });
 
-                    this.state.pairProvider.markCompared(this.state.currentPair);
-                    this.calculateScores(winner);
-                    this.state.progress++;
-                    this.elements.undoButton.disabled = false;
-                    this.updateProgressDisplay();
-                    this.clearSelections();
+                    const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
+                    const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
 
-                    const targetButton = winner === 'tie' ? this.elements.tieButton : this.elements[`${winner}ItemButton`];
+                    const scaledAscent = verticalExtents.actualAscent * scale || font.ascender * scale;
+                    const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(font.descender * scale);
 
-                    targetButton.classList.add('selected');
+                    const pathOptions = {
+                        tracking: letterSpacing || 0
+                    };
+                    const textBounds = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
 
-                    setTimeout(()=>{
-                        this.state.isChoosing = false;
-                        this.showNextBattle();
-                    }
-                    , 300);
+                    return {
+                        ascent: Math.max(scaledAscent, fontAscent),
+                        descent: Math.max(scaledDescent, fontDescent),
+                        actualAscent: scaledAscent,
+                        actualDescent: scaledDescent,
+                        fontAscent,
+                        fontDescent,
+                        boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
+                        advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
+                    };
                 }
 
-                displayCurrentBattle() {
-                    this.clearSelections();
-                    let[firstIndex,secondIndex] = this.state.currentPair;
-                    if (this.state.isSwapped) {
-                        const temporary = firstIndex;
-                        firstIndex = secondIndex;
-                        secondIndex = temporary;
+                analyze(font, text, fontSize, baselineShift, letterSpacing) {
+                    if (!font || !text || !fontSize)
+                        return null;
+
+                    const clampedFontSize = Math.max(1, Math.min(fontSize, 2000));
+                    const metrics = this.computeFontMetrics(font, text, clampedFontSize, letterSpacing);
+
+                    if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) {
+                        return null;
                     }
 
-                    this.elements.leftItemButton.textContent = this.state.items[firstIndex];
-                    this.elements.rightItemButton.textContent = this.state.items[secondIndex];
-                    this.updateProgressDisplay();
+                    const baseline = Math.ceil(metrics.ascent);
+                    const fontCanvas = Object.assign(document.createElement('canvas'), {
+                        width: metrics.advanceWidth,
+                        height: Math.ceil(metrics.ascent + metrics.descent)
+                    });
+                    const fontCanvasContext = fontCanvas.getContext('2d');
+
+                    font.draw(fontCanvasContext, text, 0, baseline, clampedFontSize, {
+                        tracking: letterSpacing || 0
+                    });
+
+                    const pixelData = this.analyzePixels(fontCanvas);
+                    if (pixelData.minY > pixelData.maxY)
+                        return null;
+
+                    const density = this.computeDensity(pixelData, metrics, clampedFontSize);
+
+                    return {
+                        ...pixelData,
+                        ...metrics,
+                        canvas: fontCanvas,
+                        baseline,
+                        baselineShift,
+                        letterSpacing,
+                        fontSize: clampedFontSize,
+                        font,
+                        density: density.toFixed(1),
+                        yMin: Math.round(baseline - pixelData.maxY),
+                        yMax: Math.round(baseline - pixelData.minY)
+                    };
                 }
 
-                showNextBattle() {
-                    this.clearSelections();
+                analyzePixels(fontCanvas) {
+                    const context = fontCanvas.getContext('2d', {
+                        willReadFrequently: true
+                    });
+                    const imageData = context.getImageData(0, 0, fontCanvas.width, fontCanvas.height);
+                    const pixelDataArray = imageData.data;
+                    const width = imageData.width;
+                    const height = imageData.height;
 
-                    const nextPair = this.state.pairProvider.getNextPair(this.state);
-                    const isQuickRank = this.elements.quickRankCheckbox.checked;
+                    const densityByRow = new Float32Array(height);
+                    let inkPixels = 0;
+                    let minX = width;
+                    let maxX = -1;
+                    let minY = height;
+                    let maxY = -1;
 
-                    if (!nextPair || (!isQuickRank && this.state.progress >= this.state.totalPairs)) {
-                        this.displayResults();
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++,
+                        alphaIndex += 4) {
+                            if (pixelDataArray[alphaIndex] >= 128) {
+                                if (y < minY)
+                                    minY = y;
+                                if (y > maxY)
+                                    maxY = y;
+                                if (x < minX)
+                                    minX = x;
+                                if (x > maxX)
+                                    maxX = x;
+
+                                inkPixels++;
+                                densityByRow[y]++;
+                            }
+                        }
+                    }
+
+                    return {
+                        densityByRow,
+                        inkPixels,
+                        minX,
+                        maxX,
+                        minY,
+                        maxY
+                    };
+                }
+
+                computeDensity(pixelData, metrics, fontSize) {
+                    const width = pixelData.maxX - pixelData.minX + 1 > 0 ? pixelData.maxX - pixelData.minX + 1 : 1;
+                    const height = pixelData.maxY - pixelData.minY + 1 > 0 ? pixelData.maxY - pixelData.minY + 1 : 1;
+
+                    const area = this.elements.densityMode.value === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
+
+                    return (pixelData.inkPixels / area) * 100;
+                }
+
+                update() {
+                    this.state.analyses = this.fontInputConfigs.map((fontInputConfig,index)=>{
+                        fontInputConfig.indicatorElement.style.backgroundColor = this.state.colors[index];
+
+                        return this.analyze(this.state.fonts[index], fontInputConfig.textArea.value.trim(), Number(fontInputConfig.sizeInput.value) || 0, Number(fontInputConfig.shiftInput.value) || 0, Number(fontInputConfig.spacingInput.value) || 0);
+                    }
+                    );
+
+                    this.draw();
+                    this.updateResults();
+                }
+
+                draw() {
+                    const validAnalyses = this.state.analyses.filter(Boolean);
+                    if (!validAnalyses.length) {
+                        this.renderEmpty();
                         return;
                     }
 
-                    this.state.currentPair = nextPair;
-                    const pairKey = this.state.pairProvider.createPairKey(nextPair);
+                    const dimensions = this.computeCanvasDimensions(validAnalyses);
+                    const mainCanvasElement = this.elements.mainCanvas;
 
-                    if (!this.state.pairSwaps.has(pairKey)) {
-                        this.state.pairSwaps.set(pairKey, Math.random() < 0.5);
+                    mainCanvasElement.width = dimensions.width;
+                    mainCanvasElement.height = dimensions.height;
+                    this.mainCanvasContext.clearRect(0, 0, dimensions.width, dimensions.height);
+
+                    const sideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+
+                    let textOffsetX = this.state.graphWidth + this.state.graphPadding;
+
+                    validAnalyses.forEach(analysis=>{
+                        const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+
+                        const shouldBlend = this.state.analyses.every(Boolean) && this.state.analyses.indexOf(analysis) > 0;
+
+                        const color = this.state.colors[this.state.analyses.indexOf(analysis)];
+
+                        this.renderDensityGraph(analysis, color, yOffset, shouldBlend);
+                        this.renderGlyphs(analysis, color, textOffsetX, yOffset, shouldBlend);
+
+                        if (sideBySide) {
+                            textOffsetX += analysis.canvas.width;
+                        }
                     }
-                    this.state.isSwapped = this.state.pairSwaps.get(pairKey);
+                    );
 
-                    this.displayCurrentBattle();
+                    this.updateScale();
                 }
 
-                updateProgressDisplay() {
-                    const label = this.translate('progressLabel');
-                    const isQuickRank = this.elements.quickRankCheckbox.checked;
-                    const progress = this.state.progress;
-                    const totalPairs = this.state.totalPairs;
+                computeCanvasDimensions(analyses) {
+                    const sideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
 
-                    this.elements.progressDisplay.textContent = isQuickRank ? `${label}: ${progress}` : `${label}: ${progress}/${totalPairs || 0}`;
+                    const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
+                    const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
+
+                    const textWidth = sideBySide ? analyses.reduce((totalWidth,analysis)=>totalWidth + analysis.canvas.width, 0) : Math.max(0, ...analyses.map(analysis=>analysis.canvas.width));
+
+                    return {
+                        width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
+                        height: Math.ceil(maxAscent + maxDescent),
+                        baseline: Math.ceil(maxAscent)
+                    };
                 }
 
-                clearSelections() {
-                    ['leftItemButton', 'rightItemButton', 'tieButton'].forEach(id=>{
-                        this.elements[id].classList.remove('selected');
+                renderDensityGraph(analysis, color, yOffset, shouldBlend) {
+                    const densityByRow = analysis.densityByRow;
+                    const maxDensity = Math.max(1, ...densityByRow);
+                    const context = this.mainCanvasContext;
+
+                    context.fillStyle = color;
+                    context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
+
+                    densityByRow.forEach((value,rowIndex)=>{
+                        if (!value)
+                            return;
+                        const barWidth = (value / maxDensity) * this.state.graphWidth;
+                        context.fillRect(this.state.graphWidth - barWidth, rowIndex + yOffset, barWidth, 1);
+                    }
+                    );
+
+                    context.globalCompositeOperation = 'source-over';
+                }
+
+                renderGlyphs(analysis, color, xOffset, yOffset, shouldBlend) {
+                    const fontCanvas = analysis.canvas;
+
+                    this.tintCanvasElement.width = fontCanvas.width;
+                    this.tintCanvasElement.height = fontCanvas.height;
+
+                    const tintContext = this.tintCanvasContext;
+                    tintContext.globalCompositeOperation = 'source-over';
+                    tintContext.fillStyle = color;
+                    tintContext.fillRect(0, 0, fontCanvas.width, fontCanvas.height);
+                    tintContext.globalCompositeOperation = 'destination-in';
+                    tintContext.drawImage(fontCanvas, 0, 0);
+
+                    this.mainCanvasContext.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
+                    this.mainCanvasContext.drawImage(this.tintCanvasElement, xOffset, yOffset);
+                    this.mainCanvasContext.globalCompositeOperation = 'source-over';
+                }
+
+                renderEmpty() {
+                    const mainCanvasElement = this.elements.mainCanvas;
+                    mainCanvasElement.height = 150;
+                    this.mainCanvasContext.clearRect(0, 0, mainCanvasElement.width, mainCanvasElement.height);
+                    this.updateScale();
+                }
+
+                updateScale() {
+                    const canvasElement = this.elements.mainCanvas;
+                    const containerElement = this.elements.canvasContainer;
+                    const previewElement = this.elements.previewContainer;
+
+                    const shouldFit = this.elements.zoomMode.value === 'fit' && canvasElement.width;
+
+                    canvasElement.style.transform = 'none';
+                    containerElement.style.width = '';
+                    containerElement.style.height = '';
+                    containerElement.style.overflow = '';
+
+                    if (!shouldFit)
+                        return;
+
+                    const containerStyles = getComputedStyle(containerElement);
+                    const paddingX = parseFloat(containerStyles.paddingLeft) + parseFloat(containerStyles.paddingRight);
+                    const paddingY = parseFloat(containerStyles.paddingTop) + parseFloat(containerStyles.paddingBottom);
+
+                    const availableWidth = previewElement.clientWidth - paddingX;
+                    const scale = Math.min(availableWidth / canvasElement.width, 1);
+
+                    canvasElement.style.transform = `scale(${scale})`;
+                    containerElement.style.width = `${canvasElement.width * scale + paddingX}px`;
+                    containerElement.style.height = `${canvasElement.height * scale + paddingY}px`;
+                    containerElement.style.overflow = 'hidden';
+                }
+
+                updateResults() {
+                    this.fontInputConfigs.forEach((fontInputConfig,index)=>{
+                        const analysis = this.state.analyses[index];
+                        const font = this.state.fonts[index];
+
+                        fontInputConfig.resultElement.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : font ? 'Enter text.' : 'Load font.';
                     }
                     );
                 }
 
-                displayResults() {
-                    const results = this.state.items.map((item,index)=>({
-                        item,
-                        score: this.state.scores[index]
-                    })).sort((a,b)=>b.score - a.score);
-
-                    const headerRowHtml = `
-					<th style="width:20%">${this.translate('rankColumn')}</th>
-					<th style="width:60%">${this.translate('itemColumn')}</th>
-					<th style="width:20%">${this.translate('scoreColumn')}</th>
-				`;
-
-                    const bodyRowsHtml = results.map((result,index)=>`<tr><td>${index + 1}</td><td>${escapeHtml(result.item)}</td><td>${Math.round(result.score)}</td></tr>`).join('');
-
-                    this.elements.resultsContainer.innerHTML = `
-					<h2>${this.translate('resultsTitle')}</h2>
-					<table>
-						<thead><tr>${headerRowHtml}</tr></thead>
-						<tbody>${bodyRowsHtml}</tbody>
-					</table>
-				`;
-
-                    this.showSection('resultsContainer');
-                }
-
-                showSection(sectionId) {
-                    ['inputSection', 'battleSection', 'resultsContainer'].forEach(id=>{
-                        this.elements[id].classList.toggle('hidden', id !== sectionId);
-                    }
-                    );
-                    this.elements.restartButtonContainer.classList.toggle('hidden', sectionId !== 'resultsContainer');
-                    this.state.keyboardEnabled = sectionId === 'battleSection';
-                }
-
-                undoLastChoice() {
-                    if (this.state.isChoosing || !this.state.history.length)
-                        return;
-
-                    const lastState = this.state.history.pop();
-                    this.state.scores = lastState.scores;
-                    this.state.progress = lastState.progress;
-                    this.state.currentPair = lastState.pair;
-                    this.state.isSwapped = lastState.isSwapped;
-                    this.state.pairProvider.unmarkCompared(lastState.pair);
-
-                    this.displayCurrentBattle();
-                    this.elements.undoButton.disabled = !this.state.history.length;
-                }
-
-                restartBattle() {
-                    this.resetBattleState();
-                    this.showSection('battleSection');
-                    this.showNextBattle();
-                }
-
-                restartWithNewItems() {
-                    const language = this.state.language;
-                    const theme = this.state.theme;
-
-                    this.state = {
-                        items: [],
-                        scores: [],
-                        currentPair: null,
-                        isSwapped: false,
-                        progress: 0,
-                        totalPairs: 0,
-                        allowTies: false,
-                        history: [],
-                        keyboardEnabled: false,
-                        isChoosing: false,
-                        language,
-                        theme,
-                        pairProvider: null,
-                        pairSwaps: new Map()
-                    };
-
-                    this.elements.itemInputArea.value = '';
-                    this.elements.allowTiesCheckbox.checked = false;
-                    this.elements.quickRankCheckbox.checked = false;
-
-                    this.showSection('inputSection');
-                    this.updateLanguage(language);
-                    this.setTheme(theme);
-                    this.toggleKeyboardTip(true);
-                    this.updateProgressDisplay();
-                }
-
-                toggleKeyboardTip(forceHidden) {
-                    const keyboardShortcutTipElement = this.elements.keyboardShortcutTip;
-                    const shouldHide = typeof forceHidden === 'boolean' ? forceHidden : !keyboardShortcutTipElement.classList.contains('hidden');
-
-                    keyboardShortcutTipElement.classList.toggle('hidden', shouldHide);
-                    this.updateKeyboardTip();
-                }
-
-                handleKeyboard(event) {
-                    const activeTagName = document.activeElement.tagName;
-                    if (!this.state.keyboardEnabled || ['SELECT', 'INPUT', 'TEXTAREA'].includes(activeTagName)) {
-                        return;
-                    }
-
-                    const keyToElementIdMap = {
-                        ArrowLeft: 'leftItemButton',
-                        ArrowRight: 'rightItemButton',
-                        ArrowUp: 'tieButton',
-                        ArrowDown: 'tieButton',
-                        z: 'undoButton'
-                    };
-
-                    const targetElementId = keyToElementIdMap[event.key];
-                    if (!targetElementId)
-                        return;
-
-                    const isUndo = event.key === 'z';
-                    const isArrowUpOrDown = event.key === 'ArrowUp' || event.key === 'ArrowDown';
-
-                    if (isUndo && !(event.ctrlKey || event.metaKey))
-                        return;
-                    if (isArrowUpOrDown && !this.state.allowTies)
-                        return;
-
-                    event.preventDefault();
-                    this.elements[targetElementId].click();
+                exportImage() {
+                    const link = document.createElement('a');
+                    link.href = this.elements.mainCanvas.toDataURL();
+                    link.download = 'density.png';
+                    link.click();
                 }
             }
 
-            new PreferenceRank();
+            new DensityTool();
         </script>
     </body>
 </html>
