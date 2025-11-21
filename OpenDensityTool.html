@@ -487,6 +487,8 @@
                         actualDescent: scaledDescent,
                         fontAscent,
                         fontDescent,
+                        x1: textBounds.x1,
+                        x2: textBounds.x2,
                         boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
                         advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
                     };
@@ -503,14 +505,20 @@
                         return null;
                     }
 
+                    const minX = Math.min(0, metrics.x1);
+                    const maxX = Math.max(metrics.advanceWidth, metrics.x2);
+                    const drawOffsetX = -minX;
+                    const canvasWidth = Math.ceil(maxX - minX);
+                    const canvasHeight = Math.ceil(metrics.ascent + metrics.descent);
+
                     const baseline = Math.ceil(metrics.ascent);
                     const fontCanvas = Object.assign(document.createElement('canvas'), {
-                        width: metrics.advanceWidth,
-                        height: Math.ceil(metrics.ascent + metrics.descent)
+                        width: canvasWidth,
+                        height: canvasHeight
                     });
                     const fontCanvasContext = fontCanvas.getContext('2d');
 
-                    font.draw(fontCanvasContext, text, 0, baseline, clampedFontSize, {
+                    font.draw(fontCanvasContext, text, drawOffsetX, baseline, clampedFontSize, {
                         tracking: letterSpacing || 0
                     });
 
@@ -523,6 +531,7 @@
                     return {
                         ...pixelData,
                         ...metrics,
+                        drawOffsetX,
                         canvas: fontCanvas,
                         baseline,
                         baselineShift,
@@ -617,7 +626,7 @@
 
                     const sideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
 
-                    let textOffsetX = this.state.graphWidth + this.state.graphPadding;
+                    let textOffsetX = this.state.graphWidth + this.state.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
 
                     validAnalyses.forEach(analysis=>{
                         const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
@@ -644,12 +653,28 @@
                     const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
                     const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
 
-                    const textWidth = sideBySide ? analyses.reduce((totalWidth,analysis)=>totalWidth + analysis.canvas.width, 0) : Math.max(0, ...analyses.map(analysis=>analysis.canvas.width));
+                    const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
+
+                    let textWidth;
+                    if (sideBySide) {
+                        textWidth = analyses.reduce((totalWidth, analysis) => totalWidth + analysis.canvas.width, 0);
+                    } else {
+                        // In overlay mode, we align origins.
+                        // The required width spans from minX (adjusted by maxDrawOffset) to maxX.
+                        // Leftmost point is 0 relative to aligned origin - maxDrawOffsetX.
+                        // But we place origin at graphWidth + padding + maxDrawOffsetX.
+                        // So the canvas starts at 0.
+                        // We need to find the extent to the right relative to origin.
+                        // Extent right = analysis.canvas.width - analysis.drawOffsetX.
+                        const maxRightExtent = Math.max(0, ...analyses.map(analysis => analysis.canvas.width - analysis.drawOffsetX));
+                        textWidth = maxDrawOffsetX + maxRightExtent;
+                    }
 
                     return {
                         width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
                         height: Math.ceil(maxAscent + maxDescent),
-                        baseline: Math.ceil(maxAscent)
+                        baseline: Math.ceil(maxAscent),
+                        maxDrawOffsetX
                     };
                 }
 
@@ -672,8 +697,9 @@
                     context.globalCompositeOperation = 'source-over';
                 }
 
-                renderGlyphs(analysis, color, xOffset, yOffset, shouldBlend) {
+                renderGlyphs(analysis, color, originX, yOffset, shouldBlend) {
                     const fontCanvas = analysis.canvas;
+                    const drawX = originX - (analysis.drawOffsetX || 0);
 
                     this.tintCanvasElement.width = fontCanvas.width;
                     this.tintCanvasElement.height = fontCanvas.height;
@@ -686,7 +712,7 @@
                     tintContext.drawImage(fontCanvas, 0, 0);
 
                     this.mainCanvasContext.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-                    this.mainCanvasContext.drawImage(this.tintCanvasElement, xOffset, yOffset);
+                    this.mainCanvasContext.drawImage(this.tintCanvasElement, drawX, yOffset);
                     this.mainCanvasContext.globalCompositeOperation = 'source-over';
                 }
 
