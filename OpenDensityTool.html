@@ -636,7 +636,13 @@
                         const color = this.state.colors[this.state.analyses.indexOf(analysis)];
 
                         this.renderDensityGraph(analysis, color, yOffset, shouldBlend);
-                        this.renderGlyphs(analysis, color, textOffsetX, yOffset, shouldBlend);
+
+                        let originX = textOffsetX;
+                        if (sideBySide) {
+                            originX += (analysis.drawOffsetX || 0);
+                        }
+
+                        this.renderGlyphs(analysis, color, originX, yOffset, shouldBlend);
 
                         if (sideBySide) {
                             textOffsetX += analysis.canvas.width;
