@@ -586,7 +586,7 @@
 					this.state.analyses = this.fontInputConfigs.map((config,index)=>{
 						config.indicatorElement.style.backgroundColor = this.state.colors[index];
 
-						return this.analyze(this.state.fonts[index], config.textArea.value.trim(), Number(config.sizeInput.value) || 0, Number(config.shiftInput.value) || 0, Number(config.spacingInput.value) || 0);
+						return this.analyze(this.state.fonts[index], config.textArea.value, Number(config.sizeInput.value) || 0, Number(config.shiftInput.value) || 0, Number(config.spacingInput.value) || 0);
 					}
 					);
 
