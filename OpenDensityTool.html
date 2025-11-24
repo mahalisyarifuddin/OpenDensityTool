@@ -1,780 +1,754 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <title>Typographic Density Tool</title>
-        <script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
-        <style>
-            :root {
-                --primary: #0070ea;
-                --background: #f7f7f8;
-                --surface: #fff;
-                --text: #333;
-                --border: #e0e0e0;
-                --input: #fff;
-            }
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0">
+		<title>Typographic Density Tool</title>
+		<script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
+		<style>
+			:root {
+				--primary: #0070ea;
+				--background: #f7f7f8;
+				--surface: #fff;
+				--text: #333;
+				--border: #e0e0e0;
+				--input: #fff;
+			}
 
-            @media (prefers-color-scheme: dark) {
-                :root:not(.light) {
-                    --background: #10131b;
-                    --surface: #181c23;
-                    --text: #c1c6d7;
-                    --border: #414754;
-                    --input: #0f1218;
-                }
-            }
+			@media (prefers-color-scheme: dark) {
+				:root:not(.light) {
+					--background: #10131b;
+					--surface: #181c23;
+					--text: #c1c6d7;
+					--border: #414754;
+					--input: #0f1218;
+				}
+			}
 
-            :root.dark {
-                --background: #10131b;
-                --surface: #181c23;
-                --text: #c1c6d7;
-                --border: #414754;
-                --input: #0f1218;
-            }
+			:root.dark {
+				--background: #10131b;
+				--surface: #181c23;
+				--text: #c1c6d7;
+				--border: #414754;
+				--input: #0f1218;
+			}
 
-            * {
-                box-sizing: border-box;
-            }
+			* {
+				box-sizing: border-box;
+			}
 
-            body {
-                background: var(--background);
-                color: var(--text);
-                font-family: sans-serif;
-                line-height: 1.5;
-                margin: 0;
-                padding: 24px;
-            }
+			body {
+				background: var(--background);
+				color: var(--text);
+				font-family: sans-serif;
+				line-height: 1.5;
+				margin: 0;
+				padding: 24px;
+			}
 
-            header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 32px;
-            }
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 32px;
+			}
 
-            h1 {
-                margin: 0;
-                font-size: 1.8em;
-            }
+			h1 {
+				margin: 0;
+				font-size: 1.8em;
+			}
 
-            main {
-                display: grid;
-                grid-template-columns: 340px 1fr;
-                gap: 24px;
-                max-width: 1600px;
-                margin: 0 auto;
-            }
+			main {
+				display: grid;
+				grid-template-columns: 340px 1fr;
+				gap: 24px;
+				max-width: 1600px;
+				margin: 0 auto;
+			}
 
-            section {
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 24px;
-                min-width: 0;
-            }
+			section {
+				background: var(--surface);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 24px;
+				min-width: 0;
+			}
 
-            h2 {
-                margin-top: 0;
-                border-bottom: 1px solid var(--border);
-                padding-bottom: 12px;
-                font-size: 1.2em;
-            }
+			h2 {
+				margin-top: 0;
+				border-bottom: 1px solid var(--border);
+				padding-bottom: 12px;
+				font-size: 1.2em;
+			}
 
-            .font-group {
-                background: var(--background);
-                border: 1px solid var(--border);
-                padding: 16px;
-                border-radius: 6px;
-                margin-bottom: 16px;
-            }
+			.font-group {
+				background: var(--background);
+				border: 1px solid var(--border);
+				padding: 16px;
+				border-radius: 6px;
+				margin-bottom: 16px;
+			}
 
-            .font-header {
-                display: flex;
-                align-items: center;
-                margin-bottom: 12px;
-                font-weight: bold;
-            }
+			.font-header {
+				display: flex;
+				align-items: center;
+				margin-bottom: 12px;
+				font-weight: bold;
+			}
 
-            input[type="color"] {
-                width: 24px;
-                height: 24px;
-                border: none;
-                background: none;
-                padding: 0;
-                margin-right: 8px;
-                cursor: pointer;
-            }
+			input[type="color"] {
+				width: 24px;
+				height: 24px;
+				border: none;
+				background: none;
+				padding: 0;
+				margin-right: 8px;
+				cursor: pointer;
+			}
 
-            label {
-                display: block;
-                margin-bottom: 12px;
-                font-size: 0.9em;
-                opacity: 0.9;
-            }
+			label {
+				display: block;
+				margin-bottom: 12px;
+				font-size: 0.9em;
+				opacity: 0.9;
+			}
 
-            input:not([type="color"]), textarea, select {
-                width: 100%;
-                padding: 8px;
-                border: 1px solid var(--border);
-                border-radius: 4px;
-                background: var(--input);
-                color: var(--text);
-                margin-top: 4px;
-                font-family: inherit;
-            }
+			input:not([type="color"]), textarea, select {
+				width: 100%;
+				padding: 8px;
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				background: var(--input);
+				color: var(--text);
+				margin-top: 4px;
+				font-family: inherit;
+			}
 
-            textarea {
-                resize: vertical;
-                min-height: 60px;
-            }
+			textarea {
+				resize: vertical;
+				min-height: 60px;
+			}
 
-            .row {
-                display: flex;
-                gap: 12px;
-            }
+			.row {
+				display: flex;
+				gap: 12px;
+			}
 
-            .controls {
-                display: flex;
-                gap: 12px;
-                flex-wrap: wrap;
-                margin-bottom: 16px;
-            }
+			.controls {
+				display: flex;
+				gap: 12px;
+				flex-wrap: wrap;
+				margin-bottom: 16px;
+			}
 
-            .controls select {
-                width: auto;
-            }
+			.controls select {
+				width: auto;
+			}
 
-            button {
-                background: var(--primary);
-                color: #fff;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-left: auto;
-            }
+			button {
+				background: var(--primary);
+				color: #fff;
+				border: none;
+				padding: 8px 16px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin-left: auto;
+			}
 
-            button:hover {
-                opacity: 0.9;
-            }
+			button:hover {
+				opacity: 0.9;
+			}
 
-            #previewContainer {
-                background: var(--input);
-                border: 1px solid var(--border);
-                border-radius: 6px;
-                overflow: auto;
-                margin-bottom: 24px;
-            }
+			#previewContainer {
+				background: var(--input);
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				overflow: auto;
+				margin-bottom: 24px;
+			}
 
-            #canvasContainer {
-                padding: 15px;
-                display: flex;
-                align-items: flex-start;
-            }
+			#canvasContainer {
+				padding: 15px;
+				display: flex;
+				align-items: flex-start;
+			}
 
-            canvas {
-                transform-origin: top left;
-                display: block;
-                flex-shrink: 0;
-            }
+			canvas {
+				transform-origin: top left;
+				display: block;
+				flex-shrink: 0;
+			}
 
-            .results {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-            }
+			.results {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+			}
 
-            .result-card {
-                background: var(--background);
-                border: 1px solid var(--border);
-                padding: 16px;
-                border-radius: 6px;
-            }
+			.result-card {
+				background: var(--background);
+				border: 1px solid var(--border);
+				padding: 16px;
+				border-radius: 6px;
+			}
 
-            .result-text {
-                white-space: pre-wrap;
-                font-family: monospace;
-                font-size: 0.9em;
-                margin-top: 8px;
-            }
+			.result-text {
+				white-space: pre-wrap;
+				font-family: monospace;
+				font-size: 0.9em;
+				margin-top: 8px;
+			}
 
-            .indicator {
-                width: 12px;
-                height: 12px;
-                border-radius: 3px;
-                display: inline-block;
-                margin-right: 8px;
-            }
+			.indicator {
+				width: 12px;
+				height: 12px;
+				border-radius: 3px;
+				display: inline-block;
+				margin-right: 8px;
+			}
 
-            @media (max-width: 900px) {
-                main {
-                    grid-template-columns: 1fr;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>Typographic Density Tool</h1>
-            <select id="themeSelector" style="width:auto">
-                <option value="auto">Auto Theme</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-            </select>
-        </header>
-        <main>
-            <section>
-                <h2>Configuration</h2>
-                <div class="font-group">
-                    <div class="font-header">
-                        <input type="color" id="font1Color" value="#00a2a2">Font 1
-                    </div>
-                    <label>
-                        Font File
+			@media (max-width: 900px) {
+				main {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<h1>Typographic Density Tool</h1>
+			<select id="themeSelector" style="width:auto">
+				<option value="auto">Auto Theme</option>
+				<option value="light">Light</option>
+				<option value="dark">Dark</option>
+			</select>
+		</header>
+		<main>
+			<section>
+				<h2>Configuration</h2>
+				<div class="font-group">
+					<div class="font-header">
+						<input type="color" id="font1Color" value="#00a2a2">Font 1
+				
+					</div>
+					<label>
+						Font File
 					<input type="file" id="font1File" accept=".otf,.ttf,.woff">
-                    </label>
-                    <label>
-                        Text
+					</label>
+					<label>
+						Text
 					<textarea id="font1Text" maxlength="1000">Idealogy</textarea>
-                    </label>
-                    <label>
-                        Size (px)
+					</label>
+					<label>
+						Size (px)
 					<input type="number" id="font1Size" value="100" min="8" max="500">
-                    </label>
-                    <div class="row">
-                        <label>
-                            Letter Spacing
+					</label>
+					<div class="row">
+						<label>
+							Letter Spacing
 						<input type="number" id="font1Spacing" value="0" min="-100" max="100">
-                        </label>
-                        <label>
-                            Baseline Shift
+						</label>
+						<label>
+							Baseline Shift
 						<input type="number" id="font1Shift" value="0" min="-200" max="200">
-                        </label>
-                    </div>
-                </div>
-                <div class="font-group">
-                    <div class="font-header">
-                        <input type="color" id="font2Color" value="#ff00ff">Font 2
-                    </div>
-                    <label>
-                        Font File
+						</label>
+					</div>
+				</div>
+				<div class="font-group">
+					<div class="font-header">
+						<input type="color" id="font2Color" value="#ff00ff">Font 2
+				
+					</div>
+					<label>
+						Font File
 					<input type="file" id="font2File" accept=".otf,.ttf,.woff">
-                    </label>
-                    <label>
-                        Text
+					</label>
+					<label>
+						Text
 					<textarea id="font2Text" maxlength="1000">Идеология</textarea>
-                    </label>
-                    <label>
-                        Size (px)
+					</label>
+					<label>
+						Size (px)
 					<input type="number" id="font2Size" value="100" min="8" max="500">
-                    </label>
-                    <div class="row">
-                        <label>
-                            Letter Spacing
+					</label>
+					<div class="row">
+						<label>
+							Letter Spacing
 						<input type="number" id="font2Spacing" value="0" min="-100" max="100">
-                        </label>
-                        <label>
-                            Baseline Shift
+						</label>
+						<label>
+							Baseline Shift
 						<input type="number" id="font2Shift" value="0" min="-200" max="200">
-                        </label>
-                    </div>
-                </div>
-            </section>
-            <section>
-                <h2>Visualization</h2>
-                <div class="controls">
-                    <select id="zoomMode">
-                        <option value="fit">Fit to View</option>
-                        <option value="100">100% Scale</option>
-                    </select>
-                    <select id="renderMode">
-                        <option value="overlay">Overlay</option>
-                        <option value="side-by-side">Side-by-side</option>
-                    </select>
-                    <select id="densityMode">
-                        <option value="ink-box">Ink Box</option>
-                        <option value="em-box">Em Box</option>
-                    </select>
-                    <button id="exportButton">Export PNG</button>
-                </div>
-                <div id="previewContainer">
-                    <div id="canvasContainer">
-                        <canvas id="mainCanvas"></canvas>
-                    </div>
-                </div>
-                <div class="results">
-                    <div class="result-card">
-                        <div class="font-header">
-                            <div id="result1Color" class="indicator"></div>
-                            Font 1 Analysis
+						</label>
+					</div>
+				</div>
+			</section>
+			<section>
+				<h2>Visualization</h2>
+				<div class="controls">
+					<select id="zoomMode">
+						<option value="fit">Fit to View</option>
+						<option value="100">100% Scale</option>
+					</select>
+					<select id="renderMode">
+						<option value="overlay">Overlay</option>
+						<option value="side-by-side">Side-by-side</option>
+					</select>
+					<select id="densityMode">
+						<option value="ink-box">Ink Box</option>
+						<option value="em-box">Em Box</option>
+					</select>
+					<button id="exportButton">Export PNG</button>
+				</div>
+				<div id="previewContainer">
+					<div id="canvasContainer">
+						<canvas id="mainCanvas"></canvas>
+					</div>
+				</div>
+				<div class="results">
+					<div class="result-card">
+						<div class="font-header">
+							<div id="result1Color" class="indicator"></div>
+							Font 1 Analysis
 					
-                        </div>
-                        <div id="result1Text" class="result-text">Load a font.</div>
-                    </div>
-                    <div class="result-card">
-                        <div class="font-header">
-                            <div id="result2Color" class="indicator"></div>
-                            Font 2 Analysis
+						</div>
+						<div id="result1Text" class="result-text">Load a font.</div>
+					</div>
+					<div class="result-card">
+						<div class="font-header">
+							<div id="result2Color" class="indicator"></div>
+							Font 2 Analysis
 					
-                        </div>
-                        <div id="result2Text" class="result-text">Load a font.</div>
-                    </div>
-                </div>
-            </section>
-        </main>
-        <script>
-            class DensityTool {
-                constructor() {
-                    this.elements = {};
-                    document.querySelectorAll('[id]').forEach(element=>{
-                        this.elements[element.id] = element;
-                    }
-                    );
-
-                    this.state = {
-                        theme: 'auto',
-                        fonts: [null, null],
-                        analyses: [null, null],
-                        colors: [this.elements.font1Color.value, this.elements.font2Color.value],
-                        animationFrames: {},
-                        graphWidth: 150,
-                        graphPadding: 20
-                    };
-
-                    const mainCanvasElement = this.elements.mainCanvas;
-                    this.mainCanvasContext = mainCanvasElement.getContext('2d');
-
-                    this.tintCanvasElement = document.createElement('canvas');
-                    this.tintCanvasContext = this.tintCanvasElement.getContext('2d', {
-                        willReadFrequently: true
-                    });
-
-                    this.fontInputConfigs = [1, 2].map(index=>({
-                        fileInput: this.elements[`font${index}File`],
-                        textArea: this.elements[`font${index}Text`],
-                        sizeInput: this.elements[`font${index}Size`],
-                        spacingInput: this.elements[`font${index}Spacing`],
-                        shiftInput: this.elements[`font${index}Shift`],
-                        colorInput: this.elements[`font${index}Color`],
-                        resultElement: this.elements[`result${index}Text`],
-                        indicatorElement: this.elements[`result${index}Color`]
-                    }));
-
-                    this.initialize();
-                }
-
-                initialize() {
-                    this.bindEvents();
-                    this.setTheme('auto');
-                    this.update();
-                }
-
-                bindEvents() {
-                    const scheduleAnimation = (key,callback)=>()=>{
-                        if (this.state.animationFrames[key]) {
-                            cancelAnimationFrame(this.state.animationFrames[key]);
-                        }
-                        this.state.animationFrames[key] = requestAnimationFrame(callback);
-                    }
-                    ;
-
-                    const scheduleUpdate = scheduleAnimation('refresh', ()=>this.update());
-                    const scheduleScaleUpdate = scheduleAnimation('resize', ()=>this.updateScale());
-
-                    this.elements.zoomMode.addEventListener('change', scheduleScaleUpdate);
-                    this.elements.renderMode.addEventListener('change', scheduleUpdate);
-                    this.elements.densityMode.addEventListener('change', scheduleUpdate);
-                    this.elements.exportButton.addEventListener('click', ()=>this.exportImage());
-                    this.elements.themeSelector.addEventListener('change', event=>{
-                        this.setTheme(event.target.value);
-                    }
-                    );
-
-                    window.addEventListener('resize', scheduleScaleUpdate);
-
-                    this.fontInputConfigs.forEach((fontInputConfig,index)=>{
-                        fontInputConfig.fileInput.addEventListener('change', event=>{
-                            this.loadFont(event.target.files[0], index);
-                        }
-                        );
-
-                        fontInputConfig.colorInput.addEventListener('input', event=>{
-                            this.state.colors[index] = event.target.value;
-                            scheduleUpdate();
-                        }
-                        );
-
-                        [fontInputConfig.textArea, fontInputConfig.sizeInput, fontInputConfig.spacingInput, fontInputConfig.shiftInput].forEach(element=>{
-                            element.addEventListener('input', scheduleUpdate);
-                        }
-                        );
-                    }
-                    );
-                }
-
-                setTheme(theme) {
-                    const documentRoot = document.documentElement;
-                    documentRoot.classList.remove('light', 'dark');
-
-                    if (theme !== 'auto') {
-                        documentRoot.classList.add(theme);
-                    }
-
-                    this.elements.themeSelector.value = theme;
-                    this.state.theme = theme;
-                }
-
-                async loadFont(file, index) {
-                    if (!file)
-                        return;
-                    if (file.size > 30 * 1024 * 1024) {
-                        alert('File too large');
-                        return;
-                    }
-
-                    try {
-                        const arrayBuffer = await file.arrayBuffer();
-                        const font = opentype.parse(arrayBuffer);
-                        if (!font.draw)
-                            throw new Error('Invalid font');
-                        this.state.fonts[index] = font;
-                        this.update();
-                    } catch (error) {
-                        alert(error.message);
-                    }
-                }
-
-                computeFontMetrics(font, text, fontSize, letterSpacing) {
-                    const scale = fontSize / font.unitsPerEm;
-                    const {os2, hhea} = font.tables;
-
-                    const getMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
-
-                    const glyphs = font.stringToGlyphs(text);
-                    const verticalExtents = glyphs.reduce((result,glyph)=>{
-                        const path = glyph.path;
-                        if (!path?.getBoundingBox)
-                            return result;
-                        const bounds = path.getBoundingBox();
-                        if (!isFinite(bounds.y1) || !isFinite(bounds.y2))
-                            return result;
-
-                        result.actualAscent = Math.max(result.actualAscent, bounds.y2);
-                        result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
-                        return result;
-                    }
-                    , {
-                        actualAscent: 0,
-                        actualDescent: 0
-                    });
-
-                    const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
-                    const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
-
-                    const scaledAscent = verticalExtents.actualAscent * scale || font.ascender * scale;
-                    const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(font.descender * scale);
-
-                    const pathOptions = {
-                        tracking: letterSpacing || 0
-                    };
-                    const textBounds = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
-
-                    return {
-                        ascent: Math.max(scaledAscent, fontAscent),
-                        descent: Math.max(scaledDescent, fontDescent),
-                        actualAscent: scaledAscent,
-                        actualDescent: scaledDescent,
-                        fontAscent,
-                        fontDescent,
-                        x1: textBounds.x1,
-                        x2: textBounds.x2,
-                        boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
-                        advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
-                    };
-                }
-
-                analyze(font, text, fontSize, baselineShift, letterSpacing) {
-                    if (!font || !text || !fontSize)
-                        return null;
-
-                    const clampedFontSize = Math.max(1, Math.min(fontSize, 2000));
-                    const metrics = this.computeFontMetrics(font, text, clampedFontSize, letterSpacing);
-
-                    if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) {
-                        return null;
-                    }
-
-                    const minX = Math.min(0, metrics.x1);
-                    const maxX = Math.max(metrics.advanceWidth, metrics.x2);
-                    const drawOffsetX = -minX;
-                    const canvasWidth = Math.ceil(maxX - minX);
-                    const canvasHeight = Math.ceil(metrics.ascent + metrics.descent);
-
-                    const baseline = Math.ceil(metrics.ascent);
-                    const fontCanvas = Object.assign(document.createElement('canvas'), {
-                        width: canvasWidth,
-                        height: canvasHeight
-                    });
-                    const fontCanvasContext = fontCanvas.getContext('2d');
-
-                    font.draw(fontCanvasContext, text, drawOffsetX, baseline, clampedFontSize, {
-                        tracking: letterSpacing || 0
-                    });
-
-                    const pixelData = this.analyzePixels(fontCanvas);
-                    if (pixelData.minY > pixelData.maxY)
-                        return null;
-
-                    const density = this.computeDensity(pixelData, metrics, clampedFontSize);
-
-                    return {
-                        ...pixelData,
-                        ...metrics,
-                        drawOffsetX,
-                        canvas: fontCanvas,
-                        baseline,
-                        baselineShift,
-                        letterSpacing,
-                        fontSize: clampedFontSize,
-                        font,
-                        density: density.toFixed(1),
-                        yMin: Math.round(baseline - pixelData.maxY),
-                        yMax: Math.round(baseline - pixelData.minY)
-                    };
-                }
-
-                analyzePixels(fontCanvas) {
-                    const context = fontCanvas.getContext('2d', {
-                        willReadFrequently: true
-                    });
-                    const imageData = context.getImageData(0, 0, fontCanvas.width, fontCanvas.height);
-                    const pixelDataArray = imageData.data;
-                    const width = imageData.width;
-                    const height = imageData.height;
-
-                    const densityByRow = new Float32Array(height);
-                    let inkPixels = 0;
-                    let minX = width;
-                    let maxX = -1;
-                    let minY = height;
-                    let maxY = -1;
-
-                    for (let y = 0; y < height; y++) {
-                        for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++,
-                        alphaIndex += 4) {
-                            if (pixelDataArray[alphaIndex] >= 128) {
-                                if (y < minY)
-                                    minY = y;
-                                if (y > maxY)
-                                    maxY = y;
-                                if (x < minX)
-                                    minX = x;
-                                if (x > maxX)
-                                    maxX = x;
-
-                                inkPixels++;
-                                densityByRow[y]++;
-                            }
-                        }
-                    }
-
-                    return {
-                        densityByRow,
-                        inkPixels,
-                        minX,
-                        maxX,
-                        minY,
-                        maxY
-                    };
-                }
-
-                computeDensity(pixelData, metrics, fontSize) {
-                    const width = pixelData.maxX - pixelData.minX + 1 > 0 ? pixelData.maxX - pixelData.minX + 1 : 1;
-                    const height = pixelData.maxY - pixelData.minY + 1 > 0 ? pixelData.maxY - pixelData.minY + 1 : 1;
-
-                    const area = this.elements.densityMode.value === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
-
-                    return (pixelData.inkPixels / area) * 100;
-                }
-
-                update() {
-                    this.state.analyses = this.fontInputConfigs.map((fontInputConfig,index)=>{
-                        fontInputConfig.indicatorElement.style.backgroundColor = this.state.colors[index];
-
-                        return this.analyze(this.state.fonts[index], fontInputConfig.textArea.value.trim(), Number(fontInputConfig.sizeInput.value) || 0, Number(fontInputConfig.shiftInput.value) || 0, Number(fontInputConfig.spacingInput.value) || 0);
-                    }
-                    );
-
-                    this.draw();
-                    this.updateResults();
-                }
-
-                draw() {
-                    const validAnalyses = this.state.analyses.filter(Boolean);
-                    if (!validAnalyses.length) {
-                        this.renderEmpty();
-                        return;
-                    }
-
-                    const dimensions = this.computeCanvasDimensions(validAnalyses);
-                    const mainCanvasElement = this.elements.mainCanvas;
-
-                    mainCanvasElement.width = dimensions.width;
-                    mainCanvasElement.height = dimensions.height;
-                    this.mainCanvasContext.clearRect(0, 0, dimensions.width, dimensions.height);
-
-                    const sideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
-
-                    let textOffsetX = this.state.graphWidth + this.state.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
-
-                    validAnalyses.forEach(analysis=>{
-                        const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-
-                        const shouldBlend = this.state.analyses.every(Boolean) && this.state.analyses.indexOf(analysis) > 0;
-
-                        const color = this.state.colors[this.state.analyses.indexOf(analysis)];
-
-                        this.renderDensityGraph(analysis, color, yOffset, shouldBlend);
-
-                        let originX = textOffsetX;
-                        if (sideBySide) {
-                            originX += (analysis.drawOffsetX || 0);
-                        }
-
-                        this.renderGlyphs(analysis, color, originX, yOffset, shouldBlend);
-
-                        if (sideBySide) {
-                            textOffsetX += analysis.canvas.width;
-                        }
-                    }
-                    );
-
-                    this.updateScale();
-                }
-
-                computeCanvasDimensions(analyses) {
-                    const sideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
-
-                    const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
-                    const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
-
-                    const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
-
-                    const overlayWidth = maxDrawOffsetX + Math.max(0, ...analyses.map(analysis => analysis.canvas.width - analysis.drawOffsetX));
-                    const sideBySideWidth = analyses.reduce((totalWidth, analysis) => totalWidth + analysis.canvas.width, 0);
-
-                    const textWidth = sideBySide ? sideBySideWidth : overlayWidth;
-
-                    return {
-                        width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
-                        height: Math.ceil(maxAscent + maxDescent),
-                        baseline: Math.ceil(maxAscent),
-                        maxDrawOffsetX
-                    };
-                }
-
-                renderDensityGraph(analysis, color, yOffset, shouldBlend) {
-                    const densityByRow = analysis.densityByRow;
-                    const maxDensity = Math.max(1, ...densityByRow);
-                    const context = this.mainCanvasContext;
-
-                    context.fillStyle = color;
-                    context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-
-                    densityByRow.forEach((value,rowIndex)=>{
-                        if (!value)
-                            return;
-                        const barWidth = (value / maxDensity) * this.state.graphWidth;
-                        context.fillRect(this.state.graphWidth - barWidth, rowIndex + yOffset, barWidth, 1);
-                    }
-                    );
-
-                    context.globalCompositeOperation = 'source-over';
-                }
-
-                renderGlyphs(analysis, color, originX, yOffset, shouldBlend) {
-                    const fontCanvas = analysis.canvas;
-                    const drawX = originX - (analysis.drawOffsetX || 0);
-
-                    this.tintCanvasElement.width = fontCanvas.width;
-                    this.tintCanvasElement.height = fontCanvas.height;
-
-                    const tintContext = this.tintCanvasContext;
-                    tintContext.globalCompositeOperation = 'source-over';
-                    tintContext.fillStyle = color;
-                    tintContext.fillRect(0, 0, fontCanvas.width, fontCanvas.height);
-                    tintContext.globalCompositeOperation = 'destination-in';
-                    tintContext.drawImage(fontCanvas, 0, 0);
-
-                    this.mainCanvasContext.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-                    this.mainCanvasContext.drawImage(this.tintCanvasElement, drawX, yOffset);
-                    this.mainCanvasContext.globalCompositeOperation = 'source-over';
-                }
-
-                renderEmpty() {
-                    const mainCanvasElement = this.elements.mainCanvas;
-                    mainCanvasElement.height = 150;
-                    this.mainCanvasContext.clearRect(0, 0, mainCanvasElement.width, mainCanvasElement.height);
-                    this.updateScale();
-                }
-
-                updateScale() {
-                    const canvasElement = this.elements.mainCanvas;
-                    const containerElement = this.elements.canvasContainer;
-                    const previewElement = this.elements.previewContainer;
-
-                    const shouldFit = this.elements.zoomMode.value === 'fit' && canvasElement.width;
-
-                    canvasElement.style.transform = 'none';
-                    containerElement.style.width = '';
-                    containerElement.style.height = '';
-                    containerElement.style.overflow = '';
-
-                    if (!shouldFit)
-                        return;
-
-                    const containerStyles = getComputedStyle(containerElement);
-                    const paddingX = parseFloat(containerStyles.paddingLeft) + parseFloat(containerStyles.paddingRight);
-                    const paddingY = parseFloat(containerStyles.paddingTop) + parseFloat(containerStyles.paddingBottom);
-
-                    const availableWidth = previewElement.clientWidth - paddingX;
-                    const scale = Math.min(availableWidth / canvasElement.width, 1);
-
-                    canvasElement.style.transform = `scale(${scale})`;
-                    containerElement.style.width = `${canvasElement.width * scale + paddingX}px`;
-                    containerElement.style.height = `${canvasElement.height * scale + paddingY}px`;
-                    containerElement.style.overflow = 'hidden';
-                }
-
-                updateResults() {
-                    this.fontInputConfigs.forEach((fontInputConfig,index)=>{
-                        const analysis = this.state.analyses[index];
-                        const font = this.state.fonts[index];
-
-                        fontInputConfig.resultElement.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : font ? 'Enter text.' : 'Load font.';
-                    }
-                    );
-                }
-
-                exportImage() {
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
-                    const day = String(now.getDate()).padStart(2, '0');
-                    const hours = String(now.getHours()).padStart(2, '0');
-                    const minutes = String(now.getMinutes()).padStart(2, '0');
-                    const seconds = String(now.getSeconds()).padStart(2, '0');
-                    const timestamp = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
-
-                    const link = document.createElement('a');
-                    link.href = this.elements.mainCanvas.toDataURL();
-                    link.download = `density_results_${timestamp}.png`;
-                    link.click();
-                }
-            }
-
-            new DensityTool();
-        </script>
-    </body>
+						</div>
+						<div id="result2Text" class="result-text">Load a font.</div>
+					</div>
+				</div>
+			</section>
+		</main>
+		<script>
+			class DensityTool {
+				constructor() {
+					this.elements = Object.fromEntries([...document.querySelectorAll('[id]')].map(element=>[element.id, element]));
+
+					this.state = {
+						theme: 'auto',
+						fonts: [null, null],
+						analyses: [null, null],
+						colors: [this.elements.font1Color.value, this.elements.font2Color.value],
+						animationFrames: {},
+						graphWidth: 150,
+						graphPadding: 20
+					};
+
+					this.mainCanvasContext = this.elements.mainCanvas.getContext('2d');
+					this.tintCanvasElement = document.createElement('canvas');
+					this.tintCanvasContext = this.tintCanvasElement.getContext('2d', {
+						willReadFrequently: true
+					});
+
+					this.fontInputConfigs = [1, 2].map(index=>({
+						fileInput: this.elements[`font${index}File`],
+						textArea: this.elements[`font${index}Text`],
+						sizeInput: this.elements[`font${index}Size`],
+						spacingInput: this.elements[`font${index}Spacing`],
+						shiftInput: this.elements[`font${index}Shift`],
+						colorInput: this.elements[`font${index}Color`],
+						resultElement: this.elements[`result${index}Text`],
+						indicatorElement: this.elements[`result${index}Color`]
+					}));
+
+					this.initialize();
+				}
+
+				initialize() {
+					this.bindEvents();
+					this.setTheme('auto');
+					this.update();
+				}
+
+				bindEvents() {
+					const scheduleAnimation = (key,callback)=>()=>{
+						if (this.state.animationFrames[key]) {
+							cancelAnimationFrame(this.state.animationFrames[key]);
+						}
+						this.state.animationFrames[key] = requestAnimationFrame(callback);
+					}
+					;
+
+					const scheduleUpdate = scheduleAnimation('refresh', ()=>this.update());
+					const scheduleScaleUpdate = scheduleAnimation('resize', ()=>this.updateScale());
+
+					this.elements.zoomMode.onchange = scheduleScaleUpdate;
+					this.elements.renderMode.onchange = scheduleUpdate;
+					this.elements.densityMode.onchange = scheduleUpdate;
+					this.elements.exportButton.onclick = ()=>this.exportImage();
+					this.elements.themeSelector.onchange = event=>this.setTheme(event.target.value);
+					window.onresize = scheduleScaleUpdate;
+
+					this.fontInputConfigs.forEach((config,index)=>{
+						config.fileInput.onchange = event=>this.loadFont(event.target.files[0], index);
+						config.colorInput.oninput = event=>{
+							this.state.colors[index] = event.target.value;
+							scheduleUpdate();
+						}
+						;
+						[config.textArea, config.sizeInput, config.spacingInput, config.shiftInput].forEach(element=>{
+							element.oninput = scheduleUpdate;
+						}
+						);
+					}
+					);
+				}
+
+				setTheme(theme) {
+					document.documentElement.classList.remove('light', 'dark');
+					if (theme !== 'auto') {
+						document.documentElement.classList.add(theme);
+					}
+					this.elements.themeSelector.value = theme;
+					this.state.theme = theme;
+				}
+
+				async loadFont(file, index) {
+					if (!file)
+						return;
+					if (file.size > 30 * 1024 * 1024) {
+						alert('File too large');
+						return;
+					}
+
+					try {
+						const arrayBuffer = await file.arrayBuffer();
+						const font = opentype.parse(arrayBuffer);
+						if (!font.draw)
+							throw new Error('Invalid font');
+						this.state.fonts[index] = font;
+						this.update();
+					} catch (error) {
+						alert(error.message);
+					}
+				}
+
+				computeFontMetrics(font, text, fontSize, letterSpacing) {
+					const scale = fontSize / font.unitsPerEm;
+					const {os2, hhea} = font.tables;
+
+					const getMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
+
+					const glyphs = font.stringToGlyphs(text);
+					const verticalExtents = glyphs.reduce((result,glyph)=>{
+						const path = glyph.path;
+						if (!path?.getBoundingBox)
+							return result;
+						const bounds = path.getBoundingBox();
+						if (!isFinite(bounds.y1) || !isFinite(bounds.y2))
+							return result;
+
+						result.actualAscent = Math.max(result.actualAscent, bounds.y2);
+						result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
+						return result;
+					}
+					, {
+						actualAscent: 0,
+						actualDescent: 0
+					});
+
+					const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
+					const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
+
+					const scaledAscent = verticalExtents.actualAscent * scale || font.ascender * scale;
+					const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(font.descender * scale);
+
+					const pathOptions = {
+						tracking: letterSpacing || 0
+					};
+					const textBounds = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
+
+					return {
+						ascent: Math.max(scaledAscent, fontAscent),
+						descent: Math.max(scaledDescent, fontDescent),
+						actualAscent: scaledAscent,
+						actualDescent: scaledDescent,
+						fontAscent,
+						fontDescent,
+						x1: textBounds.x1,
+						x2: textBounds.x2,
+						boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
+						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
+					};
+				}
+
+				analyze(font, text, fontSize, baselineShift, letterSpacing) {
+					if (!font || !text || !fontSize)
+						return null;
+
+					const clampedFontSize = Math.max(1, Math.min(fontSize, 2000));
+					const metrics = this.computeFontMetrics(font, text, clampedFontSize, letterSpacing);
+
+					if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) {
+						return null;
+					}
+
+					const minX = Math.min(0, metrics.x1);
+					const maxX = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minX;
+					const canvasWidth = Math.ceil(maxX - minX);
+					const canvasHeight = Math.ceil(metrics.ascent + metrics.descent);
+
+					const baseline = Math.ceil(metrics.ascent);
+					const fontCanvas = Object.assign(document.createElement('canvas'), {
+						width: canvasWidth,
+						height: canvasHeight
+					});
+					const fontCanvasContext = fontCanvas.getContext('2d');
+
+					font.draw(fontCanvasContext, text, drawOffsetX, baseline, clampedFontSize, {
+						tracking: letterSpacing || 0
+					});
+
+					const pixelData = this.analyzePixels(fontCanvas);
+					if (pixelData.minY > pixelData.maxY)
+						return null;
+
+					const density = this.computeDensity(pixelData, metrics, clampedFontSize);
+
+					return {
+						...pixelData,
+						...metrics,
+						drawOffsetX,
+						canvas: fontCanvas,
+						baseline,
+						baselineShift,
+						letterSpacing,
+						fontSize: clampedFontSize,
+						font,
+						density: density.toFixed(1),
+						yMin: Math.round(baseline - pixelData.maxY),
+						yMax: Math.round(baseline - pixelData.minY)
+					};
+				}
+
+				analyzePixels(fontCanvas) {
+					const context = fontCanvas.getContext('2d', {
+						willReadFrequently: true
+					});
+					const imageData = context.getImageData(0, 0, fontCanvas.width, fontCanvas.height);
+					const pixelDataArray = imageData.data;
+					const width = imageData.width;
+					const height = imageData.height;
+
+					const densityByRow = new Float32Array(height);
+					let inkPixels = 0;
+					let minX = width;
+					let maxX = -1;
+					let minY = height;
+					let maxY = -1;
+
+					for (let y = 0; y < height; y++) {
+						for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++,
+						alphaIndex += 4) {
+							if (pixelDataArray[alphaIndex] >= 128) {
+								if (y < minY)
+									minY = y;
+								if (y > maxY)
+									maxY = y;
+								if (x < minX)
+									minX = x;
+								if (x > maxX)
+									maxX = x;
+
+								inkPixels++;
+								densityByRow[y]++;
+							}
+						}
+					}
+
+					return {
+						densityByRow,
+						inkPixels,
+						minX,
+						maxX,
+						minY,
+						maxY
+					};
+				}
+
+				computeDensity(pixelData, metrics, fontSize) {
+					const width = pixelData.maxX - pixelData.minX + 1 > 0 ? pixelData.maxX - pixelData.minX + 1 : 1;
+					const height = pixelData.maxY - pixelData.minY + 1 > 0 ? pixelData.maxY - pixelData.minY + 1 : 1;
+
+					const area = this.elements.densityMode.value === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
+
+					return (pixelData.inkPixels / area) * 100;
+				}
+
+				update() {
+					this.state.analyses = this.fontInputConfigs.map((config,index)=>{
+						config.indicatorElement.style.backgroundColor = this.state.colors[index];
+
+						return this.analyze(this.state.fonts[index], config.textArea.value.trim(), Number(config.sizeInput.value) || 0, Number(config.shiftInput.value) || 0, Number(config.spacingInput.value) || 0);
+					}
+					);
+
+					this.draw();
+					this.updateResults();
+				}
+
+				draw() {
+					const validAnalyses = this.state.analyses.filter(Boolean);
+					if (!validAnalyses.length) {
+						this.renderEmpty();
+						return;
+					}
+
+					const dimensions = this.computeCanvasDimensions(validAnalyses);
+					const mainCanvasElement = this.elements.mainCanvas;
+
+					mainCanvasElement.width = dimensions.width;
+					mainCanvasElement.height = dimensions.height;
+					this.mainCanvasContext.clearRect(0, 0, dimensions.width, dimensions.height);
+
+					const sideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+
+					let textOffsetX = this.state.graphWidth + this.state.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
+
+					validAnalyses.forEach(analysis=>{
+						const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+						const shouldBlend = this.state.analyses.every(Boolean) && this.state.analyses.indexOf(analysis) > 0;
+						const color = this.state.colors[this.state.analyses.indexOf(analysis)];
+
+						this.renderDensityGraph(analysis, color, yOffset, shouldBlend);
+
+						let originX = textOffsetX;
+						if (sideBySide) {
+							originX += (analysis.drawOffsetX || 0);
+						}
+
+						this.renderGlyphs(analysis, color, originX, yOffset, shouldBlend);
+
+						if (sideBySide) {
+							textOffsetX += analysis.canvas.width;
+						}
+					}
+					);
+
+					this.updateScale();
+				}
+
+				computeCanvasDimensions(analyses) {
+					const sideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
+
+					const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
+					const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
+
+					const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
+
+					const overlayWidth = maxDrawOffsetX + Math.max(0, ...analyses.map(analysis=>analysis.canvas.width - analysis.drawOffsetX));
+					const sideBySideWidth = analyses.reduce((totalWidth,analysis)=>totalWidth + analysis.canvas.width, 0);
+
+					const textWidth = sideBySide ? sideBySideWidth : overlayWidth;
+
+					return {
+						width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
+						height: Math.ceil(maxAscent + maxDescent),
+						baseline: Math.ceil(maxAscent),
+						maxDrawOffsetX
+					};
+				}
+
+				renderDensityGraph(analysis, color, yOffset, shouldBlend) {
+					const densityByRow = analysis.densityByRow;
+					const maxDensity = Math.max(1, ...densityByRow);
+					const context = this.mainCanvasContext;
+
+					context.fillStyle = color;
+					context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
+
+					densityByRow.forEach((value,rowIndex)=>{
+						if (!value)
+							return;
+						const barWidth = (value / maxDensity) * this.state.graphWidth;
+						context.fillRect(this.state.graphWidth - barWidth, rowIndex + yOffset, barWidth, 1);
+					}
+					);
+
+					context.globalCompositeOperation = 'source-over';
+				}
+
+				renderGlyphs(analysis, color, originX, yOffset, shouldBlend) {
+					const fontCanvas = analysis.canvas;
+					const drawX = originX - (analysis.drawOffsetX || 0);
+
+					this.tintCanvasElement.width = fontCanvas.width;
+					this.tintCanvasElement.height = fontCanvas.height;
+
+					const tintContext = this.tintCanvasContext;
+					tintContext.globalCompositeOperation = 'source-over';
+					tintContext.fillStyle = color;
+					tintContext.fillRect(0, 0, fontCanvas.width, fontCanvas.height);
+					tintContext.globalCompositeOperation = 'destination-in';
+					tintContext.drawImage(fontCanvas, 0, 0);
+
+					this.mainCanvasContext.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
+					this.mainCanvasContext.drawImage(this.tintCanvasElement, drawX, yOffset);
+					this.mainCanvasContext.globalCompositeOperation = 'source-over';
+				}
+
+				renderEmpty() {
+					const mainCanvasElement = this.elements.mainCanvas;
+					mainCanvasElement.height = 150;
+					this.mainCanvasContext.clearRect(0, 0, mainCanvasElement.width, mainCanvasElement.height);
+					this.updateScale();
+				}
+
+				updateScale() {
+					const canvasElement = this.elements.mainCanvas;
+					const containerElement = this.elements.canvasContainer;
+					const previewElement = this.elements.previewContainer;
+
+					const shouldFit = this.elements.zoomMode.value === 'fit' && canvasElement.width;
+
+					canvasElement.style.transform = 'none';
+					containerElement.style.width = '';
+					containerElement.style.height = '';
+					containerElement.style.overflow = '';
+
+					if (!shouldFit)
+						return;
+
+					const containerStyles = getComputedStyle(containerElement);
+					const paddingX = parseFloat(containerStyles.paddingLeft) + parseFloat(containerStyles.paddingRight);
+					const paddingY = parseFloat(containerStyles.paddingTop) + parseFloat(containerStyles.paddingBottom);
+
+					const availableWidth = previewElement.clientWidth - paddingX;
+					const scale = Math.min(availableWidth / canvasElement.width, 1);
+
+					canvasElement.style.transform = `scale(${scale})`;
+					containerElement.style.width = `${canvasElement.width * scale + paddingX}px`;
+					containerElement.style.height = `${canvasElement.height * scale + paddingY}px`;
+					containerElement.style.overflow = 'hidden';
+				}
+
+				updateResults() {
+					this.fontInputConfigs.forEach((config,index)=>{
+						const analysis = this.state.analyses[index];
+						const font = this.state.fonts[index];
+
+						config.resultElement.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : font ? 'Enter text.' : 'Load font.';
+					}
+					);
+				}
+
+				exportImage() {
+					const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+					const link = document.createElement('a');
+					link.href = this.elements.mainCanvas.toDataURL();
+					link.download = `density_results_${timestamp}.png`;
+					link.click();
+				}
+			}
+
+			new DensityTool();
+		</script>
+	</body>
 </html>
