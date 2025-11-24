@@ -638,8 +638,8 @@
 				computeCanvasDimensions(analyses) {
 					const sideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
 
-					const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline - analysis.baselineShift));
-					const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline + analysis.baselineShift));
+					const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline + analysis.baselineShift));
+					const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline - analysis.baselineShift));
 
 					const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
 
