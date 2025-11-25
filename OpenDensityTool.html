@@ -398,7 +398,7 @@
 				computeMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
-					const metric = keys=>Math.max(...keys.map(k=>Math.abs(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0))) * scale;
+					const metric = keys=>Math.max(0, ...keys.map(k=>Math.abs(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0)).filter(v=>!isNaN(v))) * scale;
 
 					const glyphs = font.stringToGlyphs(text);
 					const extents = glyphs.reduce((r,g)=>{
@@ -422,8 +422,8 @@
 					const bounds = font.getPath(text, 0, 0, fontSize, opts).getBoundingBox();
 
 					return {
-						ascent: Math.max(extents.actualAscent * scale || font.ascender * scale, fontAscent),
-						descent: Math.max(extents.actualDescent * scale || Math.abs(font.descender * scale), fontDescent),
+						ascent: Math.max(extents.actualAscent * scale, fontAscent),
+						descent: Math.max(extents.actualDescent * scale, fontDescent),
 						actualAscent: extents.actualAscent * scale,
 						actualDescent: extents.actualDescent * scale,
 						fontAscent,
