@@ -217,7 +217,7 @@
 	<body>
 		<header>
 			<h1>Typographic Density Tool</h1>
-			<select id="themeSelector" style="width:auto">
+			<select id="theme" style="width:auto">
 				<option value="auto">Auto Theme</option>
 				<option value="light">Light</option>
 				<option value="dark">Dark</option>
@@ -228,57 +228,45 @@
 				<h2>Configuration</h2>
 				<div class="font-group">
 					<div class="font-header">
-						<input type="color" id="font1Color" value="#00a2a2">Font 1
-				
+						<input type="color" id="color1" value="#00a2a2">Font 1
 					</div>
 					<label>
-						Font File
-					<input type="file" id="font1File" accept=".otf,.ttf,.woff">
+						Font File<input type="file" id="file1" accept=".otf,.ttf,.woff">
 					</label>
 					<label>
-						Text
-					<textarea id="font1Text" maxlength="1000">Idealogy</textarea>
+						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
 					</label>
 					<label>
-						Size (px)
-					<input type="number" id="font1Size" value="100" min="8" max="500">
+						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
 					</label>
 					<div class="row">
 						<label>
-							Letter Spacing
-						<input type="number" id="font1Spacing" value="0" min="-100" max="100">
+							Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100">
 						</label>
 						<label>
-							Baseline Shift
-						<input type="number" id="font1Shift" value="0" min="-200" max="200">
+							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
 						</label>
 					</div>
 				</div>
 				<div class="font-group">
 					<div class="font-header">
-						<input type="color" id="font2Color" value="#ff00ff">Font 2
-				
+						<input type="color" id="color2" value="#ff00ff">Font 2
 					</div>
 					<label>
-						Font File
-					<input type="file" id="font2File" accept=".otf,.ttf,.woff">
+						Font File<input type="file" id="file2" accept=".otf,.ttf,.woff">
 					</label>
 					<label>
-						Text
-					<textarea id="font2Text" maxlength="1000">Идеология</textarea>
+						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
 					</label>
 					<label>
-						Size (px)
-					<input type="number" id="font2Size" value="100" min="8" max="500">
+						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
 					</label>
 					<div class="row">
 						<label>
-							Letter Spacing
-						<input type="number" id="font2Spacing" value="0" min="-100" max="100">
+							Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100">
 						</label>
 						<label>
-							Baseline Shift
-						<input type="number" id="font2Shift" value="0" min="-200" max="200">
+							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
 						</label>
 					</div>
 				</div>
@@ -286,41 +274,39 @@
 			<section>
 				<h2>Visualization</h2>
 				<div class="controls">
-					<select id="zoomMode">
+					<select id="zoom">
 						<option value="fit">Fit to View</option>
 						<option value="100">100% Scale</option>
 					</select>
-					<select id="renderMode">
+					<select id="render">
 						<option value="overlay">Overlay</option>
 						<option value="side-by-side">Side-by-side</option>
 					</select>
-					<select id="densityMode">
+					<select id="density">
 						<option value="ink-box">Ink Box</option>
 						<option value="em-box">Em Box</option>
 					</select>
-					<button id="exportButton">Export PNG</button>
+					<button id="exportBtn">Export PNG</button>
 				</div>
 				<div id="previewContainer">
 					<div id="canvasContainer">
-						<canvas id="mainCanvas"></canvas>
+						<canvas id="canvas"></canvas>
 					</div>
 				</div>
 				<div class="results">
 					<div class="result-card">
 						<div class="font-header">
-							<div id="result1Color" class="indicator"></div>
+							<div id="indicator1" class="indicator"></div>
 							Font 1 Analysis
-					
 						</div>
-						<div id="result1Text" class="result-text">Load a font.</div>
+						<div id="result1" class="result-text">Load a font.</div>
 					</div>
 					<div class="result-card">
 						<div class="font-header">
-							<div id="result2Color" class="indicator"></div>
+							<div id="indicator2" class="indicator"></div>
 							Font 2 Analysis
-					
 						</div>
-						<div id="result2Text" class="result-text">Load a font.</div>
+						<div id="result2" class="result-text">Load a font.</div>
 					</div>
 				</div>
 			</section>
@@ -328,226 +314,188 @@
 		<script>
 			class DensityTool {
 				constructor() {
-					this.elements = Object.fromEntries([...document.querySelectorAll('[id]')].map(element=>[element.id, element]));
-
-					this.state = {
-						theme: 'auto',
-						fonts: [null, null],
-						analyses: [null, null],
-						colors: [this.elements.font1Color.value, this.elements.font2Color.value],
-						animationFrames: {},
-						graphWidth: 150,
-						graphPadding: 20
-					};
-
-					this.mainCanvasContext = this.elements.mainCanvas.getContext('2d');
-					this.tintCanvasElement = document.createElement('canvas');
-					this.tintCanvasContext = this.tintCanvasElement.getContext('2d', {
+					this.el = Object.fromEntries([...document.querySelectorAll('[id]')].map(e=>[e.id, e]));
+					this.fonts = [null, null];
+					this.analyses = [null, null];
+					this.colors = [this.el.color1.value, this.el.color2.value];
+					this.frames = {};
+					this.graphWidth = 150;
+					this.graphPadding = 20;
+					this.ctx = this.el.canvas.getContext('2d');
+					this.tintCanvas = document.createElement('canvas');
+					this.tintCtx = this.tintCanvas.getContext('2d', {
 						willReadFrequently: true
 					});
-
-					this.fontInputConfigs = [1, 2].map(index=>({
-						fileInput: this.elements[`font${index}File`],
-						textArea: this.elements[`font${index}Text`],
-						sizeInput: this.elements[`font${index}Size`],
-						spacingInput: this.elements[`font${index}Spacing`],
-						shiftInput: this.elements[`font${index}Shift`],
-						colorInput: this.elements[`font${index}Color`],
-						resultElement: this.elements[`result${index}Text`],
-						indicatorElement: this.elements[`result${index}Color`]
+					this.inputs = [1, 2].map(i=>({
+						file: this.el[`file${i}`],
+						text: this.el[`text${i}`],
+						size: this.el[`size${i}`],
+						spacing: this.el[`spacing${i}`],
+						shift: this.el[`shift${i}`],
+						color: this.el[`color${i}`],
+						result: this.el[`result${i}`],
+						indicator: this.el[`indicator${i}`]
 					}));
-
-					this.initialize();
+					this.init();
 				}
 
-				initialize() {
-					this.bindEvents();
+				init() {
+					this.bind();
 					this.setTheme('auto');
 					this.update();
 				}
 
-				bindEvents() {
-					const scheduleAnimation = (key,callback)=>()=>{
-						if (this.state.animationFrames[key]) {
-							cancelAnimationFrame(this.state.animationFrames[key]);
-						}
-						this.state.animationFrames[key] = requestAnimationFrame(callback);
+				bind() {
+					const schedule = (key,fn)=>()=>{
+						if (this.frames[key])
+							cancelAnimationFrame(this.frames[key]);
+						this.frames[key] = requestAnimationFrame(fn);
 					}
 					;
+					const update = schedule('refresh', ()=>this.update());
+					const scale = schedule('resize', ()=>this.updateScale());
 
-					const scheduleUpdate = scheduleAnimation('refresh', ()=>this.update());
-					const scheduleScaleUpdate = scheduleAnimation('resize', ()=>this.updateScale());
+					this.el.zoom.onchange = scale;
+					this.el.render.onchange = update;
+					this.el.density.onchange = update;
+					this.el.exportBtn.onclick = ()=>this.exportImage();
+					this.el.theme.onchange = e=>this.setTheme(e.target.value);
+					window.onresize = scale;
 
-					this.elements.zoomMode.onchange = scheduleScaleUpdate;
-					this.elements.renderMode.onchange = scheduleUpdate;
-					this.elements.densityMode.onchange = scheduleUpdate;
-					this.elements.exportButton.onclick = ()=>this.exportImage();
-					this.elements.themeSelector.onchange = event=>this.setTheme(event.target.value);
-					window.onresize = scheduleScaleUpdate;
-
-					this.fontInputConfigs.forEach((config,index)=>{
-						config.fileInput.onchange = event=>this.loadFont(event.target.files[0], index);
-						config.colorInput.oninput = event=>{
-							this.state.colors[index] = event.target.value;
-							scheduleUpdate();
+					this.inputs.forEach((cfg,i)=>{
+						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
+						cfg.color.oninput = e=>{
+							this.colors[i] = e.target.value;
+							update();
 						}
 						;
-						[config.textArea, config.sizeInput, config.spacingInput, config.shiftInput].forEach(element=>{
-							element.oninput = scheduleUpdate;
-						}
-						);
+						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(el=>el.oninput = update);
 					}
 					);
 				}
 
 				setTheme(theme) {
 					document.documentElement.classList.remove('light', 'dark');
-					if (theme !== 'auto') {
+					if (theme !== 'auto')
 						document.documentElement.classList.add(theme);
-					}
-					this.elements.themeSelector.value = theme;
-					this.state.theme = theme;
+					this.el.theme.value = theme;
 				}
 
 				async loadFont(file, index) {
-					if (!file)
-						return;
-					if (file.size > 30 * 1024 * 1024) {
-						alert('File too large');
-						return;
-					}
-
+					if (!file || file.size > 30 * 1024 * 1024)
+						return file && alert('File too large');
 					try {
-						const arrayBuffer = await file.arrayBuffer();
-						const font = opentype.parse(arrayBuffer);
+						const font = opentype.parse(await file.arrayBuffer());
 						if (!font.draw)
 							throw new Error('Invalid font');
-						this.state.fonts[index] = font;
+						this.fonts[index] = font;
 						this.update();
-					} catch (error) {
-						alert(error.message);
+					} catch (e) {
+						alert(e.message);
 					}
 				}
 
-				computeFontMetrics(font, text, fontSize, letterSpacing) {
+				computeMetrics(font, text, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
-
-					const getMetric = (keys,transform=value=>value)=>Math.max(...keys.map(key=>transform(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
+					const metric = keys=>Math.max(...keys.map(k=>Math.abs(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0))) * scale;
 
 					const glyphs = font.stringToGlyphs(text);
-					const verticalExtents = glyphs.reduce((result,glyph)=>{
-						const path = glyph.path;
-						if (!path?.getBoundingBox)
-							return result;
-						const bounds = path.getBoundingBox();
-						if (!isFinite(bounds.y1) || !isFinite(bounds.y2))
-							return result;
-
-						result.actualAscent = Math.max(result.actualAscent, bounds.y2);
-						result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
-						return result;
+					const extents = glyphs.reduce((r,g)=>{
+						const b = g.path?.getBoundingBox?.();
+						if (b && isFinite(b.y1) && isFinite(b.y2)) {
+							r.actualAscent = Math.max(r.actualAscent, b.y2);
+							r.actualDescent = Math.max(r.actualDescent, -b.y1);
+						}
+						return r;
 					}
 					, {
 						actualAscent: 0,
 						actualDescent: 0
 					});
 
-					const fontAscent = getMetric(['ascender', 'sTypoAscender', 'usWinAscent']);
-					const fontDescent = getMetric(['descender', 'sTypoDescender', 'usWinDescent'], Math.abs);
-
-					const scaledAscent = verticalExtents.actualAscent * scale || font.ascender * scale;
-					const scaledDescent = verticalExtents.actualDescent * scale || Math.abs(font.descender * scale);
-
-					const pathOptions = {
+					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
+					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
+					const opts = {
 						tracking: letterSpacing || 0
 					};
-					const textBounds = font.getPath(text, 0, 0, fontSize, pathOptions).getBoundingBox();
+					const bounds = font.getPath(text, 0, 0, fontSize, opts).getBoundingBox();
 
 					return {
-						ascent: Math.max(scaledAscent, fontAscent),
-						descent: Math.max(scaledDescent, fontDescent),
-						actualAscent: scaledAscent,
-						actualDescent: scaledDescent,
+						ascent: Math.max(extents.actualAscent * scale || font.ascender * scale, fontAscent),
+						descent: Math.max(extents.actualDescent * scale || Math.abs(font.descender * scale), fontDescent),
+						actualAscent: extents.actualAscent * scale,
+						actualDescent: extents.actualDescent * scale,
 						fontAscent,
 						fontDescent,
-						x1: textBounds.x1,
-						x2: textBounds.x2,
-						boundingBoxWidth: Math.ceil(textBounds.x2 - textBounds.x1),
-						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, pathOptions))
+						x1: bounds.x1,
+						x2: bounds.x2,
+						boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
+						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, opts))
 					};
 				}
 
 				analyze(font, text, fontSize, baselineShift, letterSpacing) {
 					if (!font || !text || !fontSize)
 						return null;
-
-					const clampedFontSize = Math.max(1, Math.min(fontSize, 2000));
-					const metrics = this.computeFontMetrics(font, text, clampedFontSize, letterSpacing);
-
-					if (!metrics?.advanceWidth || !isFinite(metrics.advanceWidth) || metrics.advanceWidth <= 0) {
+					const size = Math.max(1, Math.min(fontSize, 2000));
+					const metrics = this.computeMetrics(font, text, size, letterSpacing);
+					if (!metrics?.advanceWidth || metrics.advanceWidth <= 0)
 						return null;
-					}
 
 					const minX = Math.min(0, metrics.x1);
 					const maxX = Math.max(metrics.advanceWidth, metrics.x2);
 					const drawOffsetX = -minX;
-					const canvasWidth = Math.ceil(maxX - minX);
-					const canvasHeight = Math.ceil(metrics.ascent + metrics.descent);
-
+					const width = Math.ceil(maxX - minX);
+					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
-					const fontCanvas = Object.assign(document.createElement('canvas'), {
-						width: canvasWidth,
-						height: canvasHeight
-					});
-					const fontCanvasContext = fontCanvas.getContext('2d');
 
-					font.draw(fontCanvasContext, text, drawOffsetX, baseline, clampedFontSize, {
+					const fontCanvas = Object.assign(document.createElement('canvas'), {
+						width,
+						height
+					});
+					font.draw(fontCanvas.getContext('2d'), text, drawOffsetX, baseline, size, {
 						tracking: letterSpacing || 0
 					});
 
-					const pixelData = this.analyzePixels(fontCanvas);
-					if (pixelData.minY > pixelData.maxY)
+					const pixels = this.analyzePixels(fontCanvas);
+					if (pixels.minY > pixels.maxY)
 						return null;
 
-					const density = this.computeDensity(pixelData, metrics, clampedFontSize);
+					const area = this.el.density.value === 'ink-box' ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : metrics.advanceWidth * size;
 
 					return {
-						...pixelData,
+						...pixels,
 						...metrics,
 						drawOffsetX,
 						canvas: fontCanvas,
 						baseline,
 						baselineShift,
 						letterSpacing,
-						fontSize: clampedFontSize,
+						fontSize: size,
 						font,
-						density: density.toFixed(1),
-						yMin: Math.round(baseline - pixelData.maxY),
-						yMax: Math.round(baseline - pixelData.minY)
+						density: ((pixels.inkPixels / area) * 100).toFixed(1),
+						yMin: Math.round(baseline - pixels.maxY),
+						yMax: Math.round(baseline - pixels.minY)
 					};
 				}
 
-				analyzePixels(fontCanvas) {
-					const context = fontCanvas.getContext('2d', {
+				analyzePixels(canvas) {
+					const ctx = canvas.getContext('2d', {
 						willReadFrequently: true
 					});
-					const imageData = context.getImageData(0, 0, fontCanvas.width, fontCanvas.height);
-					const pixelDataArray = imageData.data;
-					const width = imageData.width;
-					const height = imageData.height;
-
+					const {data, width, height} = ctx.getImageData(0, 0, canvas.width, canvas.height);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0;
-					let minX = width;
-					let maxX = -1;
-					let minY = height;
-					let maxY = -1;
+					let inkPixels = 0
+					  , minX = width
+					  , maxX = -1
+					  , minY = height
+					  , maxY = -1;
 
 					for (let y = 0; y < height; y++) {
-						for (let x = 0, alphaIndex = y * width * 4 + 3; x < width; x++,
-						alphaIndex += 4) {
-							if (pixelDataArray[alphaIndex] >= 128) {
+						for (let x = 0, idx = y * width * 4 + 3; x < width; x++,
+						idx += 4) {
+							if (data[idx] >= 128) {
 								if (y < minY)
 									minY = y;
 								if (y > maxY)
@@ -556,13 +504,11 @@
 									minX = x;
 								if (x > maxX)
 									maxX = x;
-
 								inkPixels++;
 								densityByRow[y]++;
 							}
 						}
 					}
-
 					return {
 						densityByRow,
 						inkPixels,
@@ -573,177 +519,125 @@
 					};
 				}
 
-				computeDensity(pixelData, metrics, fontSize) {
-					const width = pixelData.maxX - pixelData.minX + 1 > 0 ? pixelData.maxX - pixelData.minX + 1 : 1;
-					const height = pixelData.maxY - pixelData.minY + 1 > 0 ? pixelData.maxY - pixelData.minY + 1 : 1;
-
-					const area = this.elements.densityMode.value === 'ink-box' ? width * height : metrics.advanceWidth * fontSize;
-
-					return (pixelData.inkPixels / area) * 100;
-				}
-
 				update() {
-					this.state.analyses = this.fontInputConfigs.map((config,index)=>{
-						config.indicatorElement.style.backgroundColor = this.state.colors[index];
-
-						return this.analyze(this.state.fonts[index], config.textArea.value.trim(), Number(config.sizeInput.value) || 0, Number(config.shiftInput.value) || 0, Number(config.spacingInput.value) || 0);
+					this.analyses = this.inputs.map((cfg,i)=>{
+						cfg.indicator.style.backgroundColor = this.colors[i];
+						return this.analyze(this.fonts[i], cfg.text.value.trim(), +cfg.size.value || 0, +cfg.shift.value || 0, +cfg.spacing.value || 0);
 					}
 					);
-
 					this.draw();
 					this.updateResults();
 				}
 
 				draw() {
-					const validAnalyses = this.state.analyses.filter(Boolean);
-					if (!validAnalyses.length) {
-						this.renderEmpty();
-						return;
-					}
+					const valid = this.analyses.filter(Boolean);
+					if (!valid.length)
+						return this.renderEmpty();
 
-					const dimensions = this.computeCanvasDimensions(validAnalyses);
-					const mainCanvasElement = this.elements.mainCanvas;
+					const dims = this.computeDimensions(valid);
+					this.el.canvas.width = dims.width;
+					this.el.canvas.height = dims.height;
+					this.ctx.clearRect(0, 0, dims.width, dims.height);
 
-					mainCanvasElement.width = dimensions.width;
-					mainCanvasElement.height = dimensions.height;
-					this.mainCanvasContext.clearRect(0, 0, dimensions.width, dimensions.height);
+					const sideBySide = this.el.render.value === 'side-by-side' && valid.length > 1;
+					let textOffsetX = this.graphWidth + this.graphPadding + (sideBySide ? 0 : dims.maxDrawOffsetX);
 
-					const sideBySide = this.elements.renderMode.value === 'side-by-side' && validAnalyses.length > 1;
+					valid.forEach(a=>{
+						const yOffset = dims.baseline - a.baseline - a.baselineShift;
+						const blend = this.analyses.every(Boolean) && this.analyses.indexOf(a) > 0;
+						const color = this.colors[this.analyses.indexOf(a)];
 
-					let textOffsetX = this.state.graphWidth + this.state.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
-
-					validAnalyses.forEach(analysis=>{
-						const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const shouldBlend = this.state.analyses.every(Boolean) && this.state.analyses.indexOf(analysis) > 0;
-						const color = this.state.colors[this.state.analyses.indexOf(analysis)];
-
-						this.renderDensityGraph(analysis, color, yOffset, shouldBlend);
-
-						let originX = textOffsetX;
-						if (sideBySide) {
-							originX += (analysis.drawOffsetX || 0);
-						}
-
-						this.renderGlyphs(analysis, color, originX, yOffset, shouldBlend);
-
-						if (sideBySide) {
-							textOffsetX += analysis.canvas.width;
-						}
+						this.renderGraph(a, color, yOffset, blend);
+						const originX = sideBySide ? textOffsetX + (a.drawOffsetX || 0) : textOffsetX;
+						this.renderGlyphs(a, color, originX, yOffset, blend);
+						if (sideBySide)
+							textOffsetX += a.canvas.width;
 					}
 					);
-
 					this.updateScale();
 				}
 
-				computeCanvasDimensions(analyses) {
-					const sideBySide = this.elements.renderMode.value === 'side-by-side' && analyses.length > 1;
-
-					const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline + analysis.baselineShift));
-					const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline - analysis.baselineShift));
-
-					const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
-
-					const overlayWidth = maxDrawOffsetX + Math.max(0, ...analyses.map(analysis=>analysis.canvas.width - analysis.drawOffsetX));
-					const sideBySideWidth = analyses.reduce((totalWidth,analysis)=>totalWidth + analysis.canvas.width, 0);
-
-					const textWidth = sideBySide ? sideBySideWidth : overlayWidth;
-
+				computeDimensions(analyses) {
+					const sideBySide = this.el.render.value === 'side-by-side' && analyses.length > 1;
+					const maxAscent = Math.max(0, ...analyses.map(a=>a.baseline + a.baselineShift));
+					const maxDescent = Math.max(0, ...analyses.map(a=>a.canvas.height - a.baseline - a.baselineShift));
+					const maxDrawOffsetX = Math.max(0, ...analyses.map(a=>a.drawOffsetX));
+					const textWidth = sideBySide ? analyses.reduce((w,a)=>w + a.canvas.width, 0) : maxDrawOffsetX + Math.max(0, ...analyses.map(a=>a.canvas.width - a.drawOffsetX));
 					return {
-						width: Math.ceil(this.state.graphWidth + this.state.graphPadding + textWidth),
+						width: Math.ceil(this.graphWidth + this.graphPadding + textWidth),
 						height: Math.ceil(maxAscent + maxDescent),
 						baseline: Math.ceil(maxAscent),
 						maxDrawOffsetX
 					};
 				}
 
-				renderDensityGraph(analysis, color, yOffset, shouldBlend) {
-					const densityByRow = analysis.densityByRow;
-					const maxDensity = Math.max(1, ...densityByRow);
-					const context = this.mainCanvasContext;
-
-					context.fillStyle = color;
-					context.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-
-					densityByRow.forEach((value,rowIndex)=>{
-						if (!value)
-							return;
-						const barWidth = (value / maxDensity) * this.state.graphWidth;
-						context.fillRect(this.state.graphWidth - barWidth, rowIndex + yOffset, barWidth, 1);
+				renderGraph(analysis, color, yOffset, blend) {
+					const max = Math.max(1, ...analysis.densityByRow);
+					this.ctx.fillStyle = color;
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					analysis.densityByRow.forEach((v,y)=>{
+						if (v)
+							this.ctx.fillRect(this.graphWidth - (v / max) * this.graphWidth, y + yOffset, (v / max) * this.graphWidth, 1);
 					}
 					);
-
-					context.globalCompositeOperation = 'source-over';
+					this.ctx.globalCompositeOperation = 'source-over';
 				}
 
-				renderGlyphs(analysis, color, originX, yOffset, shouldBlend) {
-					const fontCanvas = analysis.canvas;
-					const drawX = originX - (analysis.drawOffsetX || 0);
-
-					this.tintCanvasElement.width = fontCanvas.width;
-					this.tintCanvasElement.height = fontCanvas.height;
-
-					const tintContext = this.tintCanvasContext;
-					tintContext.globalCompositeOperation = 'source-over';
-					tintContext.fillStyle = color;
-					tintContext.fillRect(0, 0, fontCanvas.width, fontCanvas.height);
-					tintContext.globalCompositeOperation = 'destination-in';
-					tintContext.drawImage(fontCanvas, 0, 0);
-
-					this.mainCanvasContext.globalCompositeOperation = shouldBlend ? 'multiply' : 'source-over';
-					this.mainCanvasContext.drawImage(this.tintCanvasElement, drawX, yOffset);
-					this.mainCanvasContext.globalCompositeOperation = 'source-over';
+				renderGlyphs(analysis, color, originX, yOffset, blend) {
+					const {canvas} = analysis;
+					this.tintCanvas.width = canvas.width;
+					this.tintCanvas.height = canvas.height;
+					this.tintCtx.globalCompositeOperation = 'source-over';
+					this.tintCtx.fillStyle = color;
+					this.tintCtx.fillRect(0, 0, canvas.width, canvas.height);
+					this.tintCtx.globalCompositeOperation = 'destination-in';
+					this.tintCtx.drawImage(canvas, 0, 0);
+					this.ctx.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					this.ctx.drawImage(this.tintCanvas, originX - (analysis.drawOffsetX || 0), yOffset);
+					this.ctx.globalCompositeOperation = 'source-over';
 				}
 
 				renderEmpty() {
-					const mainCanvasElement = this.elements.mainCanvas;
-					mainCanvasElement.height = 150;
-					this.mainCanvasContext.clearRect(0, 0, mainCanvasElement.width, mainCanvasElement.height);
+					this.el.canvas.height = 150;
+					this.ctx.clearRect(0, 0, this.el.canvas.width, 150);
 					this.updateScale();
 				}
 
 				updateScale() {
-					const canvasElement = this.elements.mainCanvas;
-					const containerElement = this.elements.canvasContainer;
-					const previewElement = this.elements.previewContainer;
+					const canvas = this.el.canvas;
+					const container = this.el.canvasContainer;
+					const preview = this.el.previewContainer;
+					const fit = this.el.zoom.value === 'fit' && canvas.width;
 
-					const shouldFit = this.elements.zoomMode.value === 'fit' && canvasElement.width;
-
-					canvasElement.style.transform = 'none';
-					containerElement.style.width = '';
-					containerElement.style.height = '';
-					containerElement.style.overflow = '';
-
-					if (!shouldFit)
+					canvas.style.transform = 'none';
+					container.style.width = container.style.height = container.style.overflow = '';
+					if (!fit)
 						return;
 
-					const containerStyles = getComputedStyle(containerElement);
-					const paddingX = parseFloat(containerStyles.paddingLeft) + parseFloat(containerStyles.paddingRight);
-					const paddingY = parseFloat(containerStyles.paddingTop) + parseFloat(containerStyles.paddingBottom);
+					const style = getComputedStyle(container);
+					const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+					const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+					const scale = Math.min((preview.clientWidth - padX) / canvas.width, 1);
 
-					const availableWidth = previewElement.clientWidth - paddingX;
-					const scale = Math.min(availableWidth / canvasElement.width, 1);
-
-					canvasElement.style.transform = `scale(${scale})`;
-					containerElement.style.width = `${canvasElement.width * scale + paddingX}px`;
-					containerElement.style.height = `${canvasElement.height * scale + paddingY}px`;
-					containerElement.style.overflow = 'hidden';
+					canvas.style.transform = `scale(${scale})`;
+					container.style.width = `${canvas.width * scale + padX}px`;
+					container.style.height = `${canvas.height * scale + padY}px`;
+					container.style.overflow = 'hidden';
 				}
 
 				updateResults() {
-					this.fontInputConfigs.forEach((config,index)=>{
-						const analysis = this.state.analyses[index];
-						const font = this.state.fonts[index];
-
-						config.resultElement.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : font ? 'Enter text.' : 'Load font.';
+					this.inputs.forEach((cfg,i)=>{
+						const a = this.analyses[i];
+						cfg.result.textContent = a ? `Density: ${a.density}%\n\nInk Bounds:\n- Max Y: ${a.yMax}\n- Min Y: ${a.yMin}\n\nMetrics:\n- Ascent: ${Math.round(a.fontAscent)}\n- Descent: ${Math.round(a.fontDescent)}` : this.fonts[i] ? 'Enter text.' : 'Load font.';
 					}
 					);
 				}
 
 				exportImage() {
-					const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
-					const link = document.createElement('a');
-					link.href = this.elements.mainCanvas.toDataURL();
-					link.download = `density_results_${timestamp}.png`;
+					const link = Object.assign(document.createElement('a'), {
+						href: this.el.canvas.toDataURL(),
+						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
+					});
 					link.click();
 				}
 			}
