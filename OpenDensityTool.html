@@ -463,7 +463,7 @@
 					if (pixels.minY > pixels.maxY)
 						return null;
 
-					const area = this.el.density.value === 'ink-box' ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : metrics.advanceWidth * size;
+					const area = this.el.density.value === 'ink-box' ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : metrics.advanceWidth * (metrics.ascent + metrics.descent);
 
 					return {
 						...pixels,
