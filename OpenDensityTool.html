@@ -417,7 +417,7 @@
 					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
 					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
 					const opts = {
-						tracking: letterSpacing || 0
+						letterSpacing: letterSpacing || 0
 					};
 					const bounds = font.getPath(text, 0, 0, fontSize, opts).getBoundingBox();
 
@@ -455,7 +455,7 @@
 						height
 					});
 					font.draw(fontCanvas.getContext('2d'), text, drawOffsetX, baseline, size, {
-						tracking: letterSpacing || 0
+						letterSpacing: letterSpacing || 0
 					});
 
 					const pixels = this.analyzePixels(fontCanvas);
