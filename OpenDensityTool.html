@@ -417,7 +417,7 @@
 					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
 					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
 					const opts = {
-						tracking: letterSpacing || 0
+						tracking: letterSpacing ? (letterSpacing / fontSize) * 1000 : 0
 					};
 					const bounds = font.getPath(text, 0, 0, fontSize, opts).getBoundingBox();
 
@@ -439,6 +439,7 @@
 					if (!font || !text || !fontSize)
 						return null;
 					const size = Math.max(1, Math.min(fontSize, 2000));
+					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
 					const metrics = this.computeMetrics(font, text, size, letterSpacing);
 					if (!metrics?.advanceWidth || metrics.advanceWidth <= 0)
 						return null;
@@ -455,7 +456,7 @@
 						height
 					});
 					font.draw(fontCanvas.getContext('2d'), text, drawOffsetX, baseline, size, {
-						tracking: letterSpacing || 0
+						tracking: tracking || 0
 					});
 
 					const pixels = this.analyzePixels(fontCanvas);
