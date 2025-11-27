@@ -455,7 +455,10 @@
 						width,
 						height
 					});
-					font.draw(fontCanvas.getContext('2d'), text, drawOffsetX, baseline, size, {
+					const context = fontCanvas.getContext('2d', {
+						willReadFrequently: true
+					});
+					font.draw(context, text, drawOffsetX, baseline, size, {
 						tracking: tracking || 0
 					});
 
