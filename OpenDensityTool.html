@@ -448,8 +448,8 @@
 					const maxX = Math.max(metrics.advanceWidth, metrics.x2);
 					const drawOffsetX = -minX;
 					const width = Math.ceil(maxX - minX);
-					const height = Math.ceil(metrics.ascent + metrics.descent);
 					const baseline = Math.ceil(metrics.ascent);
+					const height = Math.ceil(baseline + metrics.descent);
 
 					const fontCanvas = Object.assign(document.createElement('canvas'), {
 						width,
