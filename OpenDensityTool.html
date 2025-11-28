@@ -441,7 +441,7 @@
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
 					const metrics = this.computeMetrics(font, text, size, letterSpacing);
-					if (!metrics?.advanceWidth || metrics.advanceWidth <= 0)
+					if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
 						return null;
 
 					const minX = Math.min(0, metrics.x1)
@@ -466,7 +466,7 @@
 					if (pixels.minY > pixels.maxY)
 						return null;
 
-					const area = this.dom.density.value === 'ink-box' ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : metrics.advanceWidth * (metrics.ascent + metrics.descent);
+					const area = this.dom.density.value === 'ink-box' ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
 
 					return {
 						...pixels,
