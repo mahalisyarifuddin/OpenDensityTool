@@ -34,7 +34,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
 - Customizable overlay colors
 - Per‑scanline ink density graph to the left of the text
-- Baseline‑aware alignment with per‑font baseline shift
+- Baseline‑aware alignment with per‑font baseline shift and letter spacing
 - Actual vs. nominal (OS/2/hhea) ascent/descent reporting
 - Fit‑to‑view or 100% zoom; PNG export
 - Single HTML file, no build step or external assets beyond opentype.js
@@ -44,6 +44,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Color: Choose a custom color for each font overlay.
 - Text: Enter the string to analyze (per font).
 - Size (px): Render size per font.
+- Letter Spacing: Adjust tracking (spacing between characters).
 - Baseline Shift: Nudge a font up/down to align optical baselines.
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
@@ -53,7 +54,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 ## Interpreting the Analysis
 - Density (%): Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in two ways:
   - **Ink Box**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
-  - **Em box**: Normalizes by the full horizontal space the character occupies (advance width) and the font's em size. This is useful for judging the overall texture and color of a block of text.
+  - **Em box**: Normalizes by the full horizontal space the character occupies (advance width, including letter spacing) and the effective vertical extent (the greater of the font's metrics or the actual glyph bounds). This is useful for judging the overall texture and color of a block of text.
 - yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
 - Actual Ascent/Descent: Measured from glyph outlines at the chosen size.
 - Font Ascent/Descent: Max of OS/2/hhea/win metrics (when available).
