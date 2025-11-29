@@ -395,12 +395,12 @@
 					}
 				}
 
-				computeMetrics(font, text, fontSize, letterSpacing) {
+				computeMetrics(font, content, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
 					const metric = keys=>Math.max(0, ...keys.map(k=>Math.abs(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0)).filter(v=>!isNaN(v))) * scale;
 
-					const glyphs = font.stringToGlyphs(text);
+					const glyphs = font.stringToGlyphs(content);
 					const extents = glyphs.reduce((result,glyph)=>{
 						const bounds = glyph.path?.getBoundingBox?.();
 						if (bounds && isFinite(bounds.y1) && isFinite(bounds.y2)) {
@@ -419,7 +419,7 @@
 					const options = {
 						tracking: letterSpacing ? (letterSpacing / fontSize) * 1000 : 0
 					};
-					const bounds = font.getPath(text, 0, 0, fontSize, options).getBoundingBox();
+					const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
 
 					return {
 						ascent: Math.max(extents.actualAscent * scale, fontAscent),
@@ -431,16 +431,16 @@
 						x1: bounds.x1,
 						x2: bounds.x2,
 						boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
-						advanceWidth: Math.ceil(font.getAdvanceWidth(text, fontSize, options))
+						advanceWidth: Math.ceil(font.getAdvanceWidth(content, fontSize, options))
 					};
 				}
 
-				analyze(font, text, fontSize, baselineShift, letterSpacing) {
-					if (!font || !text || !fontSize)
+				analyze(font, content, fontSize, baselineShift, letterSpacing) {
+					if (!font || !content || !fontSize)
 						return null;
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
-					const metrics = this.computeMetrics(font, text, size, letterSpacing);
+					const metrics = this.computeMetrics(font, content, size, letterSpacing);
 					if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
 						return null;
 
@@ -458,7 +458,7 @@
 					const context = fontCanvas.getContext('2d', {
 						willReadFrequently: true
 					});
-					font.draw(context, text, drawOffsetX, baseline, size, {
+					font.draw(context, content, drawOffsetX, baseline, size, {
 						tracking: tracking || 0
 					});
 
