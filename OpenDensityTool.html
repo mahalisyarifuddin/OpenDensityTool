@@ -421,11 +421,14 @@
 					};
 					const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
 
+					const actualAscent = Math.max(extents.actualAscent * scale, -bounds.y1);
+					const actualDescent = Math.max(extents.actualDescent * scale, bounds.y2);
+
 					return {
-						ascent: Math.max(extents.actualAscent * scale, fontAscent),
-						descent: Math.max(extents.actualDescent * scale, fontDescent),
-						actualAscent: extents.actualAscent * scale,
-						actualDescent: extents.actualDescent * scale,
+						ascent: Math.max(actualAscent, fontAscent),
+						descent: Math.max(actualDescent, fontDescent),
+						actualAscent,
+						actualDescent,
 						fontAscent,
 						fontDescent,
 						x1: bounds.x1,
