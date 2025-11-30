@@ -543,7 +543,7 @@
                 update() {
                     this.analyses = this.configs.map((c,i)=>{
                         c.indicator.style.backgroundColor = this.colors[i];
-                        return this.analyze(this.fonts[i], c.text.value.trim(), +c.size.value || 0, +c.shift.value || 0, +c.spacing.value || 0);
+                        return this.analyze(this.fonts[i], c.text.value, +c.size.value || 0, +c.shift.value || 0, +c.spacing.value || 0);
                     }
                     );
                     this.draw();
