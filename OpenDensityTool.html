@@ -312,6 +312,13 @@
 			</section>
 		</main>
 		<script>
+			const el = (tag,props)=>Object.assign(document.createElement(tag), props);
+			const download = (href,name)=>el('a', {
+				href,
+				download: name
+			}).click();
+			const timestamp = ()=>new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+
 			class DensityTool {
 				constructor() {
 					this.dom = Object.fromEntries([...document.querySelectorAll('[id]')].map(node=>[node.id, node]));
@@ -322,11 +329,11 @@
 					this.graphWidth = 150;
 					this.graphPadding = 20;
 					this.context = this.dom.canvas.getContext('2d');
-					this.tintCanvas = document.createElement('canvas');
+					this.tintCanvas = el('canvas');
 					this.tintContext = this.tintCanvas.getContext('2d', {
 						willReadFrequently: true
 					});
-					this.inputs = [1, 2].map(i=>({
+					this.input = i=>({
 						file: this.dom[`file${i}`],
 						text: this.dom[`text${i}`],
 						size: this.dom[`size${i}`],
@@ -335,7 +342,8 @@
 						color: this.dom[`color${i}`],
 						result: this.dom[`result${i}`],
 						indicator: this.dom[`indicator${i}`]
-					}));
+					});
+					this.inputs = [1, 2].map(this.input);
 					this.init();
 				}
 
@@ -359,17 +367,17 @@
 					this.dom.render.onchange = update;
 					this.dom.density.onchange = update;
 					this.dom.exportButton.onclick = ()=>this.exportImage();
-					this.dom.theme.onchange = event=>this.setTheme(event.target.value);
+					this.dom.theme.onchange = e=>this.setTheme(e.target.value);
 					window.onresize = scale;
 
-					this.inputs.forEach((config,i)=>{
-						config.file.onchange = event=>this.loadFont(event.target.files[0], i);
-						config.color.oninput = event=>{
-							this.colors[i] = event.target.value;
+					this.inputs.forEach((cfg,i)=>{
+						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
+						cfg.color.oninput = e=>{
+							this.colors[i] = e.target.value;
 							update();
 						}
 						;
-						[config.text, config.size, config.spacing, config.shift].forEach(node=>node.oninput = update);
+						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(node=>node.oninput = update);
 					}
 					);
 				}
@@ -399,15 +407,14 @@
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
 					const metric = keys=>Math.max(0, ...keys.map(k=>Math.abs(font[k] ?? os2?.[k] ?? hhea?.[k] ?? 0)).filter(v=>!isNaN(v))) * scale;
-
 					const glyphs = font.stringToGlyphs(content);
-					const extents = glyphs.reduce((result,glyph)=>{
-						const bounds = glyph.path?.getBoundingBox?.();
-						if (bounds && isFinite(bounds.y1) && isFinite(bounds.y2)) {
-							result.actualAscent = Math.max(result.actualAscent, bounds.y2);
-							result.actualDescent = Math.max(result.actualDescent, -bounds.y1);
+					const extents = glyphs.reduce((r,g)=>{
+						const b = g.path?.getBoundingBox?.();
+						if (b && isFinite(b.y1) && isFinite(b.y2)) {
+							r.actualAscent = Math.max(r.actualAscent, b.y2);
+							r.actualDescent = Math.max(r.actualDescent, -b.y1);
 						}
-						return result;
+						return r;
 					}
 					, {
 						actualAscent: 0,
@@ -420,7 +427,6 @@
 						tracking: letterSpacing ? (letterSpacing / fontSize) * 1000 : 0
 					};
 					const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
-
 					const actualAscent = Math.max(extents.actualAscent * scale, -bounds.y1);
 					const actualDescent = Math.max(extents.actualDescent * scale, bounds.y2);
 
@@ -454,14 +460,13 @@
 					const baseline = Math.ceil(metrics.ascent)
 					  , height = Math.ceil(baseline + metrics.descent);
 
-					const fontCanvas = Object.assign(document.createElement('canvas'), {
+					const fontCanvas = el('canvas', {
 						width,
 						height
 					});
-					const context = fontCanvas.getContext('2d', {
+					font.draw(fontCanvas.getContext('2d', {
 						willReadFrequently: true
-					});
-					font.draw(context, content, drawOffsetX, baseline, size, {
+					}), content, drawOffsetX, baseline, size, {
 						tracking: tracking || 0
 					});
 
@@ -488,10 +493,9 @@
 				}
 
 				analyzePixels(canvas) {
-					const context = canvas.getContext('2d', {
+					const {data, width, height} = canvas.getContext('2d', {
 						willReadFrequently: true
-					});
-					const {data, width, height} = context.getImageData(0, 0, canvas.width, canvas.height);
+					}).getImageData(0, 0, canvas.width, canvas.height);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0
 					  , minX = width
@@ -500,9 +504,9 @@
 					  , maxY = -1;
 
 					for (let y = 0; y < height; y++) {
-						for (let x = 0, index = y * width * 4 + 3; x < width; x++,
-						index += 4) {
-							if (data[index] >= 128) {
+						for (let x = 0, idx = y * width * 4 + 3; x < width; x++,
+						idx += 4) {
+							if (data[idx] >= 128) {
 								if (y < minY)
 									minY = y;
 								if (y > maxY)
@@ -527,9 +531,9 @@
 				}
 
 				update() {
-					this.analyses = this.inputs.map((config,i)=>{
-						config.indicator.style.backgroundColor = this.colors[i];
-						return this.analyze(this.fonts[i], config.text.value.trim(), +config.size.value || 0, +config.shift.value || 0, +config.spacing.value || 0);
+					this.analyses = this.inputs.map((cfg,i)=>{
+						cfg.indicator.style.backgroundColor = this.colors[i];
+						return this.analyze(this.fonts[i], cfg.text.value.trim(), +cfg.size.value || 0, +cfg.shift.value || 0, +cfg.spacing.value || 0);
 					}
 					);
 					this.draw();
@@ -541,22 +545,21 @@
 					if (!valid.length)
 						return this.renderEmpty();
 
-					const dimensions = this.computeDimensions(valid);
-					this.dom.canvas.width = dimensions.width;
-					this.dom.canvas.height = dimensions.height;
-					this.context.clearRect(0, 0, dimensions.width, dimensions.height);
+					const dims = this.computeDimensions(valid);
+					this.dom.canvas.width = dims.width;
+					this.dom.canvas.height = dims.height;
+					this.context.clearRect(0, 0, dims.width, dims.height);
 
 					const sideBySide = this.dom.render.value === 'side-by-side' && valid.length > 1;
-					let textOffsetX = this.graphWidth + this.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
+					let textOffsetX = this.graphWidth + this.graphPadding + (sideBySide ? 0 : dims.maxDrawOffsetX);
 
 					valid.forEach(analysis=>{
-						const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+						const yOffset = dims.baseline - analysis.baseline - analysis.baselineShift;
 						const blend = this.analyses.every(Boolean) && this.analyses.indexOf(analysis) > 0;
 						const color = this.colors[this.analyses.indexOf(analysis)];
 
 						this.renderGraph(analysis, color, yOffset, blend);
-						const originX = sideBySide ? textOffsetX + (analysis.drawOffsetX || 0) : textOffsetX;
-						this.renderGlyphs(analysis, color, originX, yOffset, blend);
+						this.renderGlyphs(analysis, color, sideBySide ? textOffsetX + (analysis.drawOffsetX || 0) : textOffsetX, yOffset, blend);
 						if (sideBySide)
 							textOffsetX += analysis.canvas.width;
 					}
@@ -582,9 +585,9 @@
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					analysis.densityByRow.forEach((value,y)=>{
-						if (value)
-							this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, y + yOffset, (value / max) * this.graphWidth, 1);
+					analysis.densityByRow.forEach((v,y)=>{
+						if (v)
+							this.context.fillRect(this.graphWidth - (v / max) * this.graphWidth, y + yOffset, (v / max) * this.graphWidth, 1);
 					}
 					);
 					this.context.globalCompositeOperation = 'source-over';
@@ -611,9 +614,7 @@
 				}
 
 				updateScale() {
-					const canvas = this.dom.canvas
-					  , container = this.dom.canvasContainer
-					  , preview = this.dom.previewContainer;
+					const {canvas, canvasContainer: container, previewContainer: preview} = this.dom;
 					const fit = this.dom.zoom.value === 'fit' && canvas.width;
 
 					canvas.style.transform = 'none';
@@ -633,18 +634,15 @@
 				}
 
 				updateResults() {
-					this.inputs.forEach((config,i)=>{
-						const analysis = this.analyses[i];
-						config.result.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : this.fonts[i] ? 'Enter text.' : 'Load font.';
+					this.inputs.forEach((cfg,i)=>{
+						const a = this.analyses[i];
+						cfg.result.textContent = a ? `Density: ${a.density}%\n\nInk Bounds:\n- Max Y: ${a.yMax}\n- Min Y: ${a.yMin}\n\nMetrics:\n- Ascent: ${Math.round(a.fontAscent)}\n- Descent: ${Math.round(a.fontDescent)}` : this.fonts[i] ? 'Enter text.' : 'Load font.';
 					}
 					);
 				}
 
 				exportImage() {
-					Object.assign(document.createElement('a'), {
-						href: this.dom.canvas.toDataURL(),
-						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
-					}).click();
+					download(this.dom.canvas.toDataURL(), `density_${timestamp()}.png`);
 				}
 			}
 
