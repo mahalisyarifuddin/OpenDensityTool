@@ -8,20 +8,23 @@
 		<style>
 			:root {
 				--primary: #0070ea;
-				--background: #f7f7f8;
+				--hover: #005bc0;
+				--background: #f9f9ff;
 				--surface: #fff;
-				--text: #333;
-				--border: #e0e0e0;
-				--input: #fff
+				--text: #414754;
+				--border: #c1c6d7;
+				--dim: #d7d9e5;
+				--success: #28a745;
+				--danger: #dc3545
 			}
 
 			@media(prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--background:#10131b;
+					--background: #10131b;
 					--surface: #181c23;
 					--text: #c1c6d7;
 					--border: #414754;
-					--input: #0f1218
+					--dim: #10131b
 				}
 			}
 
@@ -30,11 +33,13 @@
 				--surface: #181c23;
 				--text: #c1c6d7;
 				--border: #414754;
-				--input: #0f1218
+				--dim: #10131b
 			}
 
 			* {
-				box-sizing: border-box
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0
 			}
 
 			body {
@@ -42,26 +47,26 @@
 				color: var(--text);
 				font-family: sans-serif;
 				line-height: 1.5;
-				margin: 0;
-				padding: 24px
+				padding: 1rem;
+				min-height: 100vh
 			}
 
 			header {
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				margin-bottom: 32px
+				margin-bottom: 2rem
 			}
 
 			h1 {
-				margin: 0;
+				margin: .5rem 0;
 				font-size: 1.8em
 			}
 
 			main {
 				display: grid;
 				grid-template-columns: 340px 1fr;
-				gap: 24px;
+				gap: 1.5rem;
 				max-width: 1600px;
 				margin: 0 auto
 			}
@@ -70,29 +75,29 @@
 				background: var(--surface);
 				border: 1px solid var(--border);
 				border-radius: 8px;
-				padding: 24px;
+				padding: 1.5rem;
 				min-width: 0
 			}
 
 			h2 {
-				margin-top: 0;
+				margin: .5rem 0 1rem 0;
 				border-bottom: 1px solid var(--border);
-				padding-bottom: 12px;
+				padding-bottom: .75rem;
 				font-size: 1.2em
 			}
 
 			.font-group {
 				background: var(--background);
 				border: 1px solid var(--border);
-				padding: 16px;
+				padding: 1rem;
 				border-radius: 6px;
-				margin-bottom: 16px
+				margin-bottom: 1rem
 			}
 
 			.font-header {
 				display: flex;
 				align-items: center;
-				margin-bottom: 12px;
+				margin-bottom: .75rem;
 				font-weight: 700
 			}
 
@@ -108,37 +113,37 @@
 
 			label {
 				display: block;
-				margin-bottom: 12px;
-				font-size: .9em;
-				opacity: .9
+				margin-bottom: .5rem;
+				font-weight: 700
 			}
 
-			input:not([type="color"]),textarea,select {
+			input:not([type="color"]),textarea,select,button {
 				width: 100%;
-				padding: 8px;
+				padding: .5rem;
 				border: 1px solid var(--border);
 				border-radius: 4px;
-				background: var(--input);
+				background: var(--surface);
 				color: var(--text);
 				margin-top: 4px;
-				font-family: inherit
+				font-family: inherit;
+				font-size: 1rem
 			}
 
 			textarea {
 				resize: vertical;
-				min-height: 60px
+				min-height: 80px
 			}
 
 			.row {
 				display: flex;
-				gap: 12px
+				gap: 1rem
 			}
 
 			.controls {
 				display: flex;
-				gap: 12px;
+				gap: .75rem;
 				flex-wrap: wrap;
-				margin-bottom: 16px
+				margin-bottom: 1rem
 			}
 
 			.controls select {
@@ -148,27 +153,28 @@
 			button {
 				background: var(--primary);
 				color: #fff;
-				border: none;
-				padding: 8px 16px;
-				border-radius: 4px;
+				border: 0;
+				padding: .5rem 1rem;
 				cursor: pointer;
+				transition: background .2s;
+				width: auto;
 				margin-left: auto
 			}
 
 			button:hover {
-				opacity: .9
+				background: var(--hover)
 			}
 
 			#previewContainer {
-				background: var(--input);
+				background: var(--surface);
 				border: 1px solid var(--border);
 				border-radius: 6px;
 				overflow: auto;
-				margin-bottom: 24px
+				margin-bottom: 1.5rem
 			}
 
 			#canvasContainer {
-				padding: 15px;
+				padding: 1rem;
 				display: flex;
 				align-items: flex-start
 			}
@@ -182,13 +188,13 @@
 			.results {
 				display: grid;
 				grid-template-columns: 1fr 1fr;
-				gap: 16px
+				gap: 1rem
 			}
 
 			.result-card {
 				background: var(--background);
 				border: 1px solid var(--border);
-				padding: 16px;
+				padding: 1rem;
 				border-radius: 6px
 			}
 
@@ -196,7 +202,7 @@
 				white-space: pre-wrap;
 				font-family: monospace;
 				font-size: .9em;
-				margin-top: 8px
+				margin-top: .5rem
 			}
 
 			.indicator {
@@ -210,6 +216,9 @@
 			@media(max-width: 900px) {
 				main {
 					grid-template-columns:1fr
+				}
+				.results {
+					grid-template-columns: 1fr
 				}
 			}
 		</style>
