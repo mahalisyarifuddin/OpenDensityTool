@@ -107,14 +107,15 @@
 				border: none;
 				background: none;
 				padding: 0;
-				margin-right: 8px;
+				margin-right: .5em;
 				cursor: pointer
 			}
 
 			label {
 				display: block;
 				margin-bottom: .5rem;
-				font-weight: 700
+				font-weight: 700;
+				font-size: 1em
 			}
 
 			input:not([type="color"]),textarea,select,button {
@@ -126,12 +127,14 @@
 				color: var(--text);
 				margin-top: 4px;
 				font-family: inherit;
-				font-size: 1rem
+				font-size: .9em
 			}
 
 			textarea {
 				resize: vertical;
-				min-height: 80px
+				min-height: 80px;
+				font-family: monospace;
+				font-size: 1em
 			}
 
 			.row {
@@ -206,11 +209,11 @@
 			}
 
 			.indicator {
-				width: 12px;
-				height: 12px;
+				width: 14px;
+				height: 14px;
 				border-radius: 3px;
 				display: inline-block;
-				margin-right: 8px
+				margin-right: .5em
 			}
 
 			@media(max-width: 900px) {
@@ -238,7 +241,6 @@
 				<div class="font-group">
 					<div class="font-header">
 						<input type="color" id="color1" value="#00a2a2">Font 1
-					
 					</div>
 					<label>
 						Font File<input type="file" id="file1" accept=".otf,.ttf,.woff">
@@ -261,7 +263,6 @@
 				<div class="font-group">
 					<div class="font-header">
 						<input type="color" id="color2" value="#ff00ff">Font 2
-					
 					</div>
 					<label>
 						Font File<input type="file" id="file2" accept=".otf,.ttf,.woff">
