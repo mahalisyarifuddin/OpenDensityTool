@@ -439,45 +439,51 @@
 				analyze(font, content, fontSize, baselineShift, letterSpacing) {
 					if (!font || !content || !fontSize)
 						return null;
-					const size = Math.max(1, Math.min(fontSize, 2000));
-					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
-					const metrics = this.computeMetrics(font, content, size, letterSpacing);
-					if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
-						return null;
+					try {
+						const size = Math.max(1, Math.min(fontSize, 2000));
+						const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
+						const metrics = this.computeMetrics(font, content, size, letterSpacing);
+						if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
+							return null;
 
-					const minX = Math.min(0, metrics.x1)
-					  , maxX = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minX
-					  , width = Math.ceil(maxX - minX);
-					const baseline = Math.ceil(metrics.ascent)
-					  , height = Math.ceil(baseline + metrics.descent);
-					const fontCanvas = node('canvas', {
-						width,
-						height
-					});
-					font.draw(fontCanvas.getContext('2d', {
-						willReadFrequently: true
-					}), content, drawOffsetX, baseline, size, {
-						tracking: tracking || 0
-					});
-					const pixels = this.analyzePixels(fontCanvas);
-					const hasInk = pixels.maxY >= pixels.minY;
-					const area = dom.density.value === 'ink-box' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
+						const minX = Math.min(0, metrics.x1)
+						  , maxX = Math.max(metrics.advanceWidth, metrics.x2);
+						const drawOffsetX = -minX
+						  , width = Math.ceil(maxX - minX);
+						const baseline = Math.ceil(metrics.ascent)
+						  , height = Math.ceil(baseline + metrics.descent);
+						const fontCanvas = node('canvas', {
+							width,
+							height
+						});
+						font.draw(fontCanvas.getContext('2d', {
+							willReadFrequently: true
+						}), content, drawOffsetX, baseline, size, {
+							tracking: tracking || 0
+						});
+						const pixels = this.analyzePixels(fontCanvas);
+						const hasInk = pixels.maxY >= pixels.minY;
+						const area = dom.density.value === 'ink-box' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
 
-					return {
-						...pixels,
-						...metrics,
-						drawOffsetX,
-						canvas: fontCanvas,
-						baseline,
-						baselineShift,
-						letterSpacing,
-						fontSize: size,
-						font,
-						density: ((pixels.inkPixels / area) * 100).toFixed(1),
-						yMin: hasInk ? Math.round(baseline - pixels.maxY) : 0,
-						yMax: hasInk ? Math.round(baseline - pixels.minY) : 0
-					};
+						return {
+							...pixels,
+							...metrics,
+							drawOffsetX,
+							canvas: fontCanvas,
+							baseline,
+							baselineShift,
+							letterSpacing,
+							fontSize: size,
+							font,
+							density: ((pixels.inkPixels / area) * 100).toFixed(1),
+							yMin: hasInk ? Math.round(baseline - pixels.maxY) : 0,
+							yMax: hasInk ? Math.round(baseline - pixels.minY) : 0
+						};
+					} catch (error) {
+						return {
+							error: error.message
+						};
+					}
 				}
 
 				analyzePixels(canvas) {
@@ -525,7 +531,7 @@
 				}
 
 				draw() {
-					const valid = this.analyses.filter(Boolean);
+					const valid = this.analyses.filter(analysis=>analysis && !analysis.error);
 					if (!valid.length)
 						return this.renderEmpty();
 					const dimensions = this.computeDimensions(valid);
@@ -611,7 +617,7 @@
 				updateResults() {
 					this.configs.forEach((config,index)=>{
 						const analysis = this.analyses[index];
-						config.result.textContent = analysis ? `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}` : this.fonts[index] ? 'Enter text.' : 'Load font.';
+						config.result.textContent = analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[index] ? 'Enter text.' : 'Load font.';
 					}
 					);
 				}
