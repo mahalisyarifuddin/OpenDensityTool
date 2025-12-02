@@ -46,8 +46,8 @@
 				background: var(--background);
 				color: var(--text);
 				font-family: sans-serif;
-				line-height: 1.5;
-				padding: 1rem;
+				line-height: 1.6;
+				padding: 1.5rem;
 				min-height: 100vh
 			}
 
@@ -63,7 +63,8 @@
 
 			h1 {
 				margin: .5rem 0;
-				font-size: 1.8em
+				font-size: 2rem;
+				font-weight: 600
 			}
 
 			main {
@@ -86,7 +87,8 @@
 				margin: .5rem 0 1rem 0;
 				border-bottom: 1px solid var(--border);
 				padding-bottom: .75rem;
-				font-size: 1.2em
+				font-size: 1.2rem;
+				font-weight: 600
 			}
 
 			.font-group {
@@ -117,27 +119,30 @@
 			label {
 				display: block;
 				margin-bottom: .5rem;
-				font-weight: 700;
-				font-size: 1em
+				font-weight: 500;
+				font-size: 0.9rem
 			}
 
 			input:not([type="color"]),textarea,select,button {
 				width: 100%;
-				padding: .5rem;
+				padding: .5rem .75rem;
 				border: 1px solid var(--border);
 				border-radius: 4px;
 				background: var(--surface);
 				color: var(--text);
 				margin-top: 4px;
 				font-family: inherit;
-				font-size: .9em
+				font-size: .95rem
+			}
+
+			select,button {
+				font-size: .9rem
 			}
 
 			textarea {
 				resize: vertical;
 				min-height: 80px;
 				font-family: monospace;
-				font-size: 1em
 			}
 
 			.row {
@@ -207,7 +212,7 @@
 			.result-text {
 				white-space: pre-wrap;
 				font-family: monospace;
-				font-size: .9em;
+				font-size: .95rem;
 				margin-top: .5rem
 			}
 
