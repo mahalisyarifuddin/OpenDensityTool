@@ -472,6 +472,10 @@
 						  , width = Math.ceil(maxX - minX);
 						const baseline = Math.ceil(metrics.ascent)
 						  , height = Math.ceil(baseline + metrics.descent);
+
+						if (width > 32767 || height > 32767)
+							throw new Error('Canvas dimensions too large');
+
 						const fontCanvas = node('canvas', {
 							width,
 							height
