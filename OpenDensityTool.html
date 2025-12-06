@@ -407,8 +407,12 @@
 				}
 
 				async loadFont(file, index) {
-					if (!file || file.size > 30 * 1024 * 1024)
-						return file && alert('File too large');
+					if (!file || file.size > 30 * 1024 * 1024) {
+						file && alert('File too large');
+						this.fonts[index] = null;
+						this.update();
+						return;
+					}
 					try {
 						const font = opentype.parse(await file.arrayBuffer());
 						if (!font.draw)
@@ -417,6 +421,8 @@
 						this.update();
 					} catch (error) {
 						alert(error.message);
+						this.fonts[index] = null;
+						this.update();
 					}
 				}
 
