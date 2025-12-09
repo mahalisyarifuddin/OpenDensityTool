@@ -479,7 +479,7 @@
 						});
 						const pixels = this.analyzePixels(fontCanvas);
 						const hasInk = pixels.maxY >= pixels.minY;
-						const area = dom.density.value === 'ink' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
+						const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent));
 
 						return {
 							...pixels,
