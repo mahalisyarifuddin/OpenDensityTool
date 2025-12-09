@@ -14,10 +14,10 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 
 ## How It Works
 - Renders text to an off-screen canvas for each font, ensuring robust handling of various font file types.
-- Reads vertical metrics from the font's OS/2 and hhea tables, and estimates "actual" ascent/descent from glyph outlines.
+- Reads vertical metrics from the font's OS/2 and hhea tables.
 - Computes per-row "ink" density from pixel data to generate the density graph on the left.
 - Tints each font and overlays them using multiply blending to highlight differences in texture, weight, and alignment.
-- Reports yMin/yMax (relative to the baseline), density percentage, actual vs. font ascent/descent, and user-defined inputs like size and baseline shift.
+- Reports density percentage, ink bounds (relative to the baseline), and nominal font metrics.
 
 ## Quick Start
 1. Download OpenDensityTool.html.
@@ -35,7 +35,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Customizable overlay colors
 - Per‑scanline ink density graph to the left of the text
 - Baseline‑aware alignment with per‑font baseline shift and letter spacing
-- Actual vs. nominal (OS/2/hhea) ascent/descent reporting
+- Reporting of measured ink bounds vs. nominal font metrics
 - Fit‑to‑view or 100% zoom; PNG export
 - Single HTML file, no build step or external assets beyond opentype.js
 
@@ -52,13 +52,16 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
-- Density (%): Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in two ways:
+- **Density**: Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in two ways:
   - **Ink Box**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
-  - **Em box**: Normalizes by the full horizontal space the character occupies (advance width, including letter spacing) and the effective vertical extent (the greater of the font's metrics or the actual glyph bounds). This is useful for judging the overall texture and color of a block of text.
-- yMin / yMax (px): Extents above/below the baseline measured from detected pixels.
-- Actual Ascent/Descent: Measured from glyph outlines at the chosen size.
-- Font Ascent/Descent: Max of OS/2/hhea/win metrics (when available).
-- Overlay: Color differences quickly show mismatched vertical alignment, weight, or texture.
+  - **Em box**: Normalizes by the full horizontal space the character occupies (advance width, including letter spacing) and the effective vertical extent. This is useful for judging the overall texture and color of a block of text.
+- **Ink Bounds**:
+  - **Max Y**: The highest point of the ink relative to the baseline (positive is up).
+  - **Min Y**: The lowest point of the ink relative to the baseline (negative is down).
+- **Metrics**:
+  - **Ascent**: The font's nominal ascent (from OS/2, hhea, or win tables).
+  - **Descent**: The font's nominal descent.
+- **Overlay**: Color differences in the visualization quickly show mismatched vertical alignment, weight, or texture.
 
 ## Use Cases
 - Pairing Latin with CJK, Cyrillic, or Greek
