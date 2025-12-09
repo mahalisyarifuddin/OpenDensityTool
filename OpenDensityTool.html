@@ -20,7 +20,7 @@
 
 			@media(prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--background: #10131b;
+					--background:#10131b;
 					--surface: #181c23;
 					--text: #c1c6d7;
 					--border: #414754;
@@ -91,7 +91,7 @@
 				font-weight: 600
 			}
 
-			.font-group {
+			.group {
 				background: var(--background);
 				border: 1px solid var(--border);
 				padding: 1rem;
@@ -99,7 +99,7 @@
 				margin-bottom: 1rem
 			}
 
-			.font-header {
+			.header {
 				display: flex;
 				align-items: center;
 				margin-bottom: .75rem;
@@ -139,7 +139,7 @@
 				resize: vertical;
 				min-height: 80px;
 				font-family: monospace;
-				font-size: .8rem;
+				font-size: .8rem
 			}
 
 			.row {
@@ -173,7 +173,7 @@
 				background: var(--hover)
 			}
 
-			#previewContainer {
+			#preview {
 				background: var(--surface);
 				border: 1px solid var(--border);
 				border-radius: 6px;
@@ -181,7 +181,7 @@
 				margin-bottom: 1.5rem
 			}
 
-			#canvasContainer {
+			#container {
 				padding: 1rem;
 				display: flex;
 				align-items: flex-start
@@ -199,14 +199,14 @@
 				gap: 1rem
 			}
 
-			.result-card {
+			.card {
 				background: var(--background);
 				border: 1px solid var(--border);
 				padding: 1rem;
 				border-radius: 6px
 			}
 
-			.result-text {
+			.text {
 				white-space: pre-wrap;
 				font-family: monospace;
 				font-size: .8rem;
@@ -226,6 +226,7 @@
 				main {
 					grid-template-columns:1fr
 				}
+
 				.results {
 					grid-template-columns: 1fr
 				}
@@ -244,8 +245,8 @@
 		<main>
 			<section>
 				<h2>Configuration</h2>
-				<div class="font-group">
-					<div class="font-header">
+				<div class="group">
+					<div class="header">
 						<input type="color" id="color1" value="#00a2a2">Font 1
 					</div>
 					<label>
@@ -266,8 +267,8 @@
 						</label>
 					</div>
 				</div>
-				<div class="font-group">
-					<div class="font-header">
+				<div class="group">
+					<div class="header">
 						<input type="color" id="color2" value="#ff00ff">Font 2
 					</div>
 					<label>
@@ -298,46 +299,39 @@
 					</select>
 					<select id="render">
 						<option value="overlay">Overlay</option>
-						<option value="side-by-side">Side-by-side</option>
+						<option value="side">Side-by-side</option>
 					</select>
 					<select id="density">
-						<option value="ink-box">Ink Box</option>
-						<option value="em-box">Em Box</option>
+						<option value="ink">Ink Box</option>
+						<option value="em">Em Box</option>
 					</select>
-					<button id="exportButton">Export PNG</button>
+					<button id="export">Export PNG</button>
 				</div>
-				<div id="previewContainer">
-					<div id="canvasContainer">
+				<div id="preview">
+					<div id="container">
 						<canvas id="canvas"></canvas>
 					</div>
 				</div>
 				<div class="results">
-					<div class="result-card">
-						<div class="font-header">
-							<div id="indicator1" class="indicator"></div>
+					<div class="card">
+						<div class="header">
+							<div id="dot1" class="indicator"></div>
 							Font 1 Analysis
-						
 						</div>
-						<div id="result1" class="result-text">Load a font.</div>
+						<div id="result1" class="text">Load a font.</div>
 					</div>
-					<div class="result-card">
-						<div class="font-header">
-							<div id="indicator2" class="indicator"></div>
+					<div class="card">
+						<div class="header">
+							<div id="dot2" class="indicator"></div>
 							Font 2 Analysis
-						
 						</div>
-						<div id="result2" class="result-text">Load a font.</div>
+						<div id="result2" class="text">Load a font.</div>
 					</div>
 				</div>
 			</section>
 		</main>
 		<script>
 			const node = (tag,props)=>Object.assign(document.createElement(tag), props);
-			const download = (href,name)=>node('a', {
-				href,
-				download: name
-			}).click();
-			const timestamp = ()=>new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
 			const dom = Object.fromEntries([...document.querySelectorAll('[id]')].map(element=>[element.id, element]));
 
 			class DensityTool {
@@ -361,7 +355,7 @@
 						shift: dom[`shift${index}`],
 						color: dom[`color${index}`],
 						result: dom[`result${index}`],
-						indicator: dom[`indicator${index}`]
+						dot: dom[`dot${index}`]
 					}));
 					this.bind();
 					this.setTheme('auto');
@@ -378,7 +372,7 @@
 					const resize = schedule('resize', ()=>this.updateScale());
 					dom.zoom.onchange = resize;
 					dom.render.onchange = dom.density.onchange = refresh;
-					dom.exportButton.onclick = ()=>this.exportImage();
+					dom.export.onclick = ()=>this.exportImage();
 					dom.theme.onchange = event=>this.setTheme(event.target.value);
 					window.onresize = resize;
 					this.configs.forEach((config,index)=>{
@@ -388,10 +382,7 @@
 							refresh();
 						}
 						;
-						[config.text, config.size, config.spacing, config.shift].forEach(input=>{
-							input.oninput = refresh;
-						}
-						);
+						[config.text, config.size, config.spacing, config.shift].forEach(input=>input.oninput = refresh);
 					}
 					);
 				}
@@ -474,7 +465,6 @@
 						  , width = Math.ceil(maxX - minX);
 						const baseline = Math.ceil(metrics.ascent)
 						  , height = Math.ceil(baseline + metrics.descent);
-
 						if (width > 32767 || height > 32767)
 							throw new Error('Canvas dimensions too large');
 
@@ -489,7 +479,7 @@
 						});
 						const pixels = this.analyzePixels(fontCanvas);
 						const hasInk = pixels.maxY >= pixels.minY;
-						const area = dom.density.value === 'ink-box' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
+						const area = dom.density.value === 'ink' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent);
 
 						return {
 							...pixels,
@@ -548,7 +538,7 @@
 
 				update() {
 					this.analyses = this.configs.map((config,index)=>{
-						config.indicator.style.backgroundColor = this.colors[index];
+						config.dot.style.backgroundColor = this.colors[index];
 						return this.analyze(this.fonts[index], config.text.value, +config.size.value || 0, +config.shift.value || 0, +config.spacing.value || 0);
 					}
 					);
@@ -564,7 +554,7 @@
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
 					this.context.clearRect(0, 0, dimensions.width, dimensions.height);
-					const sideBySide = dom.render.value === 'side-by-side' && valid.length > 1;
+					const sideBySide = dom.render.value === 'side' && valid.length > 1;
 					let textOffsetX = this.graphWidth + this.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
 					valid.forEach(analysis=>{
 						const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
@@ -579,7 +569,7 @@
 				}
 
 				computeDimensions(analyses) {
-					const sideBySide = dom.render.value === 'side-by-side' && analyses.length > 1;
+					const sideBySide = dom.render.value === 'side' && analyses.length > 1;
 					const maxAscent = Math.max(0, ...analyses.map(analysis=>analysis.baseline + analysis.baselineShift));
 					const maxDescent = Math.max(0, ...analyses.map(analysis=>analysis.canvas.height - analysis.baseline - analysis.baselineShift));
 					const maxDrawOffsetX = Math.max(0, ...analyses.map(analysis=>analysis.drawOffsetX));
@@ -596,10 +586,7 @@
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					analysis.densityByRow.forEach((value,y)=>{
-						value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, y + yOffset, (value / max) * this.graphWidth, 1);
-					}
-					);
+					analysis.densityByRow.forEach((value,y)=>value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, y + yOffset, (value / max) * this.graphWidth, 1));
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
@@ -624,20 +611,20 @@
 				}
 
 				updateScale() {
-					const {canvas, canvasContainer, previewContainer} = dom;
+					const {canvas, container, preview} = dom;
 					const fit = dom.zoom.value === 'fit' && canvas.width;
 					canvas.style.transform = 'none';
-					canvasContainer.style.width = canvasContainer.style.height = canvasContainer.style.overflow = '';
+					container.style.width = container.style.height = container.style.overflow = '';
 					if (!fit)
 						return;
-					const style = getComputedStyle(canvasContainer);
+					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-					const scale = Math.min((previewContainer.clientWidth - paddingX) / canvas.width, 1);
+					const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
 					canvas.style.transform = `scale(${scale})`;
-					canvasContainer.style.width = `${canvas.width * scale + paddingX}px`;
-					canvasContainer.style.height = `${canvas.height * scale + paddingY}px`;
-					canvasContainer.style.overflow = 'hidden';
+					container.style.width = `${canvas.width * scale + paddingX}px`;
+					container.style.height = `${canvas.height * scale + paddingY}px`;
+					container.style.overflow = 'hidden';
 				}
 
 				updateResults() {
@@ -649,7 +636,10 @@
 				}
 
 				exportImage() {
-					download(dom.canvas.toDataURL(), `density_${timestamp()}.png`);
+					node('a', {
+						href: dom.canvas.toDataURL(),
+						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
+					}).click();
 				}
 			}
 
