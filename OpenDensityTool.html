@@ -338,6 +338,7 @@
 				constructor() {
 					this.fonts = [null, null];
 					this.analyses = [null, null];
+					this.analysisCanvases = [node('canvas'), node('canvas')];
 					this.colors = [dom.color1.value, dom.color2.value];
 					this.frames = {};
 					this.graphWidth = 150;
@@ -449,7 +450,7 @@
 					};
 				}
 
-				analyze(font, content, fontSize, baselineShift, letterSpacing) {
+				analyze(font, content, fontSize, baselineShift, letterSpacing, index) {
 					if (!font || !content || !fontSize)
 						return null;
 					try {
@@ -468,10 +469,10 @@
 						if (width > 32767 || height > 32767)
 							throw new Error('Canvas dimensions too large');
 
-						const fontCanvas = node('canvas', {
-							width,
-							height
-						});
+						const fontCanvas = this.analysisCanvases[index];
+						fontCanvas.width = width;
+						fontCanvas.height = height;
+
 						font.draw(fontCanvas.getContext('2d', {
 							willReadFrequently: true
 						}), content, drawOffsetX, baseline, size, {
@@ -514,16 +515,20 @@
 					  , minY = height
 					  , maxY = -1;
 					for (let y = 0; y < height; y++) {
+						let rowHasInk = false;
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
 						i += 4) {
 							if (data[i] < 128)
 								continue;
 							inkPixels++;
 							densityByRow[y]++;
-							minX = Math.min(minX, x);
-							maxX = Math.max(maxX, x);
-							minY = Math.min(minY, y);
-							maxY = Math.max(maxY, y);
+							if (x < minX) minX = x;
+							if (x > maxX) maxX = x;
+							rowHasInk = true;
+						}
+						if (rowHasInk) {
+							if (y < minY) minY = y;
+							maxY = y;
 						}
 					}
 					return {
@@ -539,7 +544,7 @@
 				update() {
 					this.analyses = this.configs.map((config,index)=>{
 						config.dot.style.backgroundColor = this.colors[index];
-						return this.analyze(this.fonts[index], config.text.value, +config.size.value || 0, +config.shift.value || 0, +config.spacing.value || 0);
+						return this.analyze(this.fonts[index], config.text.value, +config.size.value || 0, +config.shift.value || 0, +config.spacing.value || 0, index);
 					}
 					);
 					this.draw();
