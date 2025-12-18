@@ -519,21 +519,31 @@
 					  , maxX = -1
 					  , minY = height
 					  , maxY = -1;
+
+					// Optimization: Accumulate row density in local variable to avoid
+					// repeated TypedArray access and reduce global minX/maxX checks.
 					for (let y = 0; y < height; y++) {
-						let rowHasInk = false;
+						let rowInk = 0;
+						let rowMinX = -1;
+						let rowMaxX = -1;
+
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
 						i += 4) {
 							if (data[i] < 128)
 								continue;
-							inkPixels++;
-							densityByRow[y]++;
-							if (x < minX) minX = x;
-							if (x > maxX) maxX = x;
-							rowHasInk = true;
+							rowInk++;
+							if (rowMinX === -1) rowMinX = x;
+							rowMaxX = x;
 						}
-						if (rowHasInk) {
+
+						if (rowInk > 0) {
+							inkPixels += rowInk;
+							densityByRow[y] = rowInk;
 							if (y < minY) minY = y;
 							maxY = y;
+
+							if (rowMinX < minX) minX = rowMinX;
+							if (rowMaxX > maxX) maxX = rowMaxX;
 						}
 					}
 					return {
