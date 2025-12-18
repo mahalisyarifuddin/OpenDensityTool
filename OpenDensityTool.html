@@ -169,7 +169,7 @@
 				border: 0;
 				padding: .5rem 1rem;
 				cursor: pointer;
-				transition: background .2s;
+				transition: background .1s;
 				width: auto;
 				margin-left: auto
 			}
@@ -520,8 +520,6 @@
 					  , minY = height
 					  , maxY = -1;
 
-					// Optimization: Accumulate row density in local variable to avoid
-					// repeated TypedArray access and reduce global minX/maxX checks.
 					for (let y = 0; y < height; y++) {
 						let rowInk = 0;
 						let rowMinX = -1;
