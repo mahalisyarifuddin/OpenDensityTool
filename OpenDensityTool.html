@@ -135,6 +135,11 @@
 				font-size: .95rem
 			}
 
+			:focus-visible {
+				outline: 2px solid var(--primary, #0070ea);
+				outline-offset: 2px
+			}
+
 			textarea {
 				resize: vertical;
 				min-height: 80px;
@@ -236,7 +241,7 @@
 	<body>
 		<header>
 			<h1>Typographic Density Tool</h1>
-			<select id="theme" style="width:auto">
+			<select id="theme" style="width:auto" aria-label="Color theme" title="Color theme">
 				<option value="auto">Auto Theme</option>
 				<option value="light">Light</option>
 				<option value="dark">Dark</option>
@@ -247,7 +252,7 @@
 				<h2>Configuration</h2>
 				<div class="group">
 					<div class="header">
-						<input type="color" id="color1" value="#00a2a2">Font 1
+						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color" title="Font 1 Color">Font 1
 					</div>
 					<label>
 						Font File<input type="file" id="file1" accept=".otf,.ttf,.woff">
@@ -269,7 +274,7 @@
 				</div>
 				<div class="group">
 					<div class="header">
-						<input type="color" id="color2" value="#ff00ff">Font 2
+						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color" title="Font 2 Color">Font 2
 					</div>
 					<label>
 						Font File<input type="file" id="file2" accept=".otf,.ttf,.woff">
@@ -293,15 +298,15 @@
 			<section>
 				<h2>Visualization</h2>
 				<div class="controls">
-					<select id="zoom">
+					<select id="zoom" aria-label="Zoom level" title="Zoom level">
 						<option value="fit">Fit to View</option>
 						<option value="100">100% Scale</option>
 					</select>
-					<select id="render">
+					<select id="render" aria-label="Render mode" title="Render mode">
 						<option value="overlay">Overlay</option>
 						<option value="side">Side-by-side</option>
 					</select>
-					<select id="density">
+					<select id="density" aria-label="Density calculation method" title="Density calculation method">
 						<option value="ink">Ink Box</option>
 						<option value="em">Em Box</option>
 					</select>
