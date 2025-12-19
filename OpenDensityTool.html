@@ -342,6 +342,7 @@
 			class DensityTool {
 				constructor() {
 					this.fonts = [null, null];
+					this.loadErrors = [null, null];
 					this.analyses = [null, null];
 					this.analysisCanvases = [node('canvas'), node('canvas')];
 					this.colors = [dom.color1.value, dom.color2.value];
@@ -400,8 +401,9 @@
 				}
 
 				async loadFont(file, index) {
+					this.loadErrors[index] = null;
 					if (!file || file.size > 30 * 1024 * 1024) {
-						file && alert('File too large');
+						if (file) this.loadErrors[index] = 'File too large (max 30MB)';
 						this.fonts[index] = null;
 						this.update();
 						return;
@@ -413,7 +415,7 @@
 						this.fonts[index] = font;
 						this.update();
 					} catch (error) {
-						alert(error.message);
+						this.loadErrors[index] = error.message;
 						this.fonts[index] = null;
 						this.update();
 					}
@@ -648,7 +650,8 @@
 				updateResults() {
 					this.configs.forEach((config,index)=>{
 						const analysis = this.analyses[index];
-						config.result.textContent = analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[index] ? 'Enter text.' : 'Load font.';
+						const loadError = this.loadErrors[index];
+						config.result.textContent = loadError ? `Error: ${loadError}` : (analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[index] ? 'Enter text.' : 'Load font.');
 					}
 					);
 				}
