@@ -527,12 +527,24 @@
 						let rowMinX = -1;
 						let rowMaxX = -1;
 
-						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
-						i += 4) {
+						let x = 0;
+						let i = y * width * 4 + 3;
+
+						for (; x < width; x++, i += 4) {
+							if (data[i] >= 128) {
+								rowInk = 1;
+								rowMinX = x;
+								rowMaxX = x;
+								x++;
+								i += 4;
+								break;
+							}
+						}
+
+						for (; x < width; x++, i += 4) {
 							if (data[i] < 128)
 								continue;
 							rowInk++;
-							if (rowMinX === -1) rowMinX = x;
 							rowMaxX = x;
 						}
 
