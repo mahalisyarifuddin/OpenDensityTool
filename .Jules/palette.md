@@ -5,3 +5,7 @@
 ## 2024-10-24 - Inline Errors vs Alerts
 **Learning:** The app was using `alert()` for file validation errors, which is disruptive and poor UX.
 **Action:** Replace native alerts with inline error messages in the UI context (e.g., in the results panel) to maintain user flow and provide a less intrusive experience.
+
+## 2024-05-22 - Missing ARIA labels
+**Learning:** Icon-only buttons or color inputs often miss accessible labels, making them invisible to screen readers.
+**Action:** Always verify `aria-label` or `title` attributes on inputs that lack visible text labels.
