@@ -648,21 +648,30 @@
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					analysis.densityByRow.forEach((value,y)=>value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, y + yOffset, (value / max) * this.graphWidth, 1));
+					this.context.beginPath();
+					analysis.densityByRow.forEach((value, y) => {
+						if (value) {
+							const w = (value / max) * this.graphWidth;
+							this.context.rect(this.graphWidth - w, y + yOffset, w, 1);
+						}
+					});
+					this.context.fill();
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
 				renderGlyphs(analysis, color, originX, yOffset, blend) {
 					const {canvas} = analysis;
-					this.tintCanvas.width = canvas.width;
-					this.tintCanvas.height = canvas.height;
+					if (this.tintCanvas.width < canvas.width) this.tintCanvas.width = canvas.width;
+					if (this.tintCanvas.height < canvas.height) this.tintCanvas.height = canvas.height;
+
+					this.tintContext.clearRect(0, 0, canvas.width, canvas.height);
 					this.tintContext.globalCompositeOperation = 'source-over';
 					this.tintContext.fillStyle = color;
 					this.tintContext.fillRect(0, 0, canvas.width, canvas.height);
 					this.tintContext.globalCompositeOperation = 'destination-in';
 					this.tintContext.drawImage(canvas, 0, 0);
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					this.context.drawImage(this.tintCanvas, originX - (analysis.drawOffsetX || 0), yOffset);
+					this.context.drawImage(this.tintCanvas, 0, 0, canvas.width, canvas.height, originX - (analysis.drawOffsetX || 0), yOffset, canvas.width, canvas.height);
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
