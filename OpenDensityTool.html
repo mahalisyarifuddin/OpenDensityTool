@@ -323,14 +323,14 @@
 							<div id="dot1" class="indicator"></div>
 							Font 1 Analysis
 						</div>
-						<div id="result1" class="output">Load a font.</div>
+						<div id="result1" class="output" aria-live="polite">Load a font.</div>
 					</div>
 					<div class="card">
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
 							Font 2 Analysis
 						</div>
-						<div id="result2" class="output">Load a font.</div>
+						<div id="result2" class="output" aria-live="polite">Load a font.</div>
 					</div>
 				</div>
 			</section>
@@ -390,6 +390,31 @@
 						}
 						;
 						[config.text, config.size, config.spacing, config.shift].forEach(input=>input.oninput = refresh);
+
+						const group = config.file.closest('.group');
+						if (group) {
+							group.ondragover = event => {
+								event.preventDefault();
+								group.style.borderColor = 'var(--primary)';
+								group.style.background = 'var(--surface)';
+							};
+							group.ondragleave = () => {
+								group.style.borderColor = '';
+								group.style.background = '';
+							};
+							group.ondrop = event => {
+								event.preventDefault();
+								group.style.borderColor = '';
+								group.style.background = '';
+								const file = event.dataTransfer.files[0];
+								if (file) {
+									const dt = new DataTransfer();
+									dt.items.add(file);
+									config.file.files = dt.files;
+									this.loadFont(file, index);
+								}
+							};
+						}
 					}
 					);
 				}
