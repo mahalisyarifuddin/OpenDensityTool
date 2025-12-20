@@ -530,7 +530,6 @@
 						let x = 0;
 						let i = y * width * 4 + 3;
 
-						// Find first ink pixel
 						for (; x < width; x++, i += 4) {
 							if (data[i] >= 128) {
 								rowInk = 1;
@@ -542,7 +541,6 @@
 							}
 						}
 
-						// Count remaining ink pixels
 						for (; x < width; x++, i += 4) {
 							if (data[i] < 128)
 								continue;
