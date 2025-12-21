@@ -227,6 +227,21 @@
 				margin-right: .5em
 			}
 
+			.copy-btn {
+				margin-left: auto;
+				background: transparent;
+				color: var(--primary);
+				border: 1px solid transparent;
+				padding: .25rem .5rem;
+				font-size: .8rem;
+				border-radius: 4px
+			}
+
+			.copy-btn:hover {
+				background: var(--bg);
+				border-color: var(--dim)
+			}
+
 			@media(max-width: 900px) {
 				main {
 					grid-template-columns:1fr
@@ -322,6 +337,7 @@
 						<div class="header">
 							<div id="dot1" class="indicator"></div>
 							Font 1 Analysis
+							<button class="copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
 						<div id="result1" class="output" aria-live="polite">Load a font.</div>
 					</div>
@@ -329,6 +345,7 @@
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
 							Font 2 Analysis
+							<button class="copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
 						<div id="result2" class="output" aria-live="polite">Load a font.</div>
 					</div>
@@ -381,6 +398,20 @@
 					dom.render.onchange = dom.density.onchange = refresh;
 					dom.export.onclick = ()=>this.exportImage();
 					dom.theme.onchange = e=>this.setTheme(e.target.value);
+					document.querySelectorAll('.copy-btn').forEach(btn => {
+						btn.onclick = () => {
+							const text = document.getElementById(btn.dataset.target).innerText;
+							navigator.clipboard.writeText(text).then(() => {
+								const original = btn.textContent;
+								btn.textContent = 'Copied!';
+								setTimeout(() => btn.textContent = original, 2000);
+							}).catch(err => {
+								console.error('Failed to copy: ', err);
+								btn.textContent = 'Error';
+								setTimeout(() => btn.textContent = 'Copy', 2000);
+							});
+						}
+					});
 					window.onresize = resize;
 					this.configs.forEach((cfg,i)=>{
 						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
