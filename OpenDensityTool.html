@@ -704,7 +704,6 @@
 					this.tintCanvas.width = Math.max(this.tintCanvas.width, w);
 					this.tintCanvas.height = Math.max(this.tintCanvas.height, h);
 
-					// Redundant clearRect removed (fillRect covers opaque)
 					this.tintContext.globalCompositeOperation = 'source-over';
 					this.tintContext.fillStyle = color;
 					this.tintContext.fillRect(0, 0, w, h);
