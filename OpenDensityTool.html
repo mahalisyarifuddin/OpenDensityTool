@@ -536,15 +536,18 @@
 							throw new Error('Canvas dimensions too large');
 
 						const fontCanvas = this.analysisCanvases[i];
-						fontCanvas.width = width;
-						fontCanvas.height = height;
+						fontCanvas.width = Math.max(fontCanvas.width, width);
+						fontCanvas.height = Math.max(fontCanvas.height, height);
 
-						font.draw(fontCanvas.getContext('2d', {
+						const ctx = fontCanvas.getContext('2d', {
 							willReadFrequently: true
-						}), content, drawOffsetX, baseline, size, {
+						});
+						ctx.clearRect(0, 0, width, height);
+
+						font.draw(ctx, content, drawOffsetX, baseline, size, {
 							tracking: tracking || 0
 						});
-						const pixels = this.analyzePixels(fontCanvas);
+						const pixels = this.analyzePixels(fontCanvas, width, height);
 						const hasInk = pixels.maxY >= pixels.minY;
 						const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent));
 
@@ -552,6 +555,8 @@
 							...pixels,
 							...metrics,
 							drawOffsetX,
+							width,
+							height,
 							canvas: fontCanvas,
 							baseline,
 							baselineShift,
@@ -569,8 +574,9 @@
 					}
 				}
 
-				analyzePixels(canvas) {
-					const {width, height} = canvas;
+				analyzePixels(canvas, contentWidth, contentHeight) {
+					const width = contentWidth ?? canvas.width;
+					const height = contentHeight ?? canvas.height;
 					const {data} = canvas.getContext('2d', {
 						willReadFrequently: true
 					}).getImageData(0, 0, width, height);
@@ -664,9 +670,9 @@
 				computeDimensions(analyses) {
 					const sideBySide = dom.render.value === 'side' && analyses.length > 1;
 					const maxAscent = Math.max(0, ...analyses.map(a=>a.baseline + a.baselineShift));
-					const maxDescent = Math.max(0, ...analyses.map(a=>a.canvas.height - a.baseline - a.baselineShift));
+					const maxDescent = Math.max(0, ...analyses.map(a=>a.height - a.baseline - a.baselineShift));
 					const maxDrawOffsetX = Math.max(0, ...analyses.map(a=>a.drawOffsetX));
-					const textWidth = sideBySide ? analyses.reduce((w,a)=>w + a.canvas.width, 0) : maxDrawOffsetX + Math.max(0, ...analyses.map(a=>a.canvas.width - a.drawOffsetX));
+					const textWidth = sideBySide ? analyses.reduce((w,a)=>w + a.width, 0) : maxDrawOffsetX + Math.max(0, ...analyses.map(a=>a.width - a.drawOffsetX));
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + textWidth),
 						height: Math.ceil(maxAscent + maxDescent),
@@ -691,18 +697,20 @@
 				}
 
 				renderGlyphs(analysis, color, originX, yOffset, blend) {
-					const {canvas} = analysis;
-					if (this.tintCanvas.width < canvas.width) this.tintCanvas.width = canvas.width;
-					if (this.tintCanvas.height < canvas.height) this.tintCanvas.height = canvas.height;
+					const {canvas, width, height} = analysis;
+					const w = width ?? canvas.width;
+					const h = height ?? canvas.height;
 
-					this.tintContext.clearRect(0, 0, canvas.width, canvas.height);
+					this.tintCanvas.width = Math.max(this.tintCanvas.width, w);
+					this.tintCanvas.height = Math.max(this.tintCanvas.height, h);
+
 					this.tintContext.globalCompositeOperation = 'source-over';
 					this.tintContext.fillStyle = color;
-					this.tintContext.fillRect(0, 0, canvas.width, canvas.height);
+					this.tintContext.fillRect(0, 0, w, h);
 					this.tintContext.globalCompositeOperation = 'destination-in';
-					this.tintContext.drawImage(canvas, 0, 0);
+					this.tintContext.drawImage(canvas, 0, 0, w, h, 0, 0, w, h);
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					this.context.drawImage(this.tintCanvas, 0, 0, canvas.width, canvas.height, originX - (analysis.drawOffsetX || 0), yOffset, canvas.width, canvas.height);
+					this.context.drawImage(this.tintCanvas, 0, 0, w, h, originX - (analysis.drawOffsetX || 0), yOffset, w, h);
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
