@@ -445,17 +445,27 @@
 						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(input=>input.oninput = refresh);
 						const group = cfg.file.closest('.group');
 						if (group) {
-							group.ondragover = e=>{
+							let dragCounter = 0;
+							group.ondragenter = e=>{
 								e.preventDefault();
+								dragCounter++;
 								group.classList.add('drag-active')
 							}
 							;
+							group.ondragover = e=>{
+								e.preventDefault()
+							}
+							;
 							group.ondragleave = ()=>{
-								group.classList.remove('drag-active')
+								dragCounter--;
+								if (dragCounter === 0) {
+									group.classList.remove('drag-active')
+								}
 							}
 							;
 							group.ondrop = e=>{
 								e.preventDefault();
+								dragCounter = 0;
 								group.classList.remove('drag-active');
 								const file = e.dataTransfer.files[0];
 								if (file) {
