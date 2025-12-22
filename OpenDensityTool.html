@@ -403,7 +403,18 @@
 					}));
 					this.bind();
 					this.setTheme('auto');
+					this.loadDefaultFont();
 					this.update();
+				}
+				async loadDefaultFont() {
+					try {
+						const response = await fetch('roboto-regular-webfont.woff');
+						if (response.ok) {
+							this.loadFont(await response.blob(), 0);
+						}
+					} catch (e) {
+						// Ignored: Default font not available
+					}
 				}
 				bind() {
 					const schedule = (key,handler)=>()=>{
