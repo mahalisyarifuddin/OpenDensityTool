@@ -421,16 +421,16 @@
 					dom.export.onclick = ()=>this.exportImage();
 					dom.theme.onchange = e=>this.setTheme(e.target.value);
 					document.querySelectorAll('.copy-btn').forEach(btn => {
+						const original = btn.textContent;
 						btn.onclick = () => {
 							const text = document.getElementById(btn.dataset.target).innerText;
 							navigator.clipboard.writeText(text).then(() => {
-								const original = btn.textContent;
 								btn.textContent = 'Copied!';
 								setTimeout(() => btn.textContent = original, 2000);
 							}).catch(err => {
 								console.error('Failed to copy: ', err);
 								btn.textContent = 'Error';
-								setTimeout(() => btn.textContent = 'Copy', 2000);
+								setTimeout(() => btn.textContent = original, 2000);
 							});
 						}
 					});
