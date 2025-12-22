@@ -101,7 +101,29 @@
 				border: 1px solid var(--border);
 				padding: 1rem;
 				border-radius: 6px;
-				margin-bottom: 1rem
+				margin-bottom: 1rem;
+				position: relative;
+				transition: border-color .15s, background-color .15s
+			}
+
+			.group.drag-active {
+				border-color: var(--primary);
+				background: var(--surface)
+			}
+
+			.group.drag-active::after {
+				content: "Drop Font File";
+				position: absolute;
+				inset: 0;
+				background: var(--surface);
+				color: var(--primary);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.5rem;
+				font-weight: 700;
+				border-radius: 6px;
+				z-index: 10
 			}
 
 			.header {
@@ -423,21 +445,28 @@
 						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(input=>input.oninput = refresh);
 						const group = cfg.file.closest('.group');
 						if (group) {
-							group.ondragover = e=>{
+							let dragCounter = 0;
+							group.ondragenter = e=>{
 								e.preventDefault();
-								group.style.borderColor = 'var(--primary)';
-								group.style.background = 'var(--surface)'
+								dragCounter++;
+								group.classList.add('drag-active')
+							}
+							;
+							group.ondragover = e=>{
+								e.preventDefault()
 							}
 							;
 							group.ondragleave = ()=>{
-								group.style.borderColor = '';
-								group.style.background = ''
+								dragCounter--;
+								if (dragCounter === 0) {
+									group.classList.remove('drag-active')
+								}
 							}
 							;
 							group.ondrop = e=>{
 								e.preventDefault();
-								group.style.borderColor = '';
-								group.style.background = '';
+								dragCounter = 0;
+								group.classList.remove('drag-active');
 								const file = e.dataTransfer.files[0];
 								if (file) {
 									const dt = new DataTransfer();
