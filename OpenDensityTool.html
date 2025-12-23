@@ -249,7 +249,7 @@
 				margin-right: .5em
 			}
 
-			.copy-btn {
+			.action-btn {
 				margin-left: auto;
 				background: transparent;
 				color: var(--primary);
@@ -259,7 +259,7 @@
 				border-radius: 4px
 			}
 
-			.copy-btn:hover {
+			.action-btn:hover {
 				background: var(--bg);
 				border-color: var(--dim)
 			}
@@ -291,9 +291,11 @@
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">Font 1
 					</div>
-					<label>
-						Font File<input type="file" id="file1" accept=".otf,.ttf,.woff">
-					</label>
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+						<label for="file1" style="margin-bottom: 0;">Font File</label>
+						<button id="clear1" class="action-btn" aria-label="Clear Font 1" title="Clear font">Clear</button>
+					</div>
+					<input type="file" id="file1" accept=".otf,.ttf,.woff" style="margin-top:0">
 					<label>
 						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
 					</label>
@@ -313,9 +315,11 @@
 					<div class="header">
 						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">Font 2
 					</div>
-					<label>
-						Font File<input type="file" id="file2" accept=".otf,.ttf,.woff">
-					</label>
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+						<label for="file2" style="margin-bottom: 0;">Font File</label>
+						<button id="clear2" class="action-btn" aria-label="Clear Font 2" title="Clear font">Clear</button>
+					</div>
+					<input type="file" id="file2" accept=".otf,.ttf,.woff" style="margin-top:0">
 					<label>
 						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
 					</label>
@@ -358,14 +362,14 @@
 					<div class="card">
 						<div class="header">
 							<div id="dot1" class="indicator"></div>
-							Font 1 Analysis<button class="copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
+							Font 1 Analysis<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
 						<div id="result1" class="output" aria-live="polite">Load a font.</div>
 					</div>
 					<div class="card">
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
-							Font 2 Analysis<button class="copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
+							Font 2 Analysis<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
 						<div id="result2" class="output" aria-live="polite">Load a font.</div>
 					</div>
@@ -393,6 +397,7 @@
 					});
 					this.configs = [1, 2].map(i=>({
 						file: dom[`file${i}`],
+						clear: dom[`clear${i}`],
 						text: dom[`text${i}`],
 						size: dom[`size${i}`],
 						spacing: dom[`spacing${i}`],
@@ -437,6 +442,7 @@
 					window.onresize = resize;
 					this.configs.forEach((cfg,i)=>{
 						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
+						cfg.clear.onclick = ()=>this.clearFont(i);
 						cfg.color.oninput = e=>{
 							this.colors[i] = e.target.value;
 							refresh()
@@ -505,6 +511,12 @@
 						this.fonts[i] = null;
 						this.update()
 					}
+				}
+				clearFont(i) {
+					this.fonts[i] = null;
+					this.loadErrors[i] = null;
+					this.configs[i].file.value = '';
+					this.update();
 				}
 				computeMetrics(font, content, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
