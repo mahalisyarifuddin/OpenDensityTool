@@ -291,9 +291,11 @@
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">Font 1
 					</div>
-					<label>
-						Font File<input type="file" id="file1" accept=".otf,.ttf,.woff">
-					</label>
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+						<label for="file1" style="margin-bottom: 0;">Font File</label>
+						<button id="clear1" class="clear-btn" aria-label="Clear Font 1" title="Clear font">×</button>
+					</div>
+					<input type="file" id="file1" accept=".otf,.ttf,.woff" style="margin-top:0">
 					<label>
 						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
 					</label>
@@ -313,9 +315,11 @@
 					<div class="header">
 						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">Font 2
 					</div>
-					<label>
-						Font File<input type="file" id="file2" accept=".otf,.ttf,.woff">
-					</label>
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+						<label for="file2" style="margin-bottom: 0;">Font File</label>
+						<button id="clear2" class="clear-btn" aria-label="Clear Font 2" title="Clear font">×</button>
+					</div>
+					<input type="file" id="file2" accept=".otf,.ttf,.woff" style="margin-top:0">
 					<label>
 						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
 					</label>
@@ -393,6 +397,7 @@
 					});
 					this.configs = [1, 2].map(i=>({
 						file: dom[`file${i}`],
+						clear: dom[`clear${i}`],
 						text: dom[`text${i}`],
 						size: dom[`size${i}`],
 						spacing: dom[`spacing${i}`],
@@ -404,20 +409,6 @@
 					this.bind();
 					this.setTheme('auto');
 					this.update();
-					this.loadFromUrl('roboto-regular-webfont.woff', 0);
-				}
-				async loadFromUrl(url, i) {
-					try {
-						const res = await fetch(url);
-						if (!res.ok)
-							throw new Error(res.statusText);
-						const buffer = await res.arrayBuffer();
-						const font = opentype.parse(buffer);
-						this.fonts[i] = font;
-						this.update();
-					} catch (e) {
-						console.warn('Failed to load default font', e);
-					}
 				}
 				bind() {
 					const schedule = (key,handler)=>()=>{
@@ -451,6 +442,7 @@
 					window.onresize = resize;
 					this.configs.forEach((cfg,i)=>{
 						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
+						cfg.clear.onclick = ()=>this.clearFont(i);
 						cfg.color.oninput = e=>{
 							this.colors[i] = e.target.value;
 							refresh()
@@ -519,6 +511,12 @@
 						this.fonts[i] = null;
 						this.update()
 					}
+				}
+				clearFont(i) {
+					this.fonts[i] = null;
+					this.loadErrors[i] = null;
+					this.configs[i].file.value = '';
+					this.update();
 				}
 				computeMetrics(font, content, fontSize, letterSpacing) {
 					const scale = fontSize / font.unitsPerEm;
@@ -773,7 +771,7 @@
 					}).click()
 				}
 			}
-			document.addEventListener('DOMContentLoaded', ()=>new DensityTool());
+			new DensityTool();
 		</script>
 	</body>
 </html>
