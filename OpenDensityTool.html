@@ -404,6 +404,20 @@
 					this.bind();
 					this.setTheme('auto');
 					this.update();
+					this.loadFromUrl('roboto-regular-webfont.woff', 0);
+				}
+				async loadFromUrl(url, i) {
+					try {
+						const res = await fetch(url);
+						if (!res.ok)
+							throw new Error(res.statusText);
+						const buffer = await res.arrayBuffer();
+						const font = opentype.parse(buffer);
+						this.fonts[i] = font;
+						this.update();
+					} catch (e) {
+						console.warn('Failed to load default font', e);
+					}
 				}
 				bind() {
 					const schedule = (key,handler)=>()=>{
@@ -759,7 +773,7 @@
 					}).click()
 				}
 			}
-			new DensityTool();
+			document.addEventListener('DOMContentLoaded', ()=>new DensityTool());
 		</script>
 	</body>
 </html>
