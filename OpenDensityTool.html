@@ -407,8 +407,51 @@
 						dot: dom[`dot${i}`]
 					}));
 					this.bind();
-					this.setTheme('auto');
+					this.loadSettings();
+					if (dom.theme.value === 'auto') this.setTheme('auto');
 					this.update();
+				}
+				loadSettings() {
+					try {
+						const state = JSON.parse(localStorage.getItem('density_tool_state'));
+						if (!state) return;
+						if (state.theme) this.setTheme(state.theme);
+						if (state.zoom) dom.zoom.value = state.zoom;
+						if (state.render) dom.render.value = state.render;
+						if (state.density) dom.density.value = state.density;
+						if (state.configs) {
+							state.configs.forEach((cfg, idx) => {
+								const i = idx + 1;
+								if (dom[`color${i}`]) {
+									dom[`color${i}`].value = cfg.color;
+									this.colors[idx] = cfg.color;
+								}
+								if (dom[`text${i}`]) dom[`text${i}`].value = cfg.text;
+								if (dom[`size${i}`]) dom[`size${i}`].value = cfg.size;
+								if (dom[`spacing${i}`]) dom[`spacing${i}`].value = cfg.spacing;
+								if (dom[`shift${i}`]) dom[`shift${i}`].value = cfg.shift;
+							});
+						}
+					} catch (e) { console.error(e); }
+				}
+				saveSettings() {
+					clearTimeout(this.saveTimeout);
+					this.saveTimeout = setTimeout(() => {
+						const state = {
+							theme: dom.theme.value,
+							zoom: dom.zoom.value,
+							render: dom.render.value,
+							density: dom.density.value,
+							configs: [1, 2].map(i => ({
+								color: dom[`color${i}`].value,
+								text: dom[`text${i}`].value,
+								size: dom[`size${i}`].value,
+								spacing: dom[`spacing${i}`].value,
+								shift: dom[`shift${i}`].value
+							}))
+						};
+						try { localStorage.setItem('density_tool_state', JSON.stringify(state)); } catch (e) {}
+					}, 500);
 				}
 				bind() {
 					const schedule = (key,handler)=>()=>{
@@ -418,7 +461,7 @@
 					;
 					const refresh = schedule('refresh', ()=>this.update());
 					const resize = schedule('resize', ()=>this.updateScale());
-					dom.zoom.onchange = resize;
+					dom.zoom.onchange = () => { resize(); this.saveSettings(); };
 					dom.render.onchange = dom.density.onchange = refresh;
 					dom.export.onclick = ()=>this.exportImage();
 					dom.theme.onchange = e=>this.setTheme(e.target.value);
@@ -489,7 +532,8 @@
 				setTheme(t) {
 					document.documentElement.classList.remove('light', 'dark');
 					t !== 'auto' && document.documentElement.classList.add(t);
-					dom.theme.value = t
+					dom.theme.value = t;
+					this.saveSettings();
 				}
 				async loadFont(file, i) {
 					this.loadErrors[i] = null;
@@ -670,6 +714,7 @@
 					);
 					this.draw();
 					this.updateResults();
+					this.saveSettings();
 				}
 				draw() {
 					const valid = this.analyses.filter(a=>a && !a.error);
