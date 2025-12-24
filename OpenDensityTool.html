@@ -451,40 +451,42 @@
 						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(input=>input.oninput = refresh);
 						const group = cfg.file.closest('.group');
 						if (group) {
-							let dragCounter = 0;
-							group.ondragenter = e=>{
-								e.preventDefault();
-								dragCounter++;
-								group.classList.add('drag-active')
-							}
-							;
-							group.ondragover = e=>{
-								e.preventDefault()
-							}
-							;
-							group.ondragleave = ()=>{
-								dragCounter--;
-								if (dragCounter === 0) {
-									group.classList.remove('drag-active')
-								}
-							}
-							;
-							group.ondrop = e=>{
-								e.preventDefault();
-								dragCounter = 0;
-								group.classList.remove('drag-active');
-								const file = e.dataTransfer.files[0];
-								if (file) {
-									const dt = new DataTransfer();
-									dt.items.add(file);
-									cfg.file.files = dt.files;
-									this.loadFont(file, i)
-								}
-							}
-							;
+							this.setupDragDrop(group, cfg.file, i);
 						}
 					}
 					);
+				}
+				setupDragDrop(group, fileInput, i) {
+					let dragCounter = 0;
+					group.ondragenter = e=>{
+						e.preventDefault();
+						dragCounter++;
+						group.classList.add('drag-active')
+					}
+					;
+					group.ondragover = e=>{
+						e.preventDefault()
+					}
+					;
+					group.ondragleave = ()=>{
+						dragCounter--;
+						if (dragCounter === 0) {
+							group.classList.remove('drag-active')
+						}
+					}
+					;
+					group.ondrop = e=>{
+						e.preventDefault();
+						dragCounter = 0;
+						group.classList.remove('drag-active');
+						const file = e.dataTransfer.files[0];
+						if (file) {
+							const dt = new DataTransfer();
+							dt.items.add(file);
+							fileInput.files = dt.files;
+							this.loadFont(file, i)
+						}
+					}
 				}
 				setTheme(t) {
 					document.documentElement.classList.remove('light', 'dark');
