@@ -484,7 +484,7 @@
                 computeMetrics(font, content, fontSize, letterSpacing) {
                     const scale = fontSize / font.unitsPerEm;
                     const {os2, hhea} = font.tables;
-                    const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0)).filter(value=>!isNaN(value))) * scale;
+                    const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
                     const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
                     const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
                     const options = {
