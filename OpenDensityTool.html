@@ -287,56 +287,7 @@
         <main>
             <section>
                 <h2>Configuration</h2>
-                <div class="group">
-                    <div class="header">
-                        <input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">Font 1
-					
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label for="file1" style="margin-bottom: 0;">Font File</label>
-                        <button id="clear1" class="action-btn" aria-label="Clear Font 1" title="Clear font">Clear</button>
-                    </div>
-                    <input type="file" id="file1" accept=".otf,.ttf,.woff" style="margin-top:0">
-                    <label>
-                        Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
-                    </label>
-                    <label>
-                        Size (px)<input type="number" id="size1" value="100" min="8" max="500">
-                    </label>
-                    <div class="row">
-                        <label>
-                            Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100">
-                        </label>
-                        <label>
-                            Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
-                        </label>
-                    </div>
-                </div>
-                <div class="group">
-                    <div class="header">
-                        <input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">Font 2
-					
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label for="file2" style="margin-bottom: 0;">Font File</label>
-                        <button id="clear2" class="action-btn" aria-label="Clear Font 2" title="Clear font">Clear</button>
-                    </div>
-                    <input type="file" id="file2" accept=".otf,.ttf,.woff" style="margin-top:0">
-                    <label>
-                        Text<textarea id="text2" maxlength="1000">Идеология</textarea>
-                    </label>
-                    <label>
-                        Size (px)<input type="number" id="size2" value="100" min="8" max="500">
-                    </label>
-                    <div class="row">
-                        <label>
-                            Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100">
-                        </label>
-                        <label>
-                            Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
-                        </label>
-                    </div>
-                </div>
+                <div id="configs"></div>
             </section>
             <section>
                 <h2>Visualization</h2>
@@ -379,6 +330,27 @@
             </section>
         </main>
         <script>
+            document.getElementById('configs').innerHTML = [
+                {i: 1, c: '#00a2a2', t: 'Idealogy'},
+                {i: 2, c: '#ff00ff', t: 'Идеология'}
+            ].map(d => `
+                <div class="group">
+                    <div class="header">
+                        <input type="color" id="color${d.i}" value="${d.c}" aria-label="Font ${d.i} Color">Font ${d.i}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label for="file${d.i}" style="margin-bottom: 0;">Font File</label>
+                        <button id="clear${d.i}" class="action-btn" aria-label="Clear Font ${d.i}" title="Clear font">Clear</button>
+                    </div>
+                    <input type="file" id="file${d.i}" accept=".otf,.ttf,.woff" style="margin-top:0">
+                    <label>Text<textarea id="text${d.i}" maxlength="1000">${d.t}</textarea></label>
+                    <label>Size (px)<input type="number" id="size${d.i}" value="100" min="8" max="500"></label>
+                    <div class="row">
+                        <label>Letter Spacing<input type="number" id="spacing${d.i}" value="0" min="-100" max="100"></label>
+                        <label>Baseline Shift<input type="number" id="shift${d.i}" value="0" min="-200" max="200"></label>
+                    </div>
+                </div>`).join('');
+
             const dom = new Proxy({}, { get: (t, id) => document.getElementById(id) });
 
             class DensityTool {
