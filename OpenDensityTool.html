@@ -386,6 +386,7 @@
                     this.fonts = [null, null];
                     this.loadErrors = [null, null];
                     this.analyses = [null, null];
+                    this.renderCache = [null, null];
                     this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
                     this.graphWidth = 150;
                     this.graphPadding = 20;
@@ -500,47 +501,66 @@
                     };
                 }
 
-                analyze(index) {
+                getRenderData(index) {
                     const n = index + 1;
                     const font = this.fonts[index];
                     const content = dom[`text${n}`].value;
                     const fontSize = +dom[`size${n}`].value || 0;
+                    const letterSpacing = +dom[`spacing${n}`].value || 0;
+                    const color = dom[`color${n}`].value;
+
                     if (!font || !content || !fontSize) return null;
 
+                    const inputs = { font, content, fontSize, letterSpacing, color };
+                    const cached = this.renderCache[index];
+                    if (cached && Object.keys(inputs).every(k => cached.inputs[k] === inputs[k])) {
+                        return cached.data;
+                    }
+
+                    const size = Math.max(1, Math.min(fontSize, 2000));
+                    const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
+                    const metrics = this.computeMetrics(font, content, size, tracking);
+
+                    if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0)) return null;
+
+                    const minX = Math.min(0, metrics.x1), maxX = Math.max(metrics.advanceWidth, metrics.x2);
+                    const drawOffsetX = -minX, width = Math.ceil(maxX - minX);
+                    const baseline = Math.ceil(metrics.ascent), height = Math.ceil(baseline + metrics.descent);
+
+                    if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+
+                    const fontCanvas = this.analysisCanvases[index];
+                    fontCanvas.width = Math.max(fontCanvas.width, width);
+                    fontCanvas.height = Math.max(fontCanvas.height, height);
+                    const context = fontCanvas.getContext('2d', { willReadFrequently: true });
+                    context.clearRect(0, 0, width, height);
+                    context.fillStyle = color;
+                    const path = font.getPath(content, drawOffsetX, baseline, size, { tracking: tracking || 0 });
+                    path.fill = color;
+                    path.draw(context);
+
+                    const pixels = this.analyzePixels(fontCanvas, width, height);
+                    const data = { ...pixels, ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
+
+                    this.renderCache[index] = { inputs, data };
+                    return data;
+                }
+
+                analyze(index) {
+                    const n = index + 1;
                     try {
-                        const size = Math.max(1, Math.min(fontSize, 2000));
-                        const letterSpacing = +dom[`spacing${n}`].value || 0;
-                        const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
-                        const metrics = this.computeMetrics(font, content, size, tracking);
-                        if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
-                            return null;
+                        const data = this.getRenderData(index);
+                        if (!data) return null;
 
-                        const minX = Math.min(0, metrics.x1), maxX = Math.max(metrics.advanceWidth, metrics.x2);
-                        const drawOffsetX = -minX, width = Math.ceil(maxX - minX);
-                        const baseline = Math.ceil(metrics.ascent), height = Math.ceil(baseline + metrics.descent);
-
-                        if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
-
-                        const fontCanvas = this.analysisCanvases[index];
-                        fontCanvas.width = Math.max(fontCanvas.width, width);
-                        fontCanvas.height = Math.max(fontCanvas.height, height);
-                        const context = fontCanvas.getContext('2d', { willReadFrequently: true });
-                        context.clearRect(0, 0, width, height);
-                        context.fillStyle = dom[`color${n}`].value;
-                        font.draw(context, content, drawOffsetX, baseline, size, { tracking: tracking || 0 });
-
-                        const pixels = this.analyzePixels(fontCanvas, width, height);
-                        const hasInk = pixels.maxY >= pixels.minY;
-                        const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (pixels.maxX - pixels.minX + 1) * (pixels.maxY - pixels.minY + 1) : 1) : Math.max(1, metrics.advanceWidth) * (metrics.ascent + metrics.descent));
+                        const hasInk = data.maxY >= data.minY;
+                        const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
 
                         return {
-                            ...pixels, ...metrics,
-                            drawOffsetX, width, height, canvas: fontCanvas,
-                            baseline, baselineShift: +dom[`shift${n}`].value || 0,
-                            letterSpacing, fontSize: size, font,
-                            density: ((pixels.inkPixels / area) * 100).toFixed(1),
-                            yMin: hasInk ? Math.round(baseline - pixels.maxY) : 0,
-                            yMax: hasInk ? Math.round(baseline - pixels.minY) : 0
+                            ...data,
+                            baselineShift: +dom[`shift${n}`].value || 0,
+                            density: ((data.inkPixels / area) * 100).toFixed(1),
+                            yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+                            yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
                         };
                     } catch (error) { return { error: error.message }; }
                 }
