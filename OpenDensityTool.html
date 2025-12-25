@@ -355,13 +355,11 @@
 
             class DensityTool {
                 constructor() {
-                    this.fonts = [null, null];
-                    this.loadErrors = [null, null];
-                    this.analyses = [null, null];
-                    this.renderCache = [null, null];
+                    this.fonts = [];
+                    this.loadErrors = [];
+                    this.analyses = [];
+                    this.renderCache = [];
                     this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
-                    this.graphWidth = 150;
-                    this.graphPadding = 20;
                     this.context = dom.canvas.getContext('2d');
                     this.bind();
                     this.setTheme('auto');
@@ -573,14 +571,17 @@
 
                 draw() {
                     const valid = this.analyses.filter(a => a && !a.error);
-                    if (!valid.length) return this.renderEmpty();
+                    if (!valid.length) {
+                        dom.canvas.height = 150;
+                        return this.updateScale();
+                    }
 
                     const dim = this.computeDimensions(valid);
                     dom.canvas.width = dim.width;
                     dom.canvas.height = dim.height;
 
                     const side = dom.render.value === 'side' && valid.length > 1;
-                    let tx = this.graphWidth + this.graphPadding + (side ? 0 : dim.maxDrawOffsetX);
+                    let tx = 170 + (side ? 0 : dim.maxDrawOffsetX);
 
                     this.analyses.forEach((a, i) => {
                         if (!a || a.error) return;
@@ -602,7 +603,7 @@
                     const maxOffX = max(a=>a.drawOffsetX);
                     const width = side ? analyses.reduce((w,a)=>w + a.width, 0) : maxOffX + max(a=>a.width - a.drawOffsetX);
                     return {
-                        width: Math.ceil(this.graphWidth + this.graphPadding + width),
+                        width: Math.ceil(170 + width),
                         height: Math.ceil(maxAscent + maxDescent),
                         baseline: Math.ceil(maxAscent),
                         maxDrawOffsetX: maxOffX
@@ -616,8 +617,8 @@
                     this.context.beginPath();
                     analysis.densityByRow.forEach((value,y)=>{
                         if (value) {
-                            const width = (value / max) * this.graphWidth;
-                            this.context.rect(this.graphWidth - width, y + yOffset, width, 1);
+                            const width = (value / max) * 150;
+                            this.context.rect(150 - width, y + yOffset, width, 1);
                         }
                     }
                     );
@@ -632,11 +633,6 @@
                     this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
                     this.context.drawImage(canvas, 0, 0, w, h, originX - (analysis.drawOffsetX || 0), yOffset, w, h);
                     this.context.globalCompositeOperation = 'source-over';
-                }
-
-                renderEmpty() {
-                    dom.canvas.height = 150;
-                    this.updateScale();
                 }
 
                 updateScale() {
