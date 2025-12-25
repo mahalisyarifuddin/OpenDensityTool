@@ -535,7 +535,9 @@
                     const context = fontCanvas.getContext('2d', { willReadFrequently: true });
                     context.clearRect(0, 0, width, height);
                     context.fillStyle = color;
-                    font.draw(context, content, drawOffsetX, baseline, size, { tracking: tracking || 0 });
+                    const path = font.getPath(content, drawOffsetX, baseline, size, { tracking: tracking || 0 });
+                    path.fill = color;
+                    path.draw(context);
 
                     const pixels = this.analyzePixels(fontCanvas, width, height);
                     const data = { ...pixels, ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
