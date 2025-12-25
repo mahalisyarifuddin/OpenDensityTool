@@ -496,23 +496,19 @@
 				async loadFont(file, i) {
 					this.loadErrors[i] = null;
 					if (!file || file.size > 30 * 1024 * 1024) {
-						if (file)
-							this.loadErrors[i] = 'File too large (max 30MB)';
+						if (file) this.loadErrors[i] = 'File too large (max 30MB)';
 						this.fonts[i] = null;
-						this.update();
-						return
+					} else {
+						try {
+							const font = opentype.parse(await file.arrayBuffer());
+							if (!font.draw) throw new Error('Invalid font');
+							this.fonts[i] = font;
+						} catch (error) {
+							this.loadErrors[i] = error.message;
+							this.fonts[i] = null;
+						}
 					}
-					try {
-						const font = opentype.parse(await file.arrayBuffer());
-						if (!font.draw)
-							throw new Error('Invalid font');
-						this.fonts[i] = font;
-						this.update()
-					} catch (error) {
-						this.loadErrors[i] = error.message;
-						this.fonts[i] = null;
-						this.update()
-					}
+					this.update();
 				}
 				clearFont(i) {
 					this.fonts[i] = null;
