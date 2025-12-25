@@ -504,18 +504,6 @@
 					const scale = fontSize / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
 					const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0)).filter(value=>!isNaN(value))) * scale;
-					const extents = font.stringToGlyphs(content).reduce((result,glyph)=>{
-						const bounds = glyph.path?.getBoundingBox?.();
-						if (bounds && isFinite(bounds.y1) && isFinite(bounds.y2)) {
-							result.actualAscent = Math.max(result.actualAscent, bounds.y2);
-							result.actualDescent = Math.max(result.actualDescent, -bounds.y1)
-						}
-						return result
-					}
-					, {
-						actualAscent: 0,
-						actualDescent: 0
-					});
 					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
 					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
 					const options = {
@@ -523,10 +511,10 @@
 					};
 					const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
 					return {
-						ascent: Math.max(Math.max(extents.actualAscent * scale, -bounds.y1), fontAscent),
-						descent: Math.max(Math.max(extents.actualDescent * scale, bounds.y2), fontDescent),
-						actualAscent: Math.max(extents.actualAscent * scale, -bounds.y1),
-						actualDescent: Math.max(extents.actualDescent * scale, bounds.y2),
+						ascent: Math.max(-bounds.y1, fontAscent),
+						descent: Math.max(bounds.y2, fontDescent),
+						actualAscent: -bounds.y1,
+						actualDescent: bounds.y2,
 						fontAscent,
 						fontDescent,
 						x1: bounds.x1,
