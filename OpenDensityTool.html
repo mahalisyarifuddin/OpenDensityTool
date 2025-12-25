@@ -457,28 +457,17 @@
 					);
 				}
 				setupDragDrop(group, fileInput, i) {
-					let dragCounter = 0;
+					const toggle = on=>group.classList.toggle('drag-active', on);
+					group.ondragover = e=>e.preventDefault();
 					group.ondragenter = e=>{
 						e.preventDefault();
-						dragCounter++;
-						group.classList.add('drag-active')
+						toggle(true)
 					}
 					;
-					group.ondragover = e=>{
-						e.preventDefault()
-					}
-					;
-					group.ondragleave = ()=>{
-						dragCounter--;
-						if (dragCounter === 0) {
-							group.classList.remove('drag-active')
-						}
-					}
-					;
+					group.ondragleave = e=>(!e.relatedTarget || !group.contains(e.relatedTarget)) && toggle(false);
 					group.ondrop = e=>{
 						e.preventDefault();
-						dragCounter = 0;
-						group.classList.remove('drag-active');
+						toggle(false);
 						const file = e.dataTransfer.files[0];
 						if (file) {
 							const dt = new DataTransfer();
