@@ -565,45 +565,26 @@
                 analyzePixels(canvas, contentWidth, contentHeight) {
                     const width = contentWidth ?? canvas.width;
                     const height = contentHeight ?? canvas.height;
-                    const {data} = canvas.getContext('2d', {
-                        willReadFrequently: true
-                    }).getImageData(0, 0, width, height);
+                    const {data} = canvas.getContext('2d', {willReadFrequently: true}).getImageData(0, 0, width, height);
                     const densityByRow = new Float32Array(height);
-                    let inkPixels = 0
-                      , minX = width
-                      , maxX = -1
-                      , minY = height
-                      , maxY = -1;
+                    let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
                     for (let y = 0; y < height; y++) {
-                        let rowInk = 0
-                          , rowMaxX = -1;
-                        for (let x = 0, i = y * width * 4 + 3; x < width; x++,
-                        i += 4) {
+                        let rowInk = 0;
+                        for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
                             if (data[i] >= 128) {
-                                if (rowInk++ === 0 && x < minX)
-                                    minX = x;
-                                rowMaxX = x;
+                                if (rowInk++ === 0 && x < minX) minX = x;
+                                if (x > maxX) maxX = x;
                             }
                         }
                         if (rowInk > 0) {
                             inkPixels += rowInk;
                             densityByRow[y] = rowInk;
-                            if (y < minY)
-                                minY = y;
+                            if (y < minY) minY = y;
                             maxY = y;
-                            if (rowMaxX > maxX)
-                                maxX = rowMaxX;
                         }
                     }
-                    return {
-                        densityByRow,
-                        inkPixels,
-                        minX,
-                        maxX,
-                        minY,
-                        maxY
-                    };
+                    return {densityByRow, inkPixels, minX, maxX, minY, maxY};
                 }
 
                 update() {
