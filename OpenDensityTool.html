@@ -396,17 +396,6 @@
                     this.tintContext = this.tintCanvas.getContext('2d', {
                         willReadFrequently: true
                     });
-                    this.configs = [1, 2].map(i=>({
-                        file: dom[`file${i}`],
-                        clear: dom[`clear${i}`],
-                        text: dom[`text${i}`],
-                        size: dom[`size${i}`],
-                        spacing: dom[`spacing${i}`],
-                        shift: dom[`shift${i}`],
-                        color: dom[`color${i}`],
-                        result: dom[`result${i}`],
-                        dot: dom[`dot${i}`]
-                    }));
                     this.bind();
                     this.setTheme('auto');
                     this.update();
@@ -439,28 +428,27 @@
                         };
                     });
 
-                    this.configs.forEach((config,i)=>{
-                        config.file.onchange = e=>this.loadFont(e.target.files[0], i);
-                        config.clear.onclick = ()=>this.clearFont(i);
-                        [config.color, config.text, config.size, config.spacing, config.shift].forEach(el=>el.oninput = refresh);
-                        this.setupDragDrop(config.file.closest('.group'), config.file, i);
+                    [1, 2].forEach((n,i)=>{
+                        const file = dom[`file${n}`];
+                        file.onchange = e=>this.loadFont(e.target.files[0], i);
+                        dom[`clear${n}`].onclick = ()=>this.clearFont(i);
+                        ['color', 'text', 'size', 'spacing', 'shift'].forEach(k=>dom[`${k}${n}`].oninput = refresh);
+                        this.setupDragDrop(file.closest('.group'), file, i);
                     });
                 }
 
-                setupDragDrop(group, fileInput, index) {
+                setupDragDrop(group, file, index) {
                     if (!group) return;
-                    const toggle = c => group.classList.toggle('drag-active', c);
                     group.ondragover = e => e.preventDefault();
-                    group.ondragenter = e => { e.preventDefault(); toggle(true); };
-                    group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && toggle(false);
+                    group.ondragenter = e => { e.preventDefault(); group.classList.add('drag-active'); };
+                    group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('drag-active');
                     group.ondrop = e => {
-                        e.preventDefault(); toggle(false);
-                        const file = e.dataTransfer.files[0];
-                        if (file) {
+                        e.preventDefault(); group.classList.remove('drag-active');
+                        if (e.dataTransfer.files[0]) {
                              const dt = new DataTransfer();
-                             dt.items.add(file);
-                             fileInput.files = dt.files;
-                             this.loadFont(file, index);
+                             dt.items.add(e.dataTransfer.files[0]);
+                             file.files = dt.files;
+                             this.loadFont(e.dataTransfer.files[0], index);
                         }
                     };
                 }
@@ -495,7 +483,7 @@
                 clearFont(index) {
                     this.fonts[index] = null;
                     this.loadErrors[index] = null;
-                    this.configs[index].file.value = '';
+                    dom[`file${index + 1}`].value = '';
                     this.update();
                 }
 
@@ -625,9 +613,9 @@
                 }
 
                 update() {
-                    this.analyses = this.configs.map((config,i)=>{
-                        config.dot.style.backgroundColor = config.color.value;
-                        return this.analyze(this.fonts[i], config.text.value, +config.size.value || 0, +config.shift.value || 0, +config.spacing.value || 0, i);
+                    this.analyses = [1, 2].map((n,i)=>{
+                        dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value;
+                        return this.analyze(this.fonts[i], dom[`text${n}`].value, +dom[`size${n}`].value || 0, +dom[`shift${n}`].value || 0, +dom[`spacing${n}`].value || 0, i);
                     }
                     );
                     this.draw();
@@ -650,7 +638,7 @@
                     valid.forEach(analysis=>{
                         const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
                         const blend = this.analyses.every(Boolean) && this.analyses.indexOf(analysis) > 0;
-                        const color = this.configs[this.analyses.indexOf(analysis)].color.value;
+                        const color = dom[`color${this.analyses.indexOf(analysis) + 1}`].value;
                         this.renderGraph(analysis, color, yOffset, blend);
                         this.renderGlyphs(analysis, color, sideBySide ? textOffsetX + (analysis.drawOffsetX || 0) : textOffsetX, yOffset, blend);
                         sideBySide && (textOffsetX += analysis.canvas.width);
@@ -729,10 +717,10 @@
                 }
 
                 updateResults() {
-                    this.configs.forEach((config,i)=>{
+                    [1, 2].forEach((n,i)=>{
                         const analysis = this.analyses[i];
                         const loadError = this.loadErrors[i];
-                        config.result.textContent = loadError ? `Error: ${loadError}` : analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[i] ? 'Enter text.' : 'Load font.';
+                        dom[`result${n}`].textContent = loadError ? `Error: ${loadError}` : analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[i] ? 'Enter text.' : 'Load font.';
                     }
                     );
                 }
