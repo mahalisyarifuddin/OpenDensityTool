@@ -623,27 +623,26 @@
                 }
 
                 draw() {
-                    const valid = this.analyses.filter(analysis=>analysis && !analysis.error);
-                    if (!valid.length)
-                        return this.renderEmpty();
+                    const valid = this.analyses.filter(a => a && !a.error);
+                    if (!valid.length) return this.renderEmpty();
 
-                    const dimensions = this.computeDimensions(valid);
-                    dom.canvas.width = dimensions.width;
-                    dom.canvas.height = dimensions.height;
-                    this.context.clearRect(0, 0, dimensions.width, dimensions.height);
+                    const dim = this.computeDimensions(valid);
+                    dom.canvas.width = dim.width;
+                    dom.canvas.height = dim.height;
+                    this.context.clearRect(0, 0, dim.width, dim.height);
 
-                    const sideBySide = dom.render.value === 'side' && valid.length > 1;
-                    let textOffsetX = this.graphWidth + this.graphPadding + (sideBySide ? 0 : dimensions.maxDrawOffsetX);
+                    const side = dom.render.value === 'side' && valid.length > 1;
+                    let tx = this.graphWidth + this.graphPadding + (side ? 0 : dim.maxDrawOffsetX);
 
-                    valid.forEach(analysis=>{
-                        const yOffset = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-                        const blend = this.analyses.every(Boolean) && this.analyses.indexOf(analysis) > 0;
-                        const color = dom[`color${this.analyses.indexOf(analysis) + 1}`].value;
-                        this.renderGraph(analysis, color, yOffset, blend);
-                        this.renderGlyphs(analysis, color, sideBySide ? textOffsetX + (analysis.drawOffsetX || 0) : textOffsetX, yOffset, blend);
-                        sideBySide && (textOffsetX += analysis.canvas.width);
-                    }
-                    );
+                    this.analyses.forEach((a, i) => {
+                        if (!a || a.error) return;
+                        const y = dim.baseline - a.baseline - a.baselineShift;
+                        const blend = i > 0 && this.analyses.every(Boolean);
+                        const color = dom[`color${i + 1}`].value;
+                        this.renderGraph(a, color, y, blend);
+                        this.renderGlyphs(a, color, side ? tx + (a.drawOffsetX || 0) : tx, y, blend);
+                        if (side) tx += a.canvas.width;
+                    });
                     this.updateScale();
                 }
 
