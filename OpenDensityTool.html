@@ -392,10 +392,6 @@
                     this.graphWidth = 150;
                     this.graphPadding = 20;
                     this.context = dom.canvas.getContext('2d');
-                    this.tintCanvas = create('canvas');
-                    this.tintContext = this.tintCanvas.getContext('2d', {
-                        willReadFrequently: true
-                    });
                     this.bind();
                     this.setTheme('auto');
                     this.update();
@@ -503,7 +499,7 @@
                     };
                 }
 
-                analyze(font, content, fontSize, baselineShift, letterSpacing, index) {
+                analyze(font, content, fontSize, baselineShift, letterSpacing, index, color) {
                     if (!font || !content || !fontSize)
                         return null;
                     try {
@@ -529,6 +525,7 @@
                             willReadFrequently: true
                         });
                         context.clearRect(0, 0, width, height);
+                        context.fillStyle = color;
                         font.draw(context, content, drawOffsetX, baseline, size, {
                             tracking: tracking || 0
                         });
@@ -588,7 +585,7 @@
                 update() {
                     this.analyses = [1, 2].map((n,i)=>{
                         dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value;
-                        return this.analyze(this.fonts[i], dom[`text${n}`].value, +dom[`size${n}`].value || 0, +dom[`shift${n}`].value || 0, +dom[`spacing${n}`].value || 0, i);
+                        return this.analyze(this.fonts[i], dom[`text${n}`].value, +dom[`size${n}`].value || 0, +dom[`shift${n}`].value || 0, +dom[`spacing${n}`].value || 0, i, dom[`color${n}`].value);
                     }
                     );
                     this.draw();
@@ -613,7 +610,7 @@
                         const blend = i > 0 && this.analyses.every(Boolean);
                         const color = dom[`color${i + 1}`].value;
                         this.renderGraph(a, color, y, blend);
-                        this.renderGlyphs(a, color, side ? tx + (a.drawOffsetX || 0) : tx, y, blend);
+                        this.renderGlyphs(a, side ? tx + (a.drawOffsetX || 0) : tx, y, blend);
                         if (side) tx += a.canvas.width;
                     });
                     this.updateScale();
@@ -649,19 +646,12 @@
                     this.context.globalCompositeOperation = 'source-over';
                 }
 
-                renderGlyphs(analysis, color, originX, yOffset, blend) {
+                renderGlyphs(analysis, originX, yOffset, blend) {
                     const {canvas, width, height} = analysis;
                     const w = width ?? canvas.width
                       , h = height ?? canvas.height;
-                    this.tintCanvas.width = Math.max(this.tintCanvas.width, w);
-                    this.tintCanvas.height = Math.max(this.tintCanvas.height, h);
-                    this.tintContext.globalCompositeOperation = 'source-over';
-                    this.tintContext.fillStyle = color;
-                    this.tintContext.fillRect(0, 0, w, h);
-                    this.tintContext.globalCompositeOperation = 'destination-in';
-                    this.tintContext.drawImage(canvas, 0, 0, w, h, 0, 0, w, h);
                     this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-                    this.context.drawImage(this.tintCanvas, 0, 0, w, h, originX - (analysis.drawOffsetX || 0), yOffset, w, h);
+                    this.context.drawImage(canvas, 0, 0, w, h, originX - (analysis.drawOffsetX || 0), yOffset, w, h);
                     this.context.globalCompositeOperation = 'source-over';
                 }
 
