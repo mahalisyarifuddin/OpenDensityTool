@@ -1,0 +1,10 @@
+Density: 22.4%
+
+Ink Bounds:
+- Max Y: 76
+- Min Y: -20
+
+Metrics:
+- Ascent: 105
+- Descent: 27
+Canvas size: 633x133

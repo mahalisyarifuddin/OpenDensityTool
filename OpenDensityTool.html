@@ -481,15 +481,13 @@
                     this.update();
                 }
 
-                computeMetrics(font, content, fontSize, letterSpacing) {
+                computeMetrics(font, content, fontSize, tracking) {
                     const scale = fontSize / font.unitsPerEm;
                     const {os2, hhea} = font.tables;
                     const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
                     const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
                     const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
-                    const options = {
-                        tracking: letterSpacing ? (letterSpacing / fontSize) * 1000 : 0
-                    };
+                    const options = {tracking};
                     const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
                     return {
                         ascent: Math.max(-bounds.y1, fontAscent),
@@ -511,7 +509,7 @@
                     try {
                         const size = Math.max(1, Math.min(fontSize, 2000));
                         const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
-                        const metrics = this.computeMetrics(font, content, size, letterSpacing);
+                        const metrics = this.computeMetrics(font, content, size, tracking);
                         if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0))
                             return null;
 
