@@ -386,7 +386,6 @@
 					this.loadErrors = [null, null];
 					this.analyses = [null, null];
 					this.analysisCanvases = [node('canvas'), node('canvas')];
-					this.colors = [dom.color1.value, dom.color2.value];
 					this.frames = {};
 					this.graphWidth = 150;
 					this.graphPadding = 20;
@@ -443,12 +442,7 @@
 					this.configs.forEach((cfg,i)=>{
 						cfg.file.onchange = e=>this.loadFont(e.target.files[0], i);
 						cfg.clear.onclick = ()=>this.clearFont(i);
-						cfg.color.oninput = e=>{
-							this.colors[i] = e.target.value;
-							refresh()
-						}
-						;
-						[cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(input=>input.oninput = refresh);
+						[cfg.color, cfg.text, cfg.size, cfg.spacing, cfg.shift].forEach(input=>input.oninput = refresh);
 						const group = cfg.file.closest('.group');
 						if (group) {
 							this.setupDragDrop(group, cfg.file, i);
@@ -620,7 +614,7 @@
 				}
 				update() {
 					this.analyses = this.configs.map((cfg,i)=>{
-						cfg.dot.style.backgroundColor = this.colors[i];
+						cfg.dot.style.backgroundColor = cfg.color.value;
 						return this.analyze(this.fonts[i], cfg.text.value, +cfg.size.value || 0, +cfg.shift.value || 0, +cfg.spacing.value || 0, i)
 					}
 					);
@@ -640,7 +634,7 @@
 					valid.forEach(a=>{
 						const yOffset = dimensions.baseline - a.baseline - a.baselineShift;
 						const blend = this.analyses.every(Boolean) && this.analyses.indexOf(a) > 0;
-						const color = this.colors[this.analyses.indexOf(a)];
+						const color = this.configs[this.analyses.indexOf(a)].color.value;
 						this.renderGraph(a, color, yOffset, blend);
 						this.renderGlyphs(a, color, sideBySide ? textOffsetX + (a.drawOffsetX || 0) : textOffsetX, yOffset, blend);
 						sideBySide && (textOffsetX += a.canvas.width);
