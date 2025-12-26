@@ -406,7 +406,12 @@
 
                     dom.zoom.onchange = resize;
                     dom.render.onchange = dom.density.onchange = refresh;
-                    dom.export.onclick = ()=>this.exportImage();
+                    dom.export.onclick = ()=>{
+                        const a = document.createElement('a');
+                        a.href = dom.canvas.toDataURL();
+                        a.download = `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`;
+                        a.click();
+                    };
                     dom.theme.onchange = e=>this.setTheme(e.target.value);
                     window.onresize = resize;
 
@@ -421,26 +426,26 @@
                     [1, 2].forEach((n,i)=>{
                         const file = dom[`file${n}`];
                         file.onchange = e=>this.loadFont(e.target.files[0], i);
-                        dom[`clear${n}`].onclick = ()=>this.clearFont(i);
+                        dom[`clear${n}`].onclick = ()=>{
+                            this.fonts[i] = this.loadErrors[i] = null;
+                            dom[`file${n}`].value = '';
+                            this.update();
+                        };
                         ['color', 'text', 'size', 'spacing', 'shift'].forEach(k=>dom[`${k}${n}`].oninput = refresh);
-                        this.setupDragDrop(file.closest('.group'), file, i);
+                        const group = file.closest('.group');
+                        group.ondragenter = group.ondragover = e => { e.preventDefault(); group.classList.add('drag-active'); };
+                        group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('drag-active');
+                        group.ondrop = e => {
+                            e.preventDefault(); group.classList.remove('drag-active');
+                            const f = e.dataTransfer.files[0];
+                            if (f) {
+                                 const dt = new DataTransfer();
+                                 dt.items.add(f);
+                                 file.files = dt.files;
+                                 this.loadFont(f, i);
+                            }
+                        };
                     });
-                }
-
-                setupDragDrop(group, file, index) {
-                    if (!group) return;
-                    group.ondragenter = group.ondragover = e => { e.preventDefault(); group.classList.add('drag-active'); };
-                    group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('drag-active');
-                    group.ondrop = e => {
-                        e.preventDefault(); group.classList.remove('drag-active');
-                        const f = e.dataTransfer.files[0];
-                        if (f) {
-                             const dt = new DataTransfer();
-                             dt.items.add(f);
-                             file.files = dt.files;
-                             this.loadFont(f, index);
-                        }
-                    };
                 }
 
                 setTheme(theme) {
@@ -462,13 +467,6 @@
                     } finally {
                         this.update();
                     }
-                }
-
-                clearFont(index) {
-                    this.fonts[index] = null;
-                    this.loadErrors[index] = null;
-                    dom[`file${index + 1}`].value = '';
-                    this.update();
                 }
 
                 getRenderData(index) {
@@ -589,7 +587,10 @@
 
                 draw() {
                     const valid = this.analyses.filter(a => a && !a.error);
-                    if (!valid.length) return this.renderEmpty();
+                    if (!valid.length) {
+                        dom.canvas.height = 150;
+                        return this.updateScale();
+                    }
 
                     const dim = this.computeDimensions(valid);
                     dom.canvas.width = dim.width;
@@ -603,8 +604,25 @@
                         const y = dim.baseline - a.baseline - a.baselineShift;
                         const blend = i > 0 && this.analyses.every(Boolean);
                         const color = dom[`color${i + 1}`].value;
-                        this.renderGraph(a, color, y, blend);
-                        this.renderGlyphs(a, side ? tx + (a.drawOffsetX || 0) : tx, y, blend);
+
+                        this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+
+                        const max = Math.max(1, ...a.densityByRow);
+                        this.context.fillStyle = color;
+                        this.context.beginPath();
+                        a.densityByRow.forEach((value, rowY) => {
+                            if (value) {
+                                const w = (value / max) * this.graphWidth;
+                                this.context.rect(this.graphWidth - w, rowY + y, w, 1);
+                            }
+                        });
+                        this.context.fill();
+
+                        const gx = side ? tx + (a.drawOffsetX || 0) : tx;
+                        const {canvas, width, height} = a;
+                        this.context.drawImage(canvas, 0, 0, width, height, gx - (a.drawOffsetX || 0), y, width, height);
+                        this.context.globalCompositeOperation = 'source-over';
+
                         if (side) tx += a.canvas.width;
                     });
                     this.updateScale();
@@ -623,36 +641,6 @@
                         baseline: Math.ceil(maxAscent),
                         maxDrawOffsetX: maxOffX
                     };
-                }
-
-                renderGraph(analysis, color, yOffset, blend) {
-                    const max = Math.max(1, ...analysis.densityByRow);
-                    this.context.fillStyle = color;
-                    this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-                    this.context.beginPath();
-                    analysis.densityByRow.forEach((value,y)=>{
-                        if (value) {
-                            const width = (value / max) * this.graphWidth;
-                            this.context.rect(this.graphWidth - width, y + yOffset, width, 1);
-                        }
-                    }
-                    );
-                    this.context.fill();
-                    this.context.globalCompositeOperation = 'source-over';
-                }
-
-                renderGlyphs(analysis, originX, yOffset, blend) {
-                    const {canvas, width, height} = analysis;
-                    const w = width ?? canvas.width
-                      , h = height ?? canvas.height;
-                    this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-                    this.context.drawImage(canvas, 0, 0, w, h, originX - (analysis.drawOffsetX || 0), yOffset, w, h);
-                    this.context.globalCompositeOperation = 'source-over';
-                }
-
-                renderEmpty() {
-                    dom.canvas.height = 150;
-                    this.updateScale();
                 }
 
                 updateScale() {
@@ -681,12 +669,6 @@
                     );
                 }
 
-                exportImage() {
-                    const a = document.createElement('a');
-                    a.href = dom.canvas.toDataURL();
-                    a.download = `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`;
-                    a.click();
-                }
             }
 
             new DensityTool();
