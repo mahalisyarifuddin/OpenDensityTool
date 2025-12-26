@@ -355,10 +355,9 @@
 
             class DensityTool {
                 constructor() {
-                    this.fonts = [null, null];
-                    this.loadErrors = [null, null];
-                    this.analyses = [null, null];
-                    this.renderCache = [null, null];
+                    this.fonts = [];
+                    this.loadErrors = [];
+                    this.renderCache = [];
                     this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
                     this.graphWidth = 150;
                     this.graphPadding = 20;
@@ -451,28 +450,6 @@
                     this.update();
                 }
 
-                computeMetrics(font, content, fontSize, tracking) {
-                    const scale = fontSize / font.unitsPerEm;
-                    const {os2, hhea} = font.tables;
-                    const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
-                    const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
-                    const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
-                    const options = {tracking};
-                    const bounds = font.getPath(content, 0, 0, fontSize, options).getBoundingBox();
-                    return {
-                        ascent: Math.max(-bounds.y1, fontAscent),
-                        descent: Math.max(bounds.y2, fontDescent),
-                        actualAscent: -bounds.y1,
-                        actualDescent: bounds.y2,
-                        fontAscent,
-                        fontDescent,
-                        x1: bounds.x1,
-                        x2: bounds.x2,
-                        boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
-                        advanceWidth: Math.ceil(font.getAdvanceWidth(content, fontSize, options))
-                    };
-                }
-
                 getRenderData(index) {
                     const n = index + 1;
                     const font = this.fonts[index];
@@ -491,9 +468,25 @@
 
                     const size = Math.max(1, Math.min(fontSize, 2000));
                     const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
-                    const metrics = this.computeMetrics(font, content, size, tracking);
+                    const scale = size / font.unitsPerEm;
+                    const {os2, hhea} = font.tables;
+                    const metric = keys => Math.max(0, ...keys.map(key => Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
+                    const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
+                    const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
+                    const options = {tracking};
+                    const path = font.getPath(content, 0, 0, size, options);
+                    const bounds = path.getBoundingBox();
+                    const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options));
+                    const boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
 
-                    if (!metrics || (metrics.advanceWidth <= 0 && metrics.boundingBoxWidth <= 0)) return null;
+                    if (advanceWidth <= 0 && boundingBoxWidth <= 0) return null;
+
+                    const metrics = {
+                        ascent: Math.max(-bounds.y1, fontAscent),
+                        descent: Math.max(bounds.y2, fontDescent),
+                        fontAscent, fontDescent, x1: bounds.x1, x2: bounds.x2,
+                        boundingBoxWidth, advanceWidth
+                    };
 
                     const minX = Math.min(0, metrics.x1), maxX = Math.max(metrics.advanceWidth, metrics.x2);
                     const drawOffsetX = -minX, width = Math.ceil(maxX - minX);
@@ -506,10 +499,12 @@
                     fontCanvas.height = Math.max(fontCanvas.height, height);
                     const context = fontCanvas.getContext('2d', { willReadFrequently: true });
                     context.clearRect(0, 0, width, height);
-                    context.fillStyle = color;
-                    const path = font.getPath(content, drawOffsetX, baseline, size, { tracking: tracking || 0 });
+
+                    context.save();
+                    context.translate(drawOffsetX, baseline);
                     path.fill = color;
                     path.draw(context);
+                    context.restore();
 
                     const pixels = this.analyzePixels(fontCanvas, width, height);
                     const data = { ...pixels, ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
