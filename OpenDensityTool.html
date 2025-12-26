@@ -234,11 +234,42 @@
 			}
 
 			.output {
-				white-space: pre-wrap;
 				font-family: monospace;
 				font-size: .8rem;
 				line-height: 1.5;
 				margin-top: .5rem
+			}
+
+			.stat-grid {
+				display: grid;
+				gap: 0.5rem;
+			}
+
+			.stat-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+
+			.stat-group {
+				margin-top: 0.5rem;
+				border-top: 1px solid var(--border);
+				padding-top: 0.5rem;
+			}
+
+			.stat-group-title {
+				font-weight: 600;
+				margin-bottom: 0.25rem;
+				color: var(--text);
+			}
+
+			.stat-label {
+				color: var(--text);
+				opacity: 0.8;
+			}
+
+			.stat-value {
+				font-weight: 600;
 			}
 
 			.indicator {
@@ -713,9 +744,49 @@
 					[1, 2].forEach((n,i)=>{
 						const analysis = this.analyses[i];
 						const loadError = this.loadErrors[i];
-						dom[`result${n}`].textContent = loadError ? `Error: ${loadError}` : analysis ? (analysis.error ? `Error: ${analysis.error}` : `Density: ${analysis.density}%\n\nInk Bounds:\n- Max Y: ${analysis.yMax}\n- Min Y: ${analysis.yMin}\n\nMetrics:\n- Ascent: ${Math.round(analysis.fontAscent)}\n- Descent: ${Math.round(analysis.fontDescent)}`) : this.fonts[i] ? 'Enter text.' : 'Load font.';
-					}
-					);
+						const el = dom[`result${n}`];
+
+						if (loadError) {
+							el.textContent = `Error: ${loadError}`;
+							return;
+						}
+
+						if (!this.fonts[i]) {
+							el.textContent = 'Load font.';
+							return;
+						}
+
+						if (!analysis) {
+							el.textContent = 'Enter text.';
+							return;
+						}
+
+						if (analysis.error) {
+							el.textContent = `Error: ${analysis.error}`;
+							return;
+						}
+
+						const row = (label, value) => `
+							<div class="stat-row">
+								<span class="stat-label">${label}</span>
+								<span class="stat-value">${value}</span>
+							</div>`;
+
+						el.innerHTML = `
+							<div class="stat-grid">
+								${row('Density', `${analysis.density}%`)}
+								<div class="stat-group">
+									<div class="stat-group-title">Ink Bounds</div>
+									${row('Max Y', analysis.yMax)}
+									${row('Min Y', analysis.yMin)}
+								</div>
+								<div class="stat-group">
+									<div class="stat-group-title">Metrics</div>
+									${row('Ascent', Math.round(analysis.fontAscent))}
+									${row('Descent', Math.round(analysis.fontDescent))}
+								</div>
+							</div>`;
+					});
 				}
 			}
 
