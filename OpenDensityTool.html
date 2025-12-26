@@ -684,7 +684,7 @@
 						if (!analysis || analysis.error)
 							return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = i > 0 && this.analyses.every(Boolean);
+						const blend = i > 0 && this.analyses.every(a => a && !a.error);
 						const color = dom[`color${i + 1}`].value;
 						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 						const max = Math.max(1, ...analysis.densityByRow);
