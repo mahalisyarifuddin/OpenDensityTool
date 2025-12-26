@@ -412,15 +412,10 @@
 
                     document.querySelectorAll('.copy-btn').forEach(btn => {
                         const original = btn.textContent;
-                        btn.onclick = async () => {
-                            try {
-                                await navigator.clipboard.writeText(document.getElementById(btn.dataset.target).innerText);
-                                btn.textContent = 'Copied!';
-                            } catch {
-                                btn.textContent = 'Error';
-                            }
-                            setTimeout(() => btn.textContent = original, 2000);
-                        };
+                        btn.onclick = () => Promise.resolve().then(() => navigator.clipboard.writeText(document.getElementById(btn.dataset.target).innerText))
+                            .then(() => btn.textContent = 'Copied!')
+                            .catch(() => btn.textContent = 'Error')
+                            .finally(() => setTimeout(() => btn.textContent = original, 2000));
                     });
 
                     [1, 2].forEach((n,i)=>{
