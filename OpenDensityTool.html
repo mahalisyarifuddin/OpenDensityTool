@@ -422,8 +422,40 @@
 					this.graphPadding = 20;
 					this.context = dom.canvas.getContext('2d');
 					this.bind();
-					this.setTheme('auto');
+					this.loadState();
+					this.setTheme(dom.theme.value);
 					this.update();
+				}
+
+				saveState() {
+					const state = {
+						theme: dom.theme.value,
+						render: dom.render.value,
+						density: dom.density.value
+					};
+					[1, 2].forEach(n => {
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => {
+							state[`${key}${n}`] = dom[`${key}${n}`].value;
+						});
+					});
+					try {
+						localStorage.setItem('densityToolState', JSON.stringify(state));
+					} catch (e) {
+						// Ignore storage errors
+					}
+				}
+
+				loadState() {
+					try {
+						const state = JSON.parse(localStorage.getItem('densityToolState'));
+						if (!state) return;
+						Object.entries(state).forEach(([key, value]) => {
+							const el = dom[key];
+							if (el) el.value = value;
+						});
+					} catch (e) {
+						console.warn('Failed to load state', e);
+					}
 				}
 
 				bind() {
@@ -491,6 +523,7 @@
 					document.documentElement.classList.remove('light', 'dark');
 					theme !== 'auto' && document.documentElement.classList.add(theme);
 					dom.theme.value = theme;
+					this.saveState();
 				}
 
 				async loadFont(file, index) {
@@ -660,6 +693,7 @@
 				}
 
 				update() {
+					this.saveState();
 					this.analyses = [1, 2].map((n,i)=>{
 						dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value;
 						return this.analyze(i);
