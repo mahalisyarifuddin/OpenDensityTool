@@ -416,6 +416,7 @@
 				constructor() {
 					this.fonts = [];
 					this.loadErrors = [];
+					this.loadCounters = [0, 0];
 					this.renderCache = [];
 					this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
 					this.graphWidth = 150;
@@ -494,20 +495,27 @@
 				}
 
 				async loadFont(file, index) {
+					const loadId = ++this.loadCounters[index];
 					this.loadErrors[index] = this.fonts[index] = null;
 					try {
 						if (!file)
 							return;
 						if (file.size > 30 << 20)
 							throw new Error('File too large (max 30MB)');
-						const font = opentype.parse(await file.arrayBuffer());
+						const buffer = await file.arrayBuffer();
+						if (loadId !== this.loadCounters[index]) return;
+						const font = opentype.parse(buffer);
 						if (!font.draw)
 							throw new Error('Invalid font');
 						this.fonts[index] = font;
 					} catch (error) {
-						this.loadErrors[index] = error.message;
+						if (loadId === this.loadCounters[index]) {
+							this.loadErrors[index] = error.message;
+						}
 					} finally {
-						this.update();
+						if (loadId === this.loadCounters[index]) {
+							this.update();
+						}
 					}
 				}
 
