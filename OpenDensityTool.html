@@ -451,7 +451,15 @@
 						;
 					}
 					;
+					const debounce = (fn, ms) => {
+						let timer;
+						return (...args) => {
+							clearTimeout(timer);
+							timer = setTimeout(() => fn(...args), ms);
+						};
+					};
 					const refresh = schedule(()=>this.update());
+					const debouncedRefresh = debounce(()=>this.update(), 300);
 					const resize = schedule(()=>this.updateScale());
 					dom.zoom.onchange = resize;
 					dom.render.onchange = dom.density.onchange = refresh;
@@ -478,7 +486,7 @@
 							this.update();
 						}
 						;
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${n}`].oninput = refresh);
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${n}`].oninput = debouncedRefresh);
 						const group = file.closest('.group');
 						group.ondragenter = group.ondragover = e=>{
 							e.preventDefault();
