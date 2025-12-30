@@ -304,8 +304,11 @@
 				animation: spin 1s linear infinite;
 				margin: 1rem auto;
 			}
+
 			@keyframes spin {
-				to { transform: rotate(360deg); }
+				to {
+					transform: rotate(360deg);
+				}
 			}
 
 			@media(max-width: 900px) {
@@ -334,6 +337,8 @@
 				<div class="group">
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">Font 1
+					
+					
 					</div>
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
 						<label for="file1" style="margin-bottom: 0;">Font File</label>
@@ -358,6 +363,8 @@
 				<div class="group">
 					<div class="header">
 						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">Font 2
+					
+					
 					</div>
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
 						<label for="file2" style="margin-bottom: 0;">Font File</label>
@@ -442,48 +449,53 @@
 				}
 
 				bind() {
-					const schedule = (fn, f) => () => (f && cancelAnimationFrame(f), f = requestAnimationFrame(fn));
-					const debounce = (fn, ms, t) => (...args) => (clearTimeout(t), t = setTimeout(() => fn(...args), ms));
+					const schedule = (callback,frame)=>()=>(frame && cancelAnimationFrame(frame),
+					frame = requestAnimationFrame(callback));
+					const debounce = (callback,delay,timer)=>(...args)=>(clearTimeout(timer),
+					timer = setTimeout(()=>callback(...args), delay));
 					const refresh = schedule(()=>this.update());
 					const debouncedRefresh = debounce(()=>this.update(), 300);
 					const resize = schedule(()=>this.updateScale());
 					dom.zoom.onchange = resize;
 					dom.render.onchange = dom.density.onchange = refresh;
-					dom.export.onclick = () => Object.assign(document.createElement('a'), {
+					dom.export.onclick = ()=>Object.assign(document.createElement('a'), {
 						href: dom.canvas.toDataURL(),
 						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
 					}).click();
-					dom.theme.onchange = e=>this.setTheme(e.target.value);
+					dom.theme.onchange = event=>this.setTheme(event.target.value);
 					window.onresize = resize;
 					document.querySelectorAll('.copy-btn').forEach(button=>{
 						const original = button.textContent;
 						button.onclick = ()=>navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(()=>button.textContent = 'Copied!').catch(()=>button.textContent = 'Error').finally(()=>setTimeout(()=>button.textContent = original, 2000));
-					});
+					}
+					);
 					[1, 2].forEach((n,i)=>{
 						const file = dom[`file${n}`];
-						file.onchange = e=>this.loadFont(e.target.files[0], i);
-						dom[`clear${n}`].onclick = ()=>{
-							this.fonts[i] = this.loadErrors[i] = null;
-							file.value = '';
-							this.update();
-						};
+						file.onchange = event=>this.loadFont(event.target.files[0], i);
+						dom[`clear${n}`].onclick = ()=>(this.fonts[i] = this.loadErrors[i] = null,
+						file.value = '',
+						this.update());
 						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${n}`].oninput = debouncedRefresh);
 						const group = file.closest('.group');
-						const toggle = on => group.classList.toggle('drag-active', on);
-						group.ondragover = e => (e.preventDefault(), toggle(true));
-						group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && toggle(false);
-						group.ondrop = e => {
-							e.preventDefault();
+						const toggle = on=>group.classList.toggle('drag-active', on);
+						group.ondragover = event=>(event.preventDefault(),
+						toggle(true));
+						group.ondragleave = event=>(!event.relatedTarget || !group.contains(event.relatedTarget)) && toggle(false);
+						group.ondrop = event=>{
+							event.preventDefault();
 							toggle(false);
-							const f = e.dataTransfer.files[0];
-							if (f) {
-								const dt = new DataTransfer();
-								dt.items.add(f);
-								file.files = dt.files;
-								this.loadFont(f, i);
+							const dropped = event.dataTransfer.files[0];
+							dropped && ((()=>{
+								const transfer = new DataTransfer();
+								transfer.items.add(dropped);
+								file.files = transfer.files;
 							}
-						};
-					});
+							)(),
+							this.loadFont(dropped, i));
+						}
+						;
+					}
+					);
 				}
 
 				setTheme(theme) {
@@ -498,25 +510,30 @@
 					this.loading[index] = true;
 					this.update();
 					try {
-						if (!file)
-							return;
-						if (file.size > 30 << 20)
+						file || (()=>{
+							throw null;
+						}
+						)();
+						file.size > 30 << 20 && (()=>{
 							throw new Error('File too large (max 30MB)');
+						}
+						)();
 						const buffer = await file.arrayBuffer();
-						if (loadId !== this.loadCounters[index]) return;
+						loadId !== this.loadCounters[index] && (()=>{
+							throw null;
+						}
+						)();
 						const font = opentype.parse(buffer);
-						if (!font.draw)
+						!font.draw && (()=>{
 							throw new Error('Invalid font');
+						}
+						)();
 						this.fonts[index] = font;
 					} catch (error) {
-						if (loadId === this.loadCounters[index]) {
-							this.loadErrors[index] = error.message;
-						}
+						loadId === this.loadCounters[index] && error && (this.loadErrors[index] = error.message);
 					} finally {
-						if (loadId === this.loadCounters[index]) {
-							this.loading[index] = false;
-							this.update();
-						}
+						loadId === this.loadCounters[index] && (this.loading[index] = false,
+						this.update());
 					}
 				}
 
@@ -527,18 +544,22 @@
 					const fontSize = +dom[`size${n}`].value || 0;
 					const letterSpacing = +dom[`spacing${n}`].value || 0;
 					const color = dom[`color${n}`].value;
-					if (!font || !content || !fontSize)
-						return null;
-					const inputs = {
+					return (!font || !content || !fontSize) ? null : this.computeRenderData(index, {
 						font,
 						content,
 						fontSize,
 						letterSpacing,
 						color
-					};
+					});
+				}
+
+				computeRenderData(index, inputs) {
 					const cached = this.renderCache[index];
-					if (cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key]))
-						return cached.data;
+					return (cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key])) ? cached.data : this.buildRenderData(index, inputs);
+				}
+
+				buildRenderData(index, inputs) {
+					const {font, content, fontSize, letterSpacing, color} = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
 					const scale = size / font.unitsPerEm;
@@ -553,8 +574,21 @@
 					const bounds = path.getBoundingBox();
 					const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options));
 					const boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
-					if (advanceWidth <= 0 && boundingBoxWidth <= 0)
-						return null;
+					return (advanceWidth <= 0 && boundingBoxWidth <= 0) ? null : this.finalizeRenderData(index, inputs, {
+						font,
+						path,
+						bounds,
+						size,
+						fontAscent,
+						fontDescent,
+						advanceWidth,
+						letterSpacing,
+						color
+					});
+				}
+
+				finalizeRenderData(index, inputs, ctx) {
+					const {font, path, bounds, size, fontAscent, fontDescent, advanceWidth, letterSpacing, color} = ctx;
 					const metrics = {
 						ascent: Math.max(-bounds.y1, fontAscent),
 						descent: Math.max(bounds.y2, fontDescent),
@@ -562,7 +596,7 @@
 						fontDescent,
 						x1: bounds.x1,
 						x2: bounds.x2,
-						boundingBoxWidth,
+						boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth
 					};
 					const minX = Math.min(0, metrics.x1)
@@ -571,8 +605,10 @@
 					  , width = Math.ceil(maxX - minX);
 					const baseline = Math.ceil(metrics.ascent)
 					  , height = Math.ceil(baseline + metrics.descent);
-					if (width > 32767 || height > 32767)
+					(width > 32767 || height > 32767) && (()=>{
 						throw new Error('Canvas dimensions too large');
+					}
+					)();
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
@@ -609,22 +645,24 @@
 					const n = index + 1;
 					try {
 						const data = this.getRenderData(index);
-						if (!data)
-							return null;
-						const hasInk = data.maxY >= data.minY;
-						const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-						return {
-							...data,
-							baselineShift: +dom[`shift${n}`].value || 0,
-							density: ((data.inkPixels / area) * 100).toFixed(1),
-							yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-							yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
-						};
+						return data ? this.computeAnalysis(data, n) : null;
 					} catch (error) {
 						return {
 							error: error.message
 						};
 					}
+				}
+
+				computeAnalysis(data, n) {
+					const hasInk = data.maxY >= data.minY;
+					const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+					return {
+						...data,
+						baselineShift: +dom[`shift${n}`].value || 0,
+						density: ((data.inkPixels / area) * 100).toFixed(1),
+						yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+						yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
+					};
 				}
 
 				analyzePixels(canvas, contentWidth, contentHeight) {
@@ -643,20 +681,13 @@
 						let rowInk = 0;
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
 						i += 4) {
-							if (data[i] >= 128) {
-								if (rowInk++ === 0 && x < minX)
-									minX = x;
-								if (x > maxX)
-									maxX = x;
-							}
+							data[i] >= 128 && (rowInk++ === 0 && x < minX && (minX = x),
+							x > maxX && (maxX = x));
 						}
-						if (rowInk > 0) {
-							inkPixels += rowInk;
-							densityByRow[y] = rowInk;
-							if (y < minY)
-								minY = y;
-							maxY = y;
-						}
+						rowInk > 0 && (inkPixels += rowInk,
+						densityByRow[y] = rowInk,
+						y < minY && (minY = y),
+						maxY = y);
 					}
 					return {
 						densityByRow,
@@ -669,52 +700,45 @@
 				}
 
 				update() {
-					this.analyses = [1, 2].map((n,i)=>{
-						dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value;
-						return this.analyze(i);
-					}
-					);
+					this.analyses = [1, 2].map((n,i)=>(dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value,
+					this.analyze(i)));
 					this.draw();
 					this.updateResults();
 				}
 
 				draw() {
 					const valid = this.analyses.filter(a=>a && !a.error);
-					if (!valid.length) {
-						dom.canvas.height = 150;
-						return this.updateScale();
-					}
+					return valid.length ? this.doDraw(valid) : (dom.canvas.height = 150,
+					this.updateScale());
+				}
+
+				doDraw(valid) {
 					const dimensions = this.computeDimensions(valid);
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let tx = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis,i)=>{
-						if (!analysis || analysis.error)
-							return;
-						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = i > 0 && this.analyses.every(a => a && !a.error);
-						const color = dom[`color${i + 1}`].value;
-						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-						const max = Math.max(1, ...analysis.densityByRow);
-						this.context.fillStyle = color;
-						this.context.beginPath();
-						analysis.densityByRow.forEach((value,rowY)=>{
-							if (value) {
-								const w = (value / max) * this.graphWidth;
-								this.context.rect(this.graphWidth - w, rowY + y, w, 1);
-							}
-						}
-						);
-						this.context.fill();
-						const gx = side ? tx + (analysis.drawOffsetX || 0) : tx;
-						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, gx - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
-						this.context.globalCompositeOperation = 'source-over';
-						if (side)
-							tx += analysis.canvas.width;
+						analysis && !analysis.error && this.drawAnalysis(analysis, i, dimensions, side, tx);
+						side && analysis && !analysis.error && (tx += analysis.canvas.width);
 					}
 					);
 					this.updateScale();
+				}
+
+				drawAnalysis(analysis, i, dimensions, side, tx) {
+					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+					const blend = i > 0 && this.analyses.every(a=>a && !a.error);
+					const color = dom[`color${i + 1}`].value;
+					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					const max = Math.max(1, ...analysis.densityByRow);
+					this.context.fillStyle = color;
+					this.context.beginPath();
+					analysis.densityByRow.forEach((value,rowY)=>value && this.context.rect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
+					this.context.fill();
+					const gx = side ? tx + (analysis.drawOffsetX || 0) : tx;
+					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, gx - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+					this.context.globalCompositeOperation = 'source-over';
 				}
 
 				computeDimensions(analyses) {
@@ -737,8 +761,10 @@
 					const fit = dom.zoom.value === 'fit' && canvas.width;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
-					if (!fit)
-						return;
+					fit && this.applyScale(canvas, container, preview);
+				}
+
+				applyScale(canvas, container, preview) {
 					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
@@ -750,38 +776,15 @@
 				}
 
 				updateResults() {
-					[1, 2].forEach((n,i)=>{
-						const analysis = this.analyses[i];
-						const loadError = this.loadErrors[i];
-						const el = dom[`result${n}`];
+					[1, 2].forEach((n,i)=>this.updateResult(n, i));
+				}
 
-						if (this.loading[i]) return el.innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-						if (loadError) return el.textContent = `Error: ${loadError}`;
-						if (!this.fonts[i]) return el.textContent = 'Load font.';
-						if (!analysis) return el.textContent = 'Enter text.';
-						if (analysis.error) return el.textContent = `Error: ${analysis.error}`;
-
-						const row = (label, value) => `
-							<div class="stat-row">
-								<span class="stat-label">${label}</span>
-								<span class="stat-value">${value}</span>
-							</div>`;
-
-						el.innerHTML = `
-							<div class="stat-grid">
-								${row('Density', `${analysis.density}%`)}
-								<div class="stat-group">
-									<div class="stat-group-title">Ink Bounds</div>
-									${row('Max Y', analysis.yMax)}
-									${row('Min Y', analysis.yMin)}
-								</div>
-								<div class="stat-group">
-									<div class="stat-group-title">Metrics</div>
-									${row('Ascent', Math.round(analysis.fontAscent))}
-									${row('Descent', Math.round(analysis.fontDescent))}
-								</div>
-							</div>`;
-					});
+				updateResult(n, i) {
+					const analysis = this.analyses[i];
+					const loadError = this.loadErrors[i];
+					const element = dom[`result${n}`];
+					const row = (label,value)=>`<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value">${value}</span></div>`;
+					element.innerHTML = this.loading[i] ? '<div class="spinner" aria-label="Loading"></div>' : loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : `<div class="stat-grid">${row('Density', `${analysis.density}%`)}` + `<div class="stat-group"><div class="stat-group-title">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}</div>` + `<div class="stat-group"><div class="stat-group-title">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Descent', Math.round(analysis.fontDescent))}</div></div>`;
 				}
 			}
 
