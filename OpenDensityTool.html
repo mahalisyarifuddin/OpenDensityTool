@@ -561,7 +561,7 @@
 				buildRenderData(index, inputs) {
 					const {font, content, fontSize, letterSpacing, color} = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
-					const tracking = letterSpacing ? (letterSpacing / size) * 1000 : 0;
+					const tracking = letterSpacing ? (letterSpacing / size) * (font.unitsPerEm || 1000) : 0;
 					const scale = size / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
 					const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
