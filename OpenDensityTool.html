@@ -458,39 +458,32 @@
 					document.querySelectorAll('.copy-btn').forEach(button=>{
 						const original = button.textContent;
 						button.onclick = ()=>navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(()=>button.textContent = 'Copied!').catch(()=>button.textContent = 'Error').finally(()=>setTimeout(()=>button.textContent = original, 2000));
-					}
-					);
+					});
 					[1, 2].forEach((n,i)=>{
 						const file = dom[`file${n}`];
 						file.onchange = e=>this.loadFont(e.target.files[0], i);
 						dom[`clear${n}`].onclick = ()=>{
 							this.fonts[i] = this.loadErrors[i] = null;
-							dom[`file${n}`].value = '';
+							file.value = '';
 							this.update();
-						}
-						;
+						};
 						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${n}`].oninput = debouncedRefresh);
 						const group = file.closest('.group');
-						group.ondragenter = group.ondragover = e=>{
+						const toggle = on => group.classList.toggle('drag-active', on);
+						group.ondragover = e => (e.preventDefault(), toggle(true));
+						group.ondragleave = e => (!e.relatedTarget || !group.contains(e.relatedTarget)) && toggle(false);
+						group.ondrop = e => {
 							e.preventDefault();
-							group.classList.add('drag-active');
-						}
-						;
-						group.ondragleave = e=>(!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('drag-active');
-						group.ondrop = e=>{
-							e.preventDefault();
-							group.classList.remove('drag-active');
-							const dropped = e.dataTransfer.files[0];
-							if (dropped) {
+							toggle(false);
+							const f = e.dataTransfer.files[0];
+							if (f) {
 								const dt = new DataTransfer();
-								dt.items.add(dropped);
+								dt.items.add(f);
 								file.files = dt.files;
-								this.loadFont(dropped, i);
+								this.loadFont(f, i);
 							}
-						}
-						;
-					}
-					);
+						};
+					});
 				}
 
 				setTheme(theme) {
