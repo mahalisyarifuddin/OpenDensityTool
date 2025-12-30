@@ -30,9 +30,6 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 
 Note: The page loads opentype.js from a CDN. To use fully offline, replace the script tag with a local copy of opentype.js.
 
-## Other Tools
-- **ApportionmentCalc.html**: An electoral seat allocation calculator that compares Sainte-Laguë and Hare Quota methods.
-
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
 - Customizable overlay colors
@@ -41,6 +38,9 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Reporting of measured ink bounds vs. nominal font metrics
 - Fit‑to‑view or 100% zoom; PNG export
 - Single HTML file, no build step or external assets beyond opentype.js
+
+## Other Tools
+- **ApportionmentCalc.html**: An electoral seat allocation calculator that compares Sainte-Laguë and Hare Quota methods.
 
 ## Controls
 - Font File: Load OTF/TTF/WOFF.
