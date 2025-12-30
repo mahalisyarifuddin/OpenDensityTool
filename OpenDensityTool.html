@@ -443,6 +443,7 @@
 					this.graphWidth = 150;
 					this.graphPadding = 20;
 					this.context = dom.canvas.getContext('2d');
+					this.dpr = window.devicePixelRatio || 1;
 					this.bind();
 					this.setTheme('auto');
 					this.update();
@@ -605,29 +606,33 @@
 					  , width = Math.ceil(maxX - minX);
 					const baseline = Math.ceil(metrics.ascent)
 					  , height = Math.ceil(baseline + metrics.descent);
-					(width > 32767 || height > 32767) && (()=>{
+					const dpr = this.dpr;
+					const physW = Math.ceil(width * dpr), physH = Math.ceil(height * dpr);
+					(physW > 32767 || physH > 32767) && (()=>{
 						throw new Error('Canvas dimensions too large');
 					}
 					)();
 					const fontCanvas = this.analysisCanvases[index];
-					fontCanvas.width = Math.max(fontCanvas.width, width);
-					fontCanvas.height = Math.max(fontCanvas.height, height);
+					fontCanvas.width = Math.max(fontCanvas.width, physW);
+					fontCanvas.height = Math.max(fontCanvas.height, physH);
 					const context = fontCanvas.getContext('2d', {
 						willReadFrequently: true
 					});
-					context.clearRect(0, 0, width, height);
+					context.clearRect(0, 0, physW, physH);
 					context.save();
+					context.scale(dpr, dpr);
 					context.translate(drawOffsetX, baseline);
 					path.fill = color;
 					path.draw(context);
 					context.restore();
-					const pixels = this.analyzePixels(fontCanvas, width, height);
+					const pixels = this.analyzePixels(fontCanvas, physW, physH);
 					const data = {
 						...pixels,
 						...metrics,
 						drawOffsetX,
 						width,
 						height,
+						dpr,
 						canvas: fontCanvas,
 						baseline,
 						letterSpacing,
@@ -655,13 +660,16 @@
 
 				computeAnalysis(data, n) {
 					const hasInk = data.maxY >= data.minY;
-					const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+					const dpr = data.dpr || 1;
+					const inkBoxArea = (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1); // Physical area
+					const emBoxArea = Math.max(1, data.advanceWidth) * (data.ascent + data.descent) * dpr * dpr; // Logical area * dpr^2
+					const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? inkBoxArea : 1) : emBoxArea);
 					return {
 						...data,
 						baselineShift: +dom[`shift${n}`].value || 0,
 						density: ((data.inkPixels / area) * 100).toFixed(1),
-						yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-						yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
+						yMin: hasInk ? Math.round((data.baseline * dpr - data.maxY) / dpr) : 0,
+						yMax: hasInk ? Math.round((data.baseline * dpr - data.minY) / dpr) : 0
 					};
 				}
 
@@ -714,13 +722,18 @@
 
 				doDraw(valid) {
 					const dimensions = this.computeDimensions(valid);
-					dom.canvas.width = dimensions.width;
-					dom.canvas.height = dimensions.height;
+					const dpr = this.dpr;
+					dom.canvas.width = Math.ceil(dimensions.width * dpr);
+					dom.canvas.height = Math.ceil(dimensions.height * dpr);
+					dom.canvas.style.width = `${dimensions.width}px`;
+					dom.canvas.style.height = `${dimensions.height}px`;
+					this.context.setTransform(1, 0, 0, 1, 0, 0);
+					this.context.scale(dpr, dpr);
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let tx = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis,i)=>{
 						analysis && !analysis.error && this.drawAnalysis(analysis, i, dimensions, side, tx);
-						side && analysis && !analysis.error && (tx += analysis.canvas.width);
+						side && analysis && !analysis.error && (tx += analysis.width);
 					}
 					);
 					this.updateScale();
@@ -732,12 +745,13 @@
 					const color = dom[`color${i + 1}`].value;
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					const max = Math.max(1, ...analysis.densityByRow);
+					const dpr = analysis.dpr || 1;
 					this.context.fillStyle = color;
 					this.context.beginPath();
-					analysis.densityByRow.forEach((value,rowY)=>value && this.context.rect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
+					analysis.densityByRow.forEach((value,rowY)=>value && this.context.rect(this.graphWidth - (value / max) * this.graphWidth, y + rowY / dpr, (value / max) * this.graphWidth, 1 / dpr));
 					this.context.fill();
 					const gx = side ? tx + (analysis.drawOffsetX || 0) : tx;
-					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, gx - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+					this.context.drawImage(analysis.canvas, 0, 0, analysis.canvas.width, analysis.canvas.height, gx - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
