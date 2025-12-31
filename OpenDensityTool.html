@@ -311,6 +311,10 @@
 				}
 			}
 
+			[hidden] {
+				display: none !important;
+			}
+
 			@media(max-width: 900px) {
 				main {
 					grid-template-columns:1fr
@@ -415,14 +419,50 @@
 							<div id="dot1" class="indicator"></div>
 							Font 1 Analysis<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
-						<div id="result1" class="output" aria-live="polite">Load a font.</div>
+						<div id="result1" class="output" aria-live="polite">
+							<div class="state-loading spinner" hidden aria-label="Loading"></div>
+							<div class="state-message">Load a font.</div>
+							<div class="state-stats" hidden>
+								<div class="stat-grid">
+									<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value val-density"></span></div>
+									<div class="stat-group">
+										<div class="stat-group-title">Ink Bounds</div>
+										<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value val-ymax"></span></div>
+										<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value val-ymin"></span></div>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Metrics</div>
+										<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value val-ascent"></span></div>
+										<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value val-descent"></span></div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 					<div class="card">
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
 							Font 2 Analysis<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
-						<div id="result2" class="output" aria-live="polite">Load a font.</div>
+						<div id="result2" class="output" aria-live="polite">
+							<div class="state-loading spinner" hidden aria-label="Loading"></div>
+							<div class="state-message">Load a font.</div>
+							<div class="state-stats" hidden>
+								<div class="stat-grid">
+									<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value val-density"></span></div>
+									<div class="stat-group">
+										<div class="stat-group-title">Ink Bounds</div>
+										<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value val-ymax"></span></div>
+										<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value val-ymin"></span></div>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Metrics</div>
+										<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value val-ascent"></span></div>
+										<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value val-descent"></span></div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -449,73 +489,58 @@
 				}
 
 				bind() {
-					const schedule = (callback, frame) => () => {
-						if (frame) cancelAnimationFrame(frame);
-						frame = requestAnimationFrame(callback);
-					};
-					const debounce = (callback, delay, timer) => (...args) => {
-						clearTimeout(timer);
-						timer = setTimeout(() => callback(...args), delay);
-					};
-					const refresh = schedule(() => this.update());
-					const debouncedRefresh = debounce(() => this.update(), 300);
-					const resize = schedule(() => this.updateScale());
+					const schedule = (callback,frame)=>()=>(frame && cancelAnimationFrame(frame),
+					frame = requestAnimationFrame(callback));
+					const debounce = (callback,delay,timer)=>(...args)=>(clearTimeout(timer),
+					timer = setTimeout(()=>callback(...args), delay));
+					const refresh = schedule(()=>this.update());
+					const debouncedRefresh = debounce(()=>this.update(), 300);
+					const resize = schedule(()=>this.updateScale());
 					dom.zoom.onchange = resize;
 					dom.render.onchange = dom.density.onchange = refresh;
-					dom.export.onclick = () => {
-						const link = document.createElement('a');
-						link.href = dom.canvas.toDataURL();
-						link.download = `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`;
-						link.click();
-					};
-					dom.theme.onchange = event => this.setTheme(event.target.value);
+					dom.export.onclick = ()=>Object.assign(document.createElement('a'), {
+						href: dom.canvas.toDataURL(),
+						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
+					}).click();
+					dom.theme.onchange = event=>this.setTheme(event.target.value);
 					window.onresize = resize;
-					document.querySelectorAll('.copy-btn').forEach(button => {
+					document.querySelectorAll('.copy-btn').forEach(button=>{
 						const original = button.textContent;
-						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText)
-							.then(() => button.textContent = 'Copied!')
-							.catch(() => button.textContent = 'Error')
-							.finally(() => setTimeout(() => button.textContent = original, 2000));
-					});
-					[1, 2].forEach((n, i) => {
+						button.onclick = ()=>navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(()=>button.textContent = 'Copied!').catch(()=>button.textContent = 'Error').finally(()=>setTimeout(()=>button.textContent = original, 2000));
+					}
+					);
+					[1, 2].forEach((n,i)=>{
 						const file = dom[`file${n}`];
-						file.onchange = event => this.loadFont(event.target.files[0], i);
-						dom[`clear${n}`].onclick = () => {
-							this.fonts[i] = this.loadErrors[i] = null;
-							file.value = '';
-							this.update();
-						};
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => dom[`${key}${n}`].oninput = debouncedRefresh);
+						file.onchange = event=>this.loadFont(event.target.files[0], i);
+						dom[`clear${n}`].onclick = ()=>(this.fonts[i] = this.loadErrors[i] = null,
+						file.value = '',
+						this.update());
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${n}`].oninput = debouncedRefresh);
 						const group = file.closest('.group');
-						const toggle = on => group.classList.toggle('drag-active', on);
-						group.ondragover = event => {
-							event.preventDefault();
-							toggle(true);
-						};
-						group.ondragleave = event => {
-							if (!event.relatedTarget || !group.contains(event.relatedTarget)) {
-								toggle(false);
-							}
-						};
-						group.ondrop = event => {
+						const toggle = on=>group.classList.toggle('drag-active', on);
+						group.ondragover = event=>(event.preventDefault(),
+						toggle(true));
+						group.ondragleave = event=>(!event.relatedTarget || !group.contains(event.relatedTarget)) && toggle(false);
+						group.ondrop = event=>{
 							event.preventDefault();
 							toggle(false);
 							const dropped = event.dataTransfer.files[0];
-							if (dropped) {
+							dropped && ((()=>{
 								const transfer = new DataTransfer();
 								transfer.items.add(dropped);
 								file.files = transfer.files;
-								this.loadFont(dropped, i);
 							}
-						};
-					});
+							)(),
+							this.loadFont(dropped, i));
+						}
+						;
+					}
+					);
 				}
 
 				setTheme(theme) {
 					document.documentElement.classList.remove('light', 'dark');
-					if (theme !== 'auto') {
-						document.documentElement.classList.add(theme);
-					}
+					theme !== 'auto' && document.documentElement.classList.add(theme);
 					dom.theme.value = theme;
 				}
 
@@ -525,30 +550,30 @@
 					this.loading[index] = true;
 					this.update();
 					try {
-						if (!file) {
-							return;
+						file || (()=>{
+							throw null;
 						}
-						if (file.size > 30 * 1024 * 1024) {
+						)();
+						file.size > 30 << 20 && (()=>{
 							throw new Error('File too large (max 30MB)');
 						}
+						)();
 						const buffer = await file.arrayBuffer();
-						if (loadId !== this.loadCounters[index]) {
-							return;
+						loadId !== this.loadCounters[index] && (()=>{
+							throw null;
 						}
+						)();
 						const font = opentype.parse(buffer);
-						if (!font.draw) {
+						!font.draw && (()=>{
 							throw new Error('Invalid font');
 						}
+						)();
 						this.fonts[index] = font;
 					} catch (error) {
-						if (loadId === this.loadCounters[index] && error) {
-							this.loadErrors[index] = error.message;
-						}
+						loadId === this.loadCounters[index] && error && (this.loadErrors[index] = error.message);
 					} finally {
-						if (loadId === this.loadCounters[index]) {
-							this.loading[index] = false;
-							this.update();
-						}
+						loadId === this.loadCounters[index] && (this.loading[index] = false,
+						this.update());
 					}
 				}
 
@@ -614,17 +639,16 @@
 						boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
 						advanceWidth
 					};
-					const minX = Math.min(0, metrics.x1);
-					const maxX = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minX;
-					const width = Math.ceil(maxX - minX);
-					const baseline = Math.ceil(metrics.ascent);
-					const height = Math.ceil(baseline + metrics.descent);
-
-					if (width > 32767 || height > 32767) {
+					const minX = Math.min(0, metrics.x1)
+					  , maxX = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minX
+					  , width = Math.ceil(maxX - minX);
+					const baseline = Math.ceil(metrics.ascent)
+					  , height = Math.ceil(baseline + metrics.descent);
+					(width > 32767 || height > 32767) && (()=>{
 						throw new Error('Canvas dimensions too large');
 					}
-
+					)();
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
@@ -671,14 +695,7 @@
 
 				computeAnalysis(data, n) {
 					const hasInk = data.maxY >= data.minY;
-					let area;
-					if (dom.density.value === 'ink') {
-						area = hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1;
-					} else {
-						area = Math.max(1, data.advanceWidth) * (data.ascent + data.descent);
-					}
-					area = Math.max(1, area);
-
+					const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
 					return {
 						...data,
 						baselineShift: +dom[`shift${n}`].value || 0,
@@ -689,34 +706,28 @@
 				}
 
 				analyzePixels(canvas, contentWidth, contentHeight) {
-					const width = contentWidth ?? canvas.width;
-					const height = contentHeight ?? canvas.height;
+					const width = contentWidth ?? canvas.width
+					  , height = contentHeight ?? canvas.height;
 					const {data} = canvas.getContext('2d', {
 						willReadFrequently: true
 					}).getImageData(0, 0, width, height);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0,
-						minX = width,
-						maxX = -1,
-						minY = height,
-						maxY = -1;
+					let inkPixels = 0
+					  , minX = width
+					  , maxX = -1
+					  , minY = height
+					  , maxY = -1;
 					for (let y = 0; y < height; y++) {
 						let rowInk = 0;
-						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
-							if (data[i] >= 128) {
-								if (rowInk === 0) {
-									if (x < minX) minX = x;
-								}
-								rowInk++;
-								if (x > maxX) maxX = x;
-							}
+						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
+						i += 4) {
+							data[i] >= 128 && (rowInk++ === 0 && x < minX && (minX = x),
+							x > maxX && (maxX = x));
 						}
-						if (rowInk > 0) {
-							inkPixels += rowInk;
-							densityByRow[y] = rowInk;
-							if (y < minY) minY = y;
-							maxY = y;
-						}
+						rowInk > 0 && (inkPixels += rowInk,
+						densityByRow[y] = rowInk,
+						y < minY && (minY = y),
+						maxY = y);
 					}
 					return {
 						densityByRow,
@@ -729,22 +740,16 @@
 				}
 
 				update() {
-					this.analyses = [1, 2].map((n, i) => {
-						dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value;
-						return this.analyze(i);
-					});
+					this.analyses = [1, 2].map((n,i)=>(dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value,
+					this.analyze(i)));
 					this.draw();
 					this.updateResults();
 				}
 
 				draw() {
-					const valid = this.analyses.filter(a => a && !a.error);
-					if (valid.length) {
-						this.doDraw(valid);
-					} else {
-						dom.canvas.height = 150;
-						this.updateScale();
-					}
+					const valid = this.analyses.filter(a=>a && !a.error);
+					return valid.length ? this.doDraw(valid) : (dom.canvas.height = 150,
+					this.updateScale());
 				}
 
 				doDraw(valid) {
@@ -753,30 +758,23 @@
 					dom.canvas.height = dimensions.height;
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let tx = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
-					this.analyses.forEach((analysis, i) => {
-						if (analysis && !analysis.error) {
-							this.drawAnalysis(analysis, i, dimensions, side, tx);
-							if (side) {
-								tx += analysis.canvas.width;
-							}
-						}
-					});
+					this.analyses.forEach((analysis,i)=>{
+						analysis && !analysis.error && this.drawAnalysis(analysis, i, dimensions, side, tx);
+						side && analysis && !analysis.error && (tx += analysis.canvas.width);
+					}
+					);
 					this.updateScale();
 				}
 
 				drawAnalysis(analysis, i, dimensions, side, tx) {
 					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-					const blend = i > 0 && this.analyses.every(a => a && !a.error);
+					const blend = i > 0 && this.analyses.every(a=>a && !a.error);
 					const color = dom[`color${i + 1}`].value;
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					this.context.beginPath();
-					analysis.densityByRow.forEach((value, rowY) => {
-						if (value) {
-							this.context.rect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1);
-						}
-					});
+					analysis.densityByRow.forEach((value,rowY)=>value && this.context.rect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
 					this.context.fill();
 					const gx = side ? tx + (analysis.drawOffsetX || 0) : tx;
 					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, gx - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
@@ -818,50 +816,27 @@
 				}
 
 				updateResults() {
-					[1, 2].forEach((n, i) => this.updateResult(n, i));
+					[1, 2].forEach((n,i)=>this.updateResult(n, i));
 				}
 
 				updateResult(n, i) {
 					const analysis = this.analyses[i];
 					const loadError = this.loadErrors[i];
-					const element = dom[`result${n}`];
-					const row = (label, value) => `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value">${value}</span></div>`;
+					const root = dom[`result${n}`];
+					const msg = loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
 
-					if (this.loading[i]) {
-						element.innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-						return;
-					}
-					if (loadError) {
-						element.textContent = `Error: ${loadError}`;
-						return;
-					}
-					if (!this.fonts[i]) {
-						element.textContent = 'Load font.';
-						return;
-					}
-					if (!analysis) {
-						element.textContent = 'Enter text.';
-						return;
-					}
-					if (analysis.error) {
-						element.textContent = `Error: ${analysis.error}`;
-						return;
-					}
+					root.querySelector('.state-loading').hidden = !this.loading[i];
+					root.querySelector('.state-message').hidden = this.loading[i] || !msg;
+					root.querySelector('.state-message').textContent = msg;
+					root.querySelector('.state-stats').hidden = this.loading[i] || msg;
 
-					element.innerHTML = `
-						<div class="stat-grid">
-							${row('Density', `${analysis.density}%`)}
-							<div class="stat-group">
-								<div class="stat-group-title">Ink Bounds</div>
-								${row('Max Y', analysis.yMax)}
-								${row('Min Y', analysis.yMin)}
-							</div>
-							<div class="stat-group">
-								<div class="stat-group-title">Metrics</div>
-								${row('Ascent', Math.round(analysis.fontAscent))}
-								${row('Descent', Math.round(analysis.fontDescent))}
-							</div>
-						</div>`;
+					!this.loading[i] && !msg && (
+						root.querySelector('.val-density').textContent = `${analysis.density}%`,
+						root.querySelector('.val-ymax').textContent = analysis.yMax,
+						root.querySelector('.val-ymin').textContent = analysis.yMin,
+						root.querySelector('.val-ascent').textContent = Math.round(analysis.fontAscent),
+						root.querySelector('.val-descent').textContent = Math.round(analysis.fontDescent)
+					);
 				}
 			}
 
