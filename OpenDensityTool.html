@@ -311,6 +311,10 @@
 				}
 			}
 
+			[hidden] {
+				display: none !important;
+			}
+
 			@media(max-width: 900px) {
 				main {
 					grid-template-columns:1fr
@@ -415,14 +419,50 @@
 							<div id="dot1" class="indicator"></div>
 							Font 1 Analysis<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
-						<div id="result1" class="output" aria-live="polite">Load a font.</div>
+						<div id="result1" class="output" aria-live="polite">
+							<div class="state-loading spinner" hidden aria-label="Loading"></div>
+							<div class="state-message">Load a font.</div>
+							<div class="state-stats" hidden>
+								<div class="stat-grid">
+									<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value val-density"></span></div>
+									<div class="stat-group">
+										<div class="stat-group-title">Ink Bounds</div>
+										<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value val-ymax"></span></div>
+										<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value val-ymin"></span></div>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Metrics</div>
+										<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value val-ascent"></span></div>
+										<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value val-descent"></span></div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 					<div class="card">
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
 							Font 2 Analysis<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
-						<div id="result2" class="output" aria-live="polite">Load a font.</div>
+						<div id="result2" class="output" aria-live="polite">
+							<div class="state-loading spinner" hidden aria-label="Loading"></div>
+							<div class="state-message">Load a font.</div>
+							<div class="state-stats" hidden>
+								<div class="stat-grid">
+									<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value val-density"></span></div>
+									<div class="stat-group">
+										<div class="stat-group-title">Ink Bounds</div>
+										<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value val-ymax"></span></div>
+										<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value val-ymin"></span></div>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Metrics</div>
+										<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value val-ascent"></span></div>
+										<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value val-descent"></span></div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -782,9 +822,21 @@
 				updateResult(n, i) {
 					const analysis = this.analyses[i];
 					const loadError = this.loadErrors[i];
-					const element = dom[`result${n}`];
-					const row = (label,value)=>`<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value">${value}</span></div>`;
-					element.innerHTML = this.loading[i] ? '<div class="spinner" aria-label="Loading"></div>' : loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : `<div class="stat-grid">${row('Density', `${analysis.density}%`)}` + `<div class="stat-group"><div class="stat-group-title">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}</div>` + `<div class="stat-group"><div class="stat-group-title">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Descent', Math.round(analysis.fontDescent))}</div></div>`;
+					const root = dom[`result${n}`];
+					const msg = loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
+
+					root.querySelector('.state-loading').hidden = !this.loading[i];
+					root.querySelector('.state-message').hidden = this.loading[i] || !msg;
+					root.querySelector('.state-message').textContent = msg;
+					root.querySelector('.state-stats').hidden = this.loading[i] || msg;
+
+					!this.loading[i] && !msg && (
+						root.querySelector('.val-density').textContent = `${analysis.density}%`,
+						root.querySelector('.val-ymax').textContent = analysis.yMax,
+						root.querySelector('.val-ymin').textContent = analysis.yMin,
+						root.querySelector('.val-ascent').textContent = Math.round(analysis.fontAscent),
+						root.querySelector('.val-descent').textContent = Math.round(analysis.fontDescent)
+					);
 				}
 			}
 
