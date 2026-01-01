@@ -133,6 +133,13 @@
 				font-weight: 700
 			}
 
+			.header span {
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				min-width: 0
+			}
+
 			input[type=color] {
 				width: 24px;
 				height: 24px;
@@ -230,7 +237,8 @@
 				background: var(--bg);
 				border: 1px solid var(--border);
 				padding: 1rem;
-				border-radius: 6px
+				border-radius: 6px;
+				min-width: 0
 			}
 
 			.output {
