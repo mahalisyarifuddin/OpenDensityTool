@@ -340,9 +340,7 @@
 				<h2>Configuration</h2>
 				<div class="group">
 					<div class="header">
-						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">Font 1
-					
-					
+						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color"><span id="name1">Font 1</span>
 					</div>
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
 						<label for="file1" style="margin-bottom: 0;">Font File</label>
@@ -366,9 +364,7 @@
 				</div>
 				<div class="group">
 					<div class="header">
-						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">Font 2
-					
-					
+						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color"><span id="name2">Font 2</span>
 					</div>
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
 						<label for="file2" style="margin-bottom: 0;">Font File</label>
@@ -417,7 +413,7 @@
 					<div class="card">
 						<div class="header">
 							<div id="dot1" class="indicator"></div>
-							Font 1 Analysis<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
+							<span id="analysisName1">Font 1 Analysis</span><button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
 						<div id="result1" class="output" aria-live="polite">
 							<div class="state-loading spinner" hidden aria-label="Loading"></div>
@@ -442,7 +438,7 @@
 					<div class="card">
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
-							Font 2 Analysis<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
+							<span id="analysisName2">Font 2 Analysis</span><button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
 						<div id="result2" class="output" aria-live="polite">
 							<div class="state-loading spinner" hidden aria-label="Loading"></div>
@@ -542,6 +538,12 @@
 					document.documentElement.classList.remove('light', 'dark');
 					theme !== 'auto' && document.documentElement.classList.add(theme);
 					dom.theme.value = theme;
+				}
+
+				getFontName(font, n) {
+					if (!font || !font.names) return `Font ${n}`;
+					const get = key => font.names[key]?.en || Object.values(font.names[key] || {})[0];
+					return get('fullName') || (get('fontFamily') ? `${get('fontFamily')}${get('fontSubfamily') ? ' ' + get('fontSubfamily') : ''}` : null) || get('postScriptName') || `Font ${n}`;
 				}
 
 				async loadFont(file, index) {
@@ -824,6 +826,12 @@
 					const loadError = this.loadErrors[i];
 					const root = dom[`result${n}`];
 					const msg = loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
+
+					const name = this.getFontName(this.fonts[i], n);
+					dom[`name${n}`].textContent = name;
+					dom[`analysisName${n}`].textContent = `${name} Analysis`;
+					dom[`color${n}`].setAttribute('aria-label', `${name} Color`);
+					dom[`analysisName${n}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
 					root.querySelector('.state-loading').hidden = !this.loading[i];
 					root.querySelector('.state-message').hidden = this.loading[i] || !msg;
