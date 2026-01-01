@@ -839,7 +839,9 @@
 
 					const name = this.getFontName(this.fonts[i], n);
 					dom[`name${n}`].textContent = name;
+					dom[`name${n}`].title = name;
 					dom[`analysisName${n}`].textContent = `${name} Analysis`;
+					dom[`analysisName${n}`].title = `${name} Analysis`;
 					dom[`color${n}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${n}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
