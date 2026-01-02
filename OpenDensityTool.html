@@ -184,9 +184,17 @@
 
 			.controls {
 				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 1rem;
+				flex-wrap: wrap;
+				margin-bottom: 1rem
+			}
+
+			.control-group {
+				display: flex;
 				gap: .75rem;
 				flex-wrap: wrap;
-				margin-bottom: 1rem;
 				align-items: center
 			}
 
@@ -403,22 +411,24 @@
 			<section>
 				<h2>Visualization</h2>
 				<div class="controls">
-					<select id="zoom" aria-label="Zoom level">
-						<option value="fit">Fit to View</option>
-						<option value="100">100% Scale</option>
-					</select>
-					<select id="render" aria-label="Render mode">
-						<option value="overlay">Overlay</option>
-						<option value="side">Side-by-side</option>
-					</select>
-					<select id="density" aria-label="Density calculation method">
-						<option value="ink">Ink Box</option>
-						<option value="em">Em Box</option>
-					</select>
-					<select id="guides" aria-label="Guides">
-						<option value="none">No Guides</option>
-						<option value="baseline">Show Baseline</option>
-					</select>
+					<div class="control-group">
+						<select id="zoom" aria-label="Zoom level">
+							<option value="fit">Fit to View</option>
+							<option value="100">100% Scale</option>
+						</select>
+						<select id="render" aria-label="Render mode">
+							<option value="overlay">Overlay</option>
+							<option value="side">Side-by-side</option>
+						</select>
+						<select id="density" aria-label="Density calculation method">
+							<option value="ink">Ink Box</option>
+							<option value="em">Em Box</option>
+						</select>
+						<select id="guides" aria-label="Guides">
+							<option value="none">No Guides</option>
+							<option value="baseline">Show Baseline</option>
+						</select>
+					</div>
 					<button id="export">Export PNG</button>
 				</div>
 				<div id="preview">
