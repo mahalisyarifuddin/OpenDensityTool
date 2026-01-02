@@ -580,56 +580,40 @@
 
 				getRenderData(index) {
 					const n = index + 1;
-					const font = this.fonts[index];
-					const content = dom[`text${n}`].value;
-					const fontSize = +dom[`size${n}`].value || 0;
-					const letterSpacing = +dom[`spacing${n}`].value || 0;
-					const color = dom[`color${n}`].value;
-					return (!font || !content || !fontSize) ? null : this.computeRenderData(index, {
-						font,
-						content,
-						fontSize,
-						letterSpacing,
-						color
-					});
-				}
+					const inputs = {
+						font: this.fonts[index],
+						content: dom[`text${n}`].value,
+						fontSize: +dom[`size${n}`].value || 0,
+						letterSpacing: +dom[`spacing${n}`].value || 0,
+						color: dom[`color${n}`].value
+					};
 
-				computeRenderData(index, inputs) {
+					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
+
 					const cached = this.renderCache[index];
-					return (cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key])) ? cached.data : this.buildRenderData(index, inputs);
+					if (cached && Object.keys(inputs).every(key => cached.inputs[key] === inputs[key])) return cached.data;
+
+					return this.generateRenderData(index, inputs);
 				}
 
-				buildRenderData(index, inputs) {
+				generateRenderData(index, inputs) {
 					const {font, content, fontSize, letterSpacing, color} = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const tracking = letterSpacing ? (letterSpacing / size) * (font.unitsPerEm || 1000) : 0;
 					const scale = size / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
-					const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
+					const metric = keys => Math.max(0, ...keys.map(key => Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
 					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
 					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
-					const options = {
-						tracking
-					};
+
+					const options = { tracking };
 					const path = font.getPath(content, 0, 0, size, options);
 					const bounds = path.getBoundingBox();
 					const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options));
 					const boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
-					return (advanceWidth <= 0 && boundingBoxWidth <= 0) ? null : this.finalizeRenderData(index, inputs, {
-						font,
-						path,
-						bounds,
-						size,
-						fontAscent,
-						fontDescent,
-						advanceWidth,
-						letterSpacing,
-						color
-					});
-				}
 
-				finalizeRenderData(index, inputs, ctx) {
-					const {font, path, bounds, size, fontAscent, fontDescent, advanceWidth, letterSpacing, color} = ctx;
+					if (advanceWidth <= 0 && boundingBoxWidth <= 0) return null;
+
 					const metrics = {
 						ascent: Math.max(-bounds.y1, fontAscent),
 						descent: Math.max(bounds.y2, fontDescent),
@@ -637,31 +621,33 @@
 						fontDescent,
 						x1: bounds.x1,
 						x2: bounds.x2,
-						boundingBoxWidth: Math.ceil(bounds.x2 - bounds.x1),
+						boundingBoxWidth,
 						advanceWidth
 					};
-					const minX = Math.min(0, metrics.x1)
-					  , maxX = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minX
-					  , width = Math.ceil(maxX - minX);
-					const baseline = Math.ceil(metrics.ascent)
-					  , height = Math.ceil(baseline + metrics.descent);
+
+					const minX = Math.min(0, metrics.x1);
+					const maxX = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minX;
+					const width = Math.ceil(maxX - minX);
+					const baseline = Math.ceil(metrics.ascent);
+					const height = Math.ceil(baseline + metrics.descent);
+
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
-					const context = fontCanvas.getContext('2d', {
-						willReadFrequently: true
-					});
+					const context = fontCanvas.getContext('2d', { willReadFrequently: true });
+
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
 					path.fill = color;
 					path.draw(context);
 					context.restore();
-					const pixels = this.analyzePixels(fontCanvas, width, height);
+
 					const data = {
-						...pixels,
+						...this.analyzePixels(fontCanvas, width, height),
 						...metrics,
 						drawOffsetX,
 						width,
@@ -672,10 +658,8 @@
 						fontSize: size,
 						font
 					};
-					this.renderCache[index] = {
-						inputs,
-						data
-					};
+
+					this.renderCache[index] = { inputs, data };
 					return data;
 				}
 
