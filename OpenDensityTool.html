@@ -780,13 +780,9 @@
 
 				updateScale() {
 					const {canvas, container, preview} = dom;
-					const fit = dom.zoom.value === 'fit' && canvas.width;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
-					fit && this.applyScale(canvas, container, preview);
-				}
-
-				applyScale(canvas, container, preview) {
+					if (dom.zoom.value !== 'fit' || !canvas.width) return;
 					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
