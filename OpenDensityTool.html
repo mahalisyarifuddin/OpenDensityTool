@@ -559,7 +559,7 @@
 							this.fonts[index] = font;
 						}
 					} catch (error) {
-						loadId === this.loadCounters[index] && error && (this.loadErrors[index] = error.message);
+						loadId === this.loadCounters[index] && (this.loadErrors[index] = error.message);
 					} finally {
 						loadId === this.loadCounters[index] && (this.loading[index] = false, this.update());
 					}
