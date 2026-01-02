@@ -414,6 +414,10 @@
 						<option value="ink">Ink Box</option>
 						<option value="em">Em Box</option>
 					</select>
+					<select id="guides" aria-label="Guides">
+						<option value="none">No Guides</option>
+						<option value="baseline">Show Baseline</option>
+					</select>
 					<button id="export">Export PNG</button>
 				</div>
 				<div id="preview">
@@ -471,7 +475,7 @@
 					  , debouncedRefresh = debounce(()=>this.update(), 300)
 					  , resize = schedule(()=>this.updateScale());
 					dom.zoom.onchange = resize;
-					['render', 'density'].forEach(id=>dom[id].onchange = refresh);
+					['render', 'density', 'guides'].forEach(id=>dom[id].onchange = refresh);
 					dom.export.onclick = ()=>Object.assign(document.createElement('a'), {
 						href: dom.canvas.toDataURL(),
 						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
@@ -706,6 +710,10 @@
 						side && analysis && !analysis.error && (translateX += analysis.canvas.width);
 					}
 					);
+					if (dom.guides.value === 'baseline') {
+						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
+					}
 					this.updateScale();
 				}
 
