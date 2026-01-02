@@ -667,7 +667,16 @@
 					const n = index + 1;
 					try {
 						const data = this.getRenderData(index);
-						return data ? this.computeAnalysis(data, n) : null;
+						if (!data) return null;
+						const hasInk = data.maxY >= data.minY;
+						const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+						return {
+							...data,
+							baselineShift: +dom[`shift${n}`].value || 0,
+							density: ((data.inkPixels / area) * 100).toFixed(1),
+							yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+							yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
+						};
 					} catch (error) {
 						return {
 							error: error.message
@@ -675,21 +684,7 @@
 					}
 				}
 
-				computeAnalysis(data, n) {
-					const hasInk = data.maxY >= data.minY;
-					const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-					return {
-						...data,
-						baselineShift: +dom[`shift${n}`].value || 0,
-						density: ((data.inkPixels / area) * 100).toFixed(1),
-						yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-						yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
-					};
-				}
-
-				analyzePixels(canvas, contentWidth, contentHeight) {
-					const width = contentWidth ?? canvas.width
-					  , height = contentHeight ?? canvas.height;
+				analyzePixels(canvas, width, height) {
 					const {data} = canvas.getContext('2d', {
 						willReadFrequently: true
 					}).getImageData(0, 0, width, height);
