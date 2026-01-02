@@ -794,29 +794,28 @@
 
 				updateResult(n, i) {
 					const analysis = this.analyses[i];
-					const loadError = this.loadErrors[i];
 					const root = dom[`result${n}`];
-					const msg = loadError ? `Error: ${loadError}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
+					const msg = this.loadErrors[i] ? `Error: ${this.loadErrors[i]}` : !this.fonts[i] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
+					const set = (sel, val) => root.querySelector(sel).textContent = val;
 
 					const name = this.getFontName(this.fonts[i], n);
-					dom[`name${n}`].textContent = name;
-					dom[`name${n}`].title = name;
-					dom[`analysisName${n}`].textContent = `${name} Analysis`;
-					dom[`analysisName${n}`].title = `${name} Analysis`;
+					dom[`name${n}`].textContent = dom[`name${n}`].title = name;
+					dom[`analysisName${n}`].textContent = dom[`analysisName${n}`].title = `${name} Analysis`;
 					dom[`color${n}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${n}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
-					root.querySelector('.state-loading').hidden = !this.loading[i];
-					root.querySelector('.state-message').hidden = this.loading[i] || !msg;
-					root.querySelector('.state-message').textContent = msg;
-					root.querySelector('.state-stats').hidden = this.loading[i] || msg;
+					const loading = this.loading[i];
+					root.querySelector('.state-loading').hidden = !loading;
+					root.querySelector('.state-message').hidden = loading || !msg;
+					set('.state-message', msg);
+					root.querySelector('.state-stats').hidden = loading || msg;
 
-					!this.loading[i] && !msg && (
-						root.querySelector('.val-density').textContent = `${analysis.density}%`,
-						root.querySelector('.val-ymax').textContent = analysis.yMax,
-						root.querySelector('.val-ymin').textContent = analysis.yMin,
-						root.querySelector('.val-ascent').textContent = Math.round(analysis.fontAscent),
-						root.querySelector('.val-descent').textContent = Math.round(analysis.fontDescent)
+					!loading && !msg && (
+						set('.val-density', `${analysis.density}%`),
+						set('.val-ymax', analysis.yMax),
+						set('.val-ymin', analysis.yMin),
+						set('.val-ascent', Math.round(analysis.fontAscent)),
+						set('.val-descent', Math.round(analysis.fontDescent))
 					);
 				}
 			}
