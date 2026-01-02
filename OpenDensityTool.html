@@ -763,36 +763,7 @@
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 					const loading = this.loading[index];
-					root.innerHTML = loading ? '<div class="state-loading spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="state-stats">
-								<div class="stat-grid">
-									<div class="stat-row">
-										<span class="stat-label">Density</span>
-										<span class="stat-value val-density">${analysis.density}%</span>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Ink Bounds</div>
-										<div class="stat-row">
-											<span class="stat-label">Max Y</span>
-											<span class="stat-value val-ymax">${analysis.yMax}</span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Min Y</span>
-											<span class="stat-value val-ymin">${analysis.yMin}</span>
-										</div>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Metrics</div>
-										<div class="stat-row">
-											<span class="stat-label">Ascent</span>
-											<span class="stat-value val-ascent">${Math.round(analysis.fontAscent)}</span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Descent</span>
-											<span class="stat-value val-descent">${Math.round(analysis.fontDescent)}</span>
-										</div>
-									</div>
-								</div>
-							</div>`;
+					root.innerHTML = loading ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
 				}
 			}
 
