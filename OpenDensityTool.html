@@ -428,40 +428,7 @@
 							<span id="analysisName1">Font 1 Analysis</span>
 							<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
-						<div id="result1" class="output" aria-live="polite">
-							<div class="state-loading spinner" hidden aria-label="Loading"></div>
-							<div class="state-message">Load a font.</div>
-							<div class="state-stats" hidden>
-								<div class="stat-grid">
-									<div class="stat-row">
-										<span class="stat-label">Density</span>
-										<span class="stat-value val-density"></span>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Ink Bounds</div>
-										<div class="stat-row">
-											<span class="stat-label">Max Y</span>
-											<span class="stat-value val-ymax"></span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Min Y</span>
-											<span class="stat-value val-ymin"></span>
-										</div>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Metrics</div>
-										<div class="stat-row">
-											<span class="stat-label">Ascent</span>
-											<span class="stat-value val-ascent"></span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Descent</span>
-											<span class="stat-value val-descent"></span>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
+						<div id="result1" class="output" aria-live="polite"></div>
 					</div>
 					<div class="card">
 						<div class="header">
@@ -469,40 +436,7 @@
 							<span id="analysisName2">Font 2 Analysis</span>
 							<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
-						<div id="result2" class="output" aria-live="polite">
-							<div class="state-loading spinner" hidden aria-label="Loading"></div>
-							<div class="state-message">Load a font.</div>
-							<div class="state-stats" hidden>
-								<div class="stat-grid">
-									<div class="stat-row">
-										<span class="stat-label">Density</span>
-										<span class="stat-value val-density"></span>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Ink Bounds</div>
-										<div class="stat-row">
-											<span class="stat-label">Max Y</span>
-											<span class="stat-value val-ymax"></span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Min Y</span>
-											<span class="stat-value val-ymin"></span>
-										</div>
-									</div>
-									<div class="stat-group">
-										<div class="stat-group-title">Metrics</div>
-										<div class="stat-row">
-											<span class="stat-label">Ascent</span>
-											<span class="stat-value val-ascent"></span>
-										</div>
-										<div class="stat-row">
-											<span class="stat-label">Descent</span>
-											<span class="stat-value val-descent"></span>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
+						<div id="result2" class="output" aria-live="polite"></div>
 					</div>
 				</div>
 			</section>
@@ -823,22 +757,42 @@
 					const analysis = this.analyses[index];
 					const root = dom[`result${number}`];
 					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
-					const set = (selector,value)=>root.querySelector(selector).textContent = value;
 					const name = this.getFontName(this.fonts[index], number);
 					dom[`name${number}`].textContent = dom[`name${number}`].title = name;
 					dom[`analysisName${number}`].textContent = dom[`analysisName${number}`].title = `${name} Analysis`;
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 					const loading = this.loading[index];
-					root.querySelector('.state-loading').hidden = !loading;
-					root.querySelector('.state-message').hidden = loading || !message;
-					set('.state-message', message);
-					root.querySelector('.state-stats').hidden = loading || message;
-					!loading && !message && (set('.val-density', `${analysis.density}%`),
-					set('.val-ymax', analysis.yMax),
-					set('.val-ymin', analysis.yMin),
-					set('.val-ascent', Math.round(analysis.fontAscent)),
-					set('.val-descent', Math.round(analysis.fontDescent)));
+					root.innerHTML = loading ? '<div class="state-loading spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="state-stats">
+								<div class="stat-grid">
+									<div class="stat-row">
+										<span class="stat-label">Density</span>
+										<span class="stat-value val-density">${analysis.density}%</span>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Ink Bounds</div>
+										<div class="stat-row">
+											<span class="stat-label">Max Y</span>
+											<span class="stat-value val-ymax">${analysis.yMax}</span>
+										</div>
+										<div class="stat-row">
+											<span class="stat-label">Min Y</span>
+											<span class="stat-value val-ymin">${analysis.yMin}</span>
+										</div>
+									</div>
+									<div class="stat-group">
+										<div class="stat-group-title">Metrics</div>
+										<div class="stat-row">
+											<span class="stat-label">Ascent</span>
+											<span class="stat-value val-ascent">${Math.round(analysis.fontAscent)}</span>
+										</div>
+										<div class="stat-row">
+											<span class="stat-label">Descent</span>
+											<span class="stat-value val-descent">${Math.round(analysis.fontDescent)}</span>
+										</div>
+									</div>
+								</div>
+							</div>`;
 				}
 			}
 
