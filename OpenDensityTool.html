@@ -763,12 +763,7 @@
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 					const loading = this.loading[index];
-					if (loading) {
-						root.innerHTML = '<div class="state-loading spinner" aria-label="Loading"></div>';
-					} else if (message) {
-						root.innerHTML = `<div class="state-message">${message}</div>`;
-					} else {
-						root.innerHTML = `<div class="state-stats">
+					root.innerHTML = loading ? '<div class="state-loading spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="state-stats">
 								<div class="stat-grid">
 									<div class="stat-row">
 										<span class="stat-label">Density</span>
@@ -798,7 +793,6 @@
 									</div>
 								</div>
 							</div>`;
-					}
 				}
 			}
 
