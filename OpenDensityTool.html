@@ -531,13 +531,12 @@
 							event.preventDefault();
 							toggle(false);
 							const dropped = event.dataTransfer.files[0];
-							dropped && ((()=>{
+							if (dropped) {
 								const transfer = new DataTransfer();
 								transfer.items.add(dropped);
 								file.files = transfer.files;
+								this.loadFont(dropped, i);
 							}
-							)(),
-							this.loadFont(dropped, i));
 						}
 						;
 					}
@@ -562,30 +561,20 @@
 					this.loading[index] = true;
 					this.update();
 					try {
-						file || (()=>{
-							throw null;
-						}
-						)();
-						file.size > 30 << 20 && (()=>{
-							throw new Error('File too large (max 30MB)');
-						}
-						)();
+						if (!file) return;
+						if (file.size > 30 << 20) throw new Error('File too large (max 30MB)');
 						const buffer = await file.arrayBuffer();
-						loadId !== this.loadCounters[index] && (()=>{
-							throw null;
-						}
-						)();
+						if (loadId !== this.loadCounters[index]) return;
 						const font = opentype.parse(buffer);
-						!font.draw && (()=>{
-							throw new Error('Invalid font');
-						}
-						)();
+						if (!font.draw) throw new Error('Invalid font');
 						this.fonts[index] = font;
 					} catch (error) {
-						loadId === this.loadCounters[index] && error && (this.loadErrors[index] = error.message);
+						if (loadId === this.loadCounters[index] && error) this.loadErrors[index] = error.message;
 					} finally {
-						loadId === this.loadCounters[index] && (this.loading[index] = false,
-						this.update());
+						if (loadId === this.loadCounters[index]) {
+							this.loading[index] = false;
+							this.update();
+						}
 					}
 				}
 
@@ -657,10 +646,7 @@
 					  , width = Math.ceil(maxX - minX);
 					const baseline = Math.ceil(metrics.ascent)
 					  , height = Math.ceil(baseline + metrics.descent);
-					(width > 32767 || height > 32767) && (()=>{
-						throw new Error('Canvas dimensions too large');
-					}
-					)();
+					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
