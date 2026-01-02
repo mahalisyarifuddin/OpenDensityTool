@@ -707,16 +707,16 @@
 					this.analyses = [1, 2].map((n,i)=>(dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value,
 					this.analyze(i)));
 					this.draw();
-					this.updateResults();
+					[1, 2].forEach((n,i)=>this.updateResult(n, i));
 				}
 
 				draw() {
 					const valid = this.analyses.filter(a=>a && !a.error);
-					return valid.length ? this.doDraw(valid) : (dom.canvas.height = 150,
-					this.updateScale());
-				}
-
-				doDraw(valid) {
+					if (!valid.length) {
+						dom.canvas.height = 150;
+						this.updateScale();
+						return;
+					}
 					const dimensions = this.computeDimensions(valid);
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
@@ -771,10 +771,6 @@
 					container.style.width = `${canvas.width * scale + paddingX}px`;
 					container.style.height = `${canvas.height * scale + paddingY}px`;
 					container.style.overflow = 'hidden';
-				}
-
-				updateResults() {
-					[1, 2].forEach((n,i)=>this.updateResult(n, i));
 				}
 
 				updateResult(n, i) {
