@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<input type="file" id="f">
+<div id="drop" style="width:100px;height:100px;background:red">Drop here</div>
+<script>
+    const f = document.getElementById('f');
+    const d = document.getElementById('drop');
+    d.ondragover = e => e.preventDefault();
+    d.ondrop = e => {
+        e.preventDefault();
+        console.log("Dropped", e.dataTransfer.files);
+        f.files = e.dataTransfer.files;
+        console.log("Input files", f.files);
+    }
+</script>
+</body>
+</html>
