@@ -4,12 +4,6 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Typographic Density Tool</title>
-        <script type="module">
-            import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
-            import { Buffer } from 'https://esm.sh/buffer@6.0.3';
-            window.fontkit = fontkitModule.default || fontkitModule;
-            window.Buffer = Buffer;
-        </script>
 		<style>
 			:root {
 				--primary: #1976d2;
@@ -461,7 +455,13 @@
 				</div>
 			</section>
 		</main>
-		<script>
+		<script type="module">
+            import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+            import { Buffer } from 'https://esm.sh/buffer@6.0.3';
+
+            const fontkit = fontkitModule.default || fontkitModule;
+            window.Buffer = Buffer; // Necessary for fontkit
+
 			const dom = new Proxy({},{
 				get: (_,id)=>document.getElementById(id)
 			});
@@ -564,7 +564,7 @@
 						let buffer = await file.arrayBuffer();
 						if (loadId === this.loadCounters[index]) {
                             const buf = window.Buffer.from(buffer);
-							const font = window.fontkit.create(buf);
+							const font = fontkit.create(buf);
                             if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}
