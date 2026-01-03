@@ -54,7 +54,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
 - Normalize by: Choose the normalization method for the density calculation.
-- Guides: Toggle baseline visualization.
+- Guides: Toggle baseline and metrics visualization.
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis

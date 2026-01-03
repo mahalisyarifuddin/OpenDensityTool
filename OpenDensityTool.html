@@ -426,6 +426,7 @@
 						<select id="guides" aria-label="Guides">
 							<option value="none">No Guides</option>
 							<option value="baseline">Show Baseline</option>
+							<option value="metrics">Show Metrics</option>
 						</select>
 					</div>
 					<button id="export">Export PNG</button>
@@ -787,9 +788,21 @@
 					}
 					);
 
-					if (dom.guides.value === 'baseline') {
+					const guides = dom.guides.value;
+					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
 						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
+					}
+
+					if (guides === 'metrics') {
+						valid.forEach((analysis, index) => {
+							const y = dimensions.baseline - analysis.baselineShift;
+							this.context.fillStyle = dom[`color${index + 1}`].value;
+							this.context.globalAlpha = 0.5;
+							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), dom.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), dom.canvas.width, 1);
+							this.context.globalAlpha = 1.0;
+						});
 					}
 					this.updateScale();
 				}
