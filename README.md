@@ -10,11 +10,11 @@ This project is inspired by:
 
 I also use this tool personally to pair Latin with East Asian fonts (e.g., choosing weights, sizes, and baseline shifts that harmonize Latin with CJK).
 
-All processing happens locally in your browser using opentype.js (and wawoff2 for WOFF2 files); fonts are not uploaded.
+All processing happens locally in your browser using **fontkit** (which supports advanced shaping and WOFF2); fonts are not uploaded.
 
 ## How It Works
-- Renders text to an off-screen canvas for each font, ensuring robust handling of various font file types.
-- Reads vertical metrics from the font's OS/2 and hhea tables.
+- Renders text to an off-screen canvas for each font using **fontkit**'s advanced layout engine.
+- Reads vertical metrics from the font's OS/2, hhea, or other tables.
 - Computes per-row "ink" density from pixel data to generate the density graph on the left.
 - Tints each font and overlays them using multiply blending to highlight differences in texture, weight, and alignment.
 - Reports density percentage, ink bounds (relative to the baseline), and nominal font metrics.
@@ -28,7 +28,7 @@ All processing happens locally in your browser using opentype.js (and wawoff2 fo
 6. Choose "Fit to View" or "100% Scale."
 7. Click "Export PNG" to save the visualization.
 
-Note: The page loads opentype.js and wawoff2 from CDNs. To use fully offline, you must host these files locally and update the script references.
+Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline, you must host these files locally and update the script references.
 
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
@@ -39,7 +39,9 @@ Note: The page loads opentype.js and wawoff2 from CDNs. To use fully offline, yo
 - Reporting of measured ink bounds vs. nominal font metrics
 - Copy analysis results to clipboard
 - Fit‑to‑view or 100% zoom; PNG export
-- Single HTML file, no build step or external assets beyond opentype.js
+- Single HTML file using ES modules for dependency loading
+- **Advanced Shaping Support**: Powered by fontkit, supporting complex scripts (e.g., Arabic, Indic scripts including Tamil, Thai) and advanced OpenType features (ligatures, kerning, contextual alternates).
+- **Native WOFF2 Support**: Handles compressed web fonts seamlessly.
 
 ## Controls
 - Theme: Auto, Light, or Dark mode.
@@ -63,7 +65,7 @@ Note: The page loads opentype.js and wawoff2 from CDNs. To use fully offline, yo
   - **Max Y**: The highest point of the ink relative to the baseline (positive is up).
   - **Min Y**: The lowest point of the ink relative to the baseline (negative is down).
 - **Metrics**:
-  - **Ascent**: The font's nominal ascent (from OS/2, hhea, or win tables).
+  - **Ascent**: The font's nominal ascent.
   - **Descent**: The font's nominal descent.
 - **Overlay**: Color differences in the visualization quickly show mismatched vertical alignment, weight, or texture.
 
@@ -75,22 +77,18 @@ Note: The page loads opentype.js and wawoff2 from CDNs. To use fully offline, yo
 - Making before/after visuals when tuning sizes or baselines
 
 ## Known Limitations
-- WOFF2 support: Loading WOFF2 files requires a browser with WebAssembly support.
-- OpenType feature coverage: opentype.js now supports shaping for Arabic and Thai. For other scripts, it primarily supports GPOS "kern" and GSUB "liga." Complex shaping and features beyond these are limited.
-- Complex scripts: While Arabic and Thai are now supported, other shaping-intensive scripts (e.g., Indic, other Southeast Asian languages) may not render ideally. Consider the results approximate.
 - No vertical writing / ideographic baseline: The tool measures in horizontal layout only.
-- Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU. The tool is also sensitive to the browser's font rendering engine, which may vary.
-- Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs and complex OpenType features can be slow to process.
+- Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU.
+- Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs can be slow to process.
 
 ## Privacy & Data
-All processing is local. Fonts and text never leave your machine. The app fetches opentype.js and wawoff2 (if WebAssembly is supported) from CDNs; replace with local copies if you need completely offline use.
+All processing is local. Fonts and text never leave your machine. The app fetches fontkit and buffer from CDNs; replace with local copies if you need completely offline use.
 
 ## License
 MIT License. See LICENSE for details.
 
 ## Acknowledgments
-- opentype.js (https://github.com/opentypejs/opentype.js)
-- wawoff2 (https://github.com/google/woff2)
+- fontkit (https://github.com/foliojs/fontkit)
 - Typotheque article on multi‑script typeface design
 - TypeProject FitFont
 

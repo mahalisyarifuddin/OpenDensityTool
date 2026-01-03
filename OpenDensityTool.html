@@ -4,7 +4,6 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Typographic Density Tool</title>
-		<script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
 		<style>
 			:root {
 				--primary: #1976d2;
@@ -456,19 +455,12 @@
 				</div>
 			</section>
 		</main>
-		<script>
-			var Module = {
-				onRuntimeInitialized: function() {
-					window.woff2Initialized = true;
-				}
-			};
+		<script type="module">
+            import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+            import { Buffer } from 'https://esm.sh/buffer@6.0.3';
 
-			if (typeof WebAssembly === 'object') {
-				const script = document.createElement('script');
-				script.src = 'https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js';
-				script.defer = true;
-				document.head.appendChild(script);
-			}
+            const fontkit = fontkitModule.default || fontkitModule;
+            window.Buffer = Buffer; // Necessary for fontkit
 
 			const dom = new Proxy({},{
 				get: (_,id)=>document.getElementById(id)
@@ -553,10 +545,9 @@
 				}
 
 				getFontName(font, number) {
-					if (!font?.names)
+					if (!font)
 						return `Font ${number}`;
-					const get = key=>font.names[key]?.en || Object.values(font.names[key] || {})[0];
-					return get('fullName') || (get('fontFamily') ? `${get('fontFamily')}${get('fontSubfamily') ? ' ' + get('fontSubfamily') : ''}` : null) || get('postScriptName') || `Font ${number}`;
+					return font.fullName || font.familyName || font.postscriptName || `Font ${number}`;
 				}
 
 				async loadFont(file, index) {
@@ -572,31 +563,9 @@
 							throw new Error('File too large (max 30MB)');
 						let buffer = await file.arrayBuffer();
 						if (loadId === this.loadCounters[index]) {
-							const signature = new Uint8Array(buffer, 0, 4);
-							if (signature[0] === 0x77 && signature[1] === 0x4f && signature[2] === 0x46 && signature[3] === 0x32) {
-								if (typeof WebAssembly === 'undefined')
-									throw new Error('WOFF2 requires WebAssembly');
-
-								if (!window.woff2Initialized) {
-									await new Promise(resolve => {
-										if (window.woff2Initialized) return resolve();
-										const originalInit = window.Module.onRuntimeInitialized;
-										window.Module.onRuntimeInitialized = () => {
-											window.woff2Initialized = true;
-											originalInit && originalInit();
-											resolve();
-										};
-									});
-								}
-								if (window.Module && window.Module.decompress) {
-									const decompressed = window.Module.decompress(buffer);
-									buffer = Uint8Array.from(decompressed).buffer;
-								}
-							}
-
-							const font = opentype.parse(buffer);
-							if (!font.draw)
-								throw new Error('Invalid font');
+                            const buf = window.Buffer.from(buffer);
+							const font = fontkit.create(buf);
+                            if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}
 					} catch (error) {
@@ -625,40 +594,64 @@
 				generateRenderData(index, inputs) {
 					const {font, content, fontSize, letterSpacing, color} = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
-					const tracking = letterSpacing ? (letterSpacing / size) * (font.unitsPerEm || 1000) : 0;
 					const scale = size / font.unitsPerEm;
-					const {os2, hhea} = font.tables;
+                    const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
 
-					const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
-					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
-					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
+					const fontAscent = (font.ascent || 0) * scale;
+					const fontDescent = Math.abs(font.descent || 0) * scale;
 
-					const options = {
-						tracking
-					}
-					  , path = font.getPath(content, 0, 0, size, options)
-					  , bounds = path.getBoundingBox();
-					const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options))
-					  , boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
+                    const run = font.layout(content);
+                    if (run.glyphs.length === 0) return null;
+
+                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                    let currentX = 0;
+
+                    run.glyphs.forEach((glyph, i) => {
+                        const pos = run.positions[i];
+                        const x = currentX + pos.xOffset;
+                        const y = pos.yOffset;
+
+                        const bbox = glyph.bbox;
+                        if (bbox) {
+                             minX = Math.min(minX, x + bbox.minX);
+                             maxX = Math.max(maxX, x + bbox.maxX);
+                             minY = Math.min(minY, y + bbox.minY);
+                             maxY = Math.max(maxY, y + bbox.maxY);
+                        }
+
+                        currentX += pos.xAdvance + tracking;
+                    });
+
+                    if (minX === Infinity) { minX = 0; maxX = 0; minY = 0; maxY = 0; }
+
+                    const advanceWidth = Math.ceil(currentX * scale);
+
+                    const x1 = minX * scale;
+                    const x2 = maxX * scale;
+                    const y1 = maxY * scale;
+                    const y2 = minY * scale;
+
+					const boundingBoxWidth = Math.ceil(x2 - x1);
 					if (advanceWidth <= 0 && boundingBoxWidth <= 0)
 						return null;
 
 					const metrics = {
-						ascent: Math.max(-bounds.y1, fontAscent),
-						descent: Math.max(bounds.y2, fontDescent),
+						ascent: Math.max(y1, fontAscent),
+						descent: Math.max(-y2, fontDescent),
 						fontAscent,
 						fontDescent,
-						x1: bounds.x1,
-						x2: bounds.x2,
+						x1,
+						x2,
 						boundingBoxWidth,
 						advanceWidth
 					};
-					const minX = Math.min(0, metrics.x1)
-					  , maxX = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minX
-					  , width = Math.ceil(maxX - minX)
-					  , baseline = Math.ceil(metrics.ascent)
-					  , height = Math.ceil(baseline + metrics.descent);
+
+					const minXPixel = Math.min(0, metrics.x1);
+					const maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minXPixel;
+					const width = Math.ceil(maxXPixel - minXPixel);
+					const baseline = Math.ceil(metrics.ascent);
+					const height = Math.ceil(baseline + metrics.descent);
 
 					if (width > 32767 || height > 32767)
 						throw new Error('Canvas dimensions too large');
@@ -672,8 +665,24 @@
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
-					path.fill = color;
-					path.draw(context);
+                    context.scale(1, -1);
+
+                    context.fillStyle = color;
+
+                    let drawX = 0;
+                    run.glyphs.forEach((glyph, i) => {
+                        const pos = run.positions[i];
+                        const x = drawX + pos.xOffset;
+                        const y = pos.yOffset;
+
+                        context.save();
+                        context.translate(x * scale, y * scale);
+                        glyph.render(context, size);
+                        context.restore();
+
+                        drawX += pos.xAdvance + tracking;
+                    });
+
 					context.restore();
 
 					const data = {
