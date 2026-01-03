@@ -10,7 +10,7 @@ This project is inspired by:
 
 I also use this tool personally to pair Latin with East Asian fonts (e.g., choosing weights, sizes, and baseline shifts that harmonize Latin with CJK).
 
-All processing happens locally in your browser using opentype.js; fonts are not uploaded.
+All processing happens locally in your browser using opentype.js (and wawoff2 for WOFF2 files); fonts are not uploaded.
 
 ## How It Works
 - Renders text to an off-screen canvas for each font, ensuring robust handling of various font file types.
@@ -22,7 +22,7 @@ All processing happens locally in your browser using opentype.js; fonts are not 
 ## Quick Start
 1. Download OpenDensityTool.html.
 2. Open it in any modern browser (Chrome, Edge, Firefox, Safari).
-3. Load two font files (OTF/TTF/WOFF).
+3. Load two font files (OTF/TTF/WOFF/WOFF2).
 4. Enter text, set sizes, and adjust baseline shift to align optical baselines.
 5. Customize the overlay colors as needed.
 6. Choose "Fit to View" or "100% Scale."
@@ -32,15 +32,18 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
-- Customizable overlay colors
+- Customizable overlay colors and Dark mode support
+- Drag and drop font loading
 - Per‑scanline ink density graph to the left of the text
 - Baseline‑aware alignment with per‑font baseline shift and letter spacing
 - Reporting of measured ink bounds vs. nominal font metrics
+- Copy analysis results to clipboard
 - Fit‑to‑view or 100% zoom; PNG export
 - Single HTML file, no build step or external assets beyond opentype.js
 
 ## Controls
-- Font File: Load OTF/TTF/WOFF.
+- Theme: Auto, Light, or Dark mode.
+- Font File: Load OTF/TTF/WOFF/WOFF2 (supports drag and drop).
 - Color: Choose a custom color for each font overlay.
 - Text: Enter the string to analyze (per font).
 - Size (px): Render size per font.
@@ -49,6 +52,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
 - Normalize by: Choose the normalization method for the density calculation.
+- Guides: Toggle baseline visualization.
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
@@ -78,13 +82,14 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs and complex OpenType features can be slow to process.
 
 ## Privacy & Data
-All processing is local. Fonts and text never leave your machine. The app fetches opentype.js from a CDN; replace with a local copy if you need completely offline use.
+All processing is local. Fonts and text never leave your machine. The app fetches opentype.js and wawoff2 from CDNs; replace with local copies if you need completely offline use.
 
 ## License
 MIT License. See LICENSE for details.
 
 ## Acknowledgments
 - opentype.js (https://github.com/opentypejs/opentype.js)
+- wawoff2 (https://github.com/google/woff2)
 - Typotheque article on multi‑script typeface design
 - TypeProject FitFont
 
