@@ -28,7 +28,7 @@ All processing happens locally in your browser using opentype.js (and wawoff2 fo
 6. Choose "Fit to View" or "100% Scale."
 7. Click "Export PNG" to save the visualization.
 
-Note: The page loads opentype.js from a CDN. To use fully offline, replace the script tag with a local copy of opentype.js.
+Note: The page loads opentype.js and wawoff2 from CDNs. To use fully offline, you must host these files locally and update the script references.
 
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
@@ -75,6 +75,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Making before/after visuals when tuning sizes or baselines
 
 ## Known Limitations
+- WOFF2 support: Loading WOFF2 files requires a browser with WebAssembly support.
 - OpenType feature coverage: opentype.js now supports shaping for Arabic and Thai. For other scripts, it primarily supports GPOS "kern" and GSUB "liga." Complex shaping and features beyond these are limited.
 - Complex scripts: While Arabic and Thai are now supported, other shaping-intensive scripts (e.g., Indic, other Southeast Asian languages) may not render ideally. Consider the results approximate.
 - No vertical writing / ideographic baseline: The tool measures in horizontal layout only.
@@ -82,7 +83,7 @@ Note: The page loads opentype.js from a CDN. To use fully offline, replace the s
 - Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs and complex OpenType features can be slow to process.
 
 ## Privacy & Data
-All processing is local. Fonts and text never leave your machine. The app fetches opentype.js and wawoff2 from CDNs; replace with local copies if you need completely offline use.
+All processing is local. Fonts and text never leave your machine. The app fetches opentype.js and wawoff2 (if WebAssembly is supported) from CDNs; replace with local copies if you need completely offline use.
 
 ## License
 MIT License. See LICENSE for details.
