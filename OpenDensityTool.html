@@ -600,6 +600,8 @@
 
 					const fontAscent = (font.ascent || 0) * scale;
 					const fontDescent = Math.abs(font.descent || 0) * scale;
+					const fontXHeight = (font.xHeight || 0) * scale;
+					const fontCapHeight = (font.capHeight || 0) * scale;
 
                     const run = font.layout(content);
                     if (run.glyphs.length === 0) return null;
@@ -641,6 +643,8 @@
 						descent: Math.max(-y2, fontDescent),
 						fontAscent,
 						fontDescent,
+						fontXHeight,
+						fontCapHeight,
 						x1,
 						x2,
 						boundingBoxWidth,
@@ -801,6 +805,14 @@
 							this.context.globalAlpha = 0.5;
 							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), dom.canvas.width, 1);
 							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), dom.canvas.width, 1);
+
+							this.context.globalAlpha = 0.3;
+							if (analysis.fontCapHeight) {
+								this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), dom.canvas.width, 1);
+							}
+							if (analysis.fontXHeight) {
+								this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), dom.canvas.width, 1);
+							}
 							this.context.globalAlpha = 1.0;
 						});
 					}
@@ -866,7 +878,7 @@
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
-					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
+					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div><div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
 				}
 			}
 
