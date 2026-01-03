@@ -4,7 +4,6 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Typographic Density Tool</title>
-		<script defer src="https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js"></script>
 		<script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
 		<style>
 			:root {
@@ -464,6 +463,13 @@
 				}
 			};
 
+			if (typeof WebAssembly === 'object') {
+				const script = document.createElement('script');
+				script.src = 'https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js';
+				script.defer = true;
+				document.head.appendChild(script);
+			}
+
 			const dom = new Proxy({},{
 				get: (_,id)=>document.getElementById(id)
 			});
@@ -568,6 +574,9 @@
 						if (loadId === this.loadCounters[index]) {
 							const signature = new Uint8Array(buffer, 0, 4);
 							if (signature[0] === 0x77 && signature[1] === 0x4f && signature[2] === 0x46 && signature[3] === 0x32) {
+								if (typeof WebAssembly === 'undefined')
+									throw new Error('WOFF2 requires WebAssembly');
+
 								if (!window.woff2Initialized) {
 									await new Promise(resolve => {
 										if (window.woff2Initialized) return resolve();
