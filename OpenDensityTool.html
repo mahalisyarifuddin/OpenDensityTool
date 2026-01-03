@@ -4,6 +4,14 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Typographic Density Tool</title>
+		<script>
+			var Module = {
+				onRuntimeInitialized: function() {
+					window.woff2Initialized = true;
+				}
+			};
+		</script>
+		<script defer src="https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js"></script>
 		<script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.js"></script>
 		<style>
 			:root {
@@ -366,7 +374,7 @@
 						<label for="file1" style="margin-bottom:0">Font File</label>
 						<button id="clear1" class="action-btn" aria-label="Clear Font 1" title="Clear font">Clear</button>
 					</div>
-					<input type="file" id="file1" accept=".otf,.ttf,.woff" style="margin-top:0">
+					<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
 					<label>
 						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
 					</label>
@@ -391,7 +399,7 @@
 						<label for="file2" style="margin-bottom:0">Font File</label>
 						<button id="clear2" class="action-btn" aria-label="Clear Font 2" title="Clear font">Clear</button>
 					</div>
-					<input type="file" id="file2" accept=".otf,.ttf,.woff" style="margin-top:0">
+					<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
 					<label>
 						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
 					</label>
@@ -557,8 +565,30 @@
 							return;
 						if (file.size > 30 << 20)
 							throw new Error('File too large (max 30MB)');
-						const buffer = await file.arrayBuffer();
+						let buffer = await file.arrayBuffer();
 						if (loadId === this.loadCounters[index]) {
+							// Detect WOFF2 signature (wOF2)
+							const signature = new Uint8Array(buffer, 0, 4);
+							if (signature[0] === 0x77 && signature[1] === 0x4f && signature[2] === 0x46 && signature[3] === 0x32) {
+								if (!window.woff2Initialized) {
+									await new Promise(resolve => {
+										if (window.woff2Initialized) resolve();
+										else {
+											const originalInit = window.Module.onRuntimeInitialized;
+											window.Module.onRuntimeInitialized = () => {
+												window.woff2Initialized = true;
+												if (originalInit) originalInit();
+												resolve();
+											};
+										}
+									});
+								}
+								if (window.Module && window.Module.decompress) {
+									const decompressed = window.Module.decompress(buffer);
+									buffer = Uint8Array.from(decompressed).buffer;
+								}
+							}
+
 							const font = opentype.parse(buffer);
 							if (!font.draw)
 								throw new Error('Invalid font');
