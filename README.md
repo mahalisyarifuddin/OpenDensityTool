@@ -40,7 +40,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Copy analysis results to clipboard
 - Fit‑to‑view or 100% zoom; PNG export
 - Single HTML file using ES modules for dependency loading
-- **Advanced Shaping Support**: Powered by fontkit, supporting complex scripts (e.g., Arabic, Indic, Thai) and advanced OpenType features (ligatures, kerning, contextual alternates).
+- **Advanced Shaping Support**: Powered by fontkit, supporting complex scripts (e.g., Arabic, Indic scripts including Tamil, Thai) and advanced OpenType features (ligatures, kerning, contextual alternates).
 - **Native WOFF2 Support**: Handles compressed web fonts seamlessly.
 
 ## Controls
