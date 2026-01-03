@@ -20,7 +20,7 @@
 
 			@media(prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--bg:#101319;
+					--bg: #101319;
 					--surface: #0b0e14;
 					--text: #e0e2ea;
 					--border: #414752;
@@ -478,43 +478,55 @@
 				}
 
 				bind() {
-					const schedule = (callback,frame)=>()=>(frame && cancelAnimationFrame(frame),
-					frame = requestAnimationFrame(callback));
-					const debounce = (callback,delay,timer)=>(...args)=>(clearTimeout(timer),
-					timer = setTimeout(()=>callback(...args), delay));
+					const schedule = callback=>{
+						let frame;
+						return ()=>(frame && cancelAnimationFrame(frame),
+						frame = requestAnimationFrame(callback));
+					}
+					;
+					const debounce = (callback,delay)=>{
+						let timer;
+						return (...args)=>(clearTimeout(timer),
+						timer = setTimeout(()=>callback(...args), delay));
+					}
+					;
 					const refresh = schedule(()=>this.update())
 					  , debouncedRefresh = debounce(()=>this.update(), 300)
 					  , resize = schedule(()=>this.updateScale());
+
 					dom.zoom.onchange = resize;
 					['render', 'density', 'guides'].forEach(id=>dom[id].onchange = refresh);
 					dom.export.onclick = ()=>Object.assign(document.createElement('a'), {
 						href: dom.canvas.toDataURL(),
 						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
 					}).click();
-					dom.theme.onchange = e=>this.setTheme(e.target.value);
+					dom.theme.onchange = event=>this.setTheme(event.target.value);
 					window.onresize = resize;
-					document.querySelectorAll('.copy-btn').forEach(btn=>{
-						const original = btn.textContent;
-						btn.onclick = ()=>navigator.clipboard.writeText(document.getElementById(btn.dataset.target).innerText).then(()=>btn.textContent = 'Copied!').catch(()=>btn.textContent = 'Error').finally(()=>setTimeout(()=>btn.textContent = original, 2000));
+
+					document.querySelectorAll('.copy-btn').forEach(button=>{
+						const original = button.textContent;
+						button.onclick = ()=>navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(()=>button.textContent = 'Copied!').catch(()=>button.textContent = 'Error').finally(()=>setTimeout(()=>button.textContent = original, 2000));
 					}
 					);
-					[1, 2].forEach((n,i)=>{
-						const file = dom[`file${n}`];
-						file.onchange = e=>this.loadFont(e.target.files[0], i);
-						dom[`clear${n}`].onclick = ()=>(this.fonts[i] = this.loadErrors[i] = null,
+
+					[1, 2].forEach((number,index)=>{
+						const file = dom[`file${number}`]
+						  , group = file.closest('.group');
+						file.onchange = event=>this.loadFont(event.target.files[0], index);
+						dom[`clear${number}`].onclick = ()=>(this.fonts[index] = this.loadErrors[index] = null,
 						file.value = '',
 						this.update());
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(k=>dom[`${k}${n}`].oninput = debouncedRefresh);
-						const group = file.closest('.group');
-						group.ondragover = e=>(e.preventDefault(),
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${number}`].oninput = debouncedRefresh);
+
+						group.ondragover = event=>(event.preventDefault(),
 						group.classList.add('drag-active'));
-						group.ondragleave = e=>(!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('drag-active');
-						group.ondrop = e=>{
-							e.preventDefault();
+						group.ondragleave = event=>(!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('drag-active');
+						group.ondrop = event=>{
+							event.preventDefault();
 							group.classList.remove('drag-active');
-							const f = e.dataTransfer.files[0];
-							f && (file.files = e.dataTransfer.files,
-							this.loadFont(f, i))
+							const dropped = event.dataTransfer.files[0];
+							dropped && (file.files = event.dataTransfer.files,
+							this.loadFont(dropped, index));
 						}
 						;
 					}
@@ -528,7 +540,7 @@
 				}
 
 				getFontName(font, number) {
-					if (!font || !font.names)
+					if (!font?.names)
 						return `Font ${number}`;
 					const get = key=>font.names[key]?.en || Object.values(font.names[key] || {})[0];
 					return get('fullName') || (get('fontFamily') ? `${get('fontFamily')}${get('fontSubfamily') ? ' ' + get('fontSubfamily') : ''}` : null) || get('postScriptName') || `Font ${number}`;
@@ -539,6 +551,7 @@
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
+
 					try {
 						if (!file)
 							return;
@@ -571,9 +584,7 @@
 					if (!inputs.font || !inputs.content || !inputs.fontSize)
 						return null;
 					const cached = this.renderCache[index];
-					if (cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key]))
-						return cached.data;
-					return this.generateRenderData(index, inputs);
+					return cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key]) ? cached.data : this.generateRenderData(index, inputs);
 				}
 
 				generateRenderData(index, inputs) {
@@ -582,18 +593,21 @@
 					const tracking = letterSpacing ? (letterSpacing / size) * (font.unitsPerEm || 1000) : 0;
 					const scale = size / font.unitsPerEm;
 					const {os2, hhea} = font.tables;
+
 					const metric = keys=>Math.max(0, ...keys.map(key=>Math.abs(font[key] ?? os2?.[key] ?? hhea?.[key] ?? 0))) * scale;
 					const fontAscent = metric(['ascender', 'sTypoAscender', 'usWinAscent']);
 					const fontDescent = metric(['descender', 'sTypoDescender', 'usWinDescent']);
+
 					const options = {
 						tracking
-					};
-					const path = font.getPath(content, 0, 0, size, options);
-					const bounds = path.getBoundingBox();
-					const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options));
-					const boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
+					}
+					  , path = font.getPath(content, 0, 0, size, options)
+					  , bounds = path.getBoundingBox();
+					const advanceWidth = Math.ceil(font.getAdvanceWidth(content, size, options))
+					  , boundingBoxWidth = Math.ceil(bounds.x2 - bounds.x1);
 					if (advanceWidth <= 0 && boundingBoxWidth <= 0)
 						return null;
+
 					const metrics = {
 						ascent: Math.max(-bounds.y1, fontAscent),
 						descent: Math.max(bounds.y2, fontDescent),
@@ -610,8 +624,10 @@
 					  , width = Math.ceil(maxX - minX)
 					  , baseline = Math.ceil(metrics.ascent)
 					  , height = Math.ceil(baseline + metrics.descent);
+
 					if (width > 32767 || height > 32767)
 						throw new Error('Canvas dimensions too large');
+
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
@@ -624,6 +640,7 @@
 					path.fill = color;
 					path.draw(context);
 					context.restore();
+
 					const data = {
 						...this.analyzePixels(fontCanvas, width, height),
 						...metrics,
@@ -675,6 +692,7 @@
 					  , maxX = -1
 					  , minY = height
 					  , maxY = -1;
+
 					for (let y = 0; y < height; y++) {
 						let rowInk = 0;
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
@@ -698,29 +716,33 @@
 				}
 
 				update() {
-					this.analyses = [1, 2].map((n,i)=>(dom[`dot${n}`].style.backgroundColor = dom[`color${n}`].value,
-					this.analyze(i)));
+					this.analyses = [1, 2].map((number,index)=>(dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value,
+					this.analyze(index)));
 					this.draw();
-					[1, 2].forEach((n,i)=>this.updateResult(n, i));
+					[1, 2].forEach((number,index)=>this.updateResult(number, index));
 				}
 
 				draw() {
-					const valid = this.analyses.filter(a=>a && !a.error);
+					const valid = this.analyses.filter(analysis=>analysis && !analysis.error);
 					if (!valid.length) {
 						dom.canvas.height = 150;
 						this.updateScale();
 						return;
 					}
+
 					const dimensions = this.computeDimensions(valid);
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
+
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let translateX = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
-					this.analyses.forEach((analysis,i)=>{
-						analysis && !analysis.error && this.drawAnalysis(analysis, i, dimensions, side, translateX);
+
+					this.analyses.forEach((analysis,index)=>{
+						analysis && !analysis.error && this.drawAnalysis(analysis, index, dimensions, side, translateX);
 						side && analysis && !analysis.error && (translateX += analysis.canvas.width);
 					}
 					);
+
 					if (dom.guides.value === 'baseline') {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
 						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
@@ -730,12 +752,14 @@
 
 				drawAnalysis(analysis, index, dimensions, side, translateX) {
 					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-					const blend = index > 0 && this.analyses.every(a=>a && !a.error);
+					const blend = index > 0 && this.analyses.every(item=>item && !item.error);
 					const color = dom[`color${index + 1}`].value;
+
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					analysis.densityByRow.forEach((value,rowY)=>value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
+
 					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
 					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 					this.context.globalCompositeOperation = 'source-over';
@@ -743,11 +767,11 @@
 
 				computeDimensions(analyses) {
 					const side = dom.render.value === 'side' && analyses.length > 1;
-					const max = fn=>Math.max(0, ...analyses.map(fn));
-					const maxAscent = max(a=>a.baseline + a.baselineShift);
-					const maxDescent = max(a=>a.height - a.baseline - a.baselineShift);
-					const maxOffsetX = max(a=>a.drawOffsetX);
-					const width = side ? analyses.reduce((w,a)=>w + a.width, 0) : maxOffsetX + max(a=>a.width - a.drawOffsetX);
+					const max = callback=>Math.max(0, ...analyses.map(callback));
+					const maxAscent = max(item=>item.baseline + item.baselineShift)
+					  , maxDescent = max(item=>item.height - item.baseline - item.baselineShift)
+					  , maxOffsetX = max(item=>item.drawOffsetX);
+					const width = side ? analyses.reduce((total,item)=>total + item.width, 0) : maxOffsetX + max(item=>item.width - item.drawOffsetX);
 					return {
 						width: Math.ceil(this.graphWidth + this.graphPadding + width),
 						height: Math.ceil(maxAscent + maxDescent),
@@ -762,10 +786,12 @@
 					container.style.width = container.style.height = container.style.overflow = '';
 					if (dom.zoom.value !== 'fit' || !canvas.width)
 						return;
+
 					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
 					const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
+
 					canvas.style.transform = `scale(${scale})`;
 					container.style.width = `${canvas.width * scale + paddingX}px`;
 					container.style.height = `${canvas.height * scale + paddingY}px`;
@@ -773,16 +799,17 @@
 				}
 
 				updateResult(number, index) {
-					const analysis = this.analyses[index];
-					const root = dom[`result${number}`];
+					const analysis = this.analyses[index]
+					  , root = dom[`result${number}`];
 					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
 					const name = this.getFontName(this.fonts[index], number);
+
 					dom[`name${number}`].textContent = dom[`name${number}`].title = name;
 					dom[`analysisName${number}`].textContent = dom[`analysisName${number}`].title = `${name} Analysis`;
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-					const loading = this.loading[index];
-					root.innerHTML = loading ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
+
+					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
 				}
 			}
 
