@@ -560,6 +560,33 @@
 					return cached && Object.keys(inputs).every(key => cached.inputs[key] === inputs[key]) ? cached.data : this.generateRenderData(index, inputs);
 				}
 
+				getScript(char) {
+					const code = char.codePointAt(0);
+					if (code >= 0xA980 && code <= 0xA9DF) return 'Javanese';
+					if (code >= 0x0000 && code <= 0x0040) return 'Common'; // Basic punctuation & spaces
+					// Add other checks if needed, but for now we focus on Javanese vs others
+					return 'Other';
+				}
+
+				segmentText(text) {
+					const segments = [];
+					let currentSegment = { text: '', script: null };
+					for (const char of text) {
+						const script = this.getScript(char);
+						if (!currentSegment.script) {
+							currentSegment.script = script === 'Common' ? 'Other' : script;
+							currentSegment.text += char;
+						} else if (script === 'Common' || script === currentSegment.script) {
+							currentSegment.text += char;
+						} else {
+							segments.push(currentSegment);
+							currentSegment = { text: char, script };
+						}
+					}
+					if (currentSegment.text) segments.push(currentSegment);
+					return segments;
+				}
+
 				generateRenderData(index, inputs) {
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
@@ -567,19 +594,27 @@
 					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
 					const fontAscent = (font.ascent || 0) * scale, fontDescent = Math.abs(font.descent || 0) * scale;
 					const fontXHeight = (font.xHeight || 0) * scale, fontCapHeight = (font.capHeight || 0) * scale;
-					const run = font.layout(content);
-					if (run.glyphs.length === 0) return null;
+
+					const segments = this.segmentText(content);
+					const runs = segments.map(seg => ({ run: font.layout(seg.text), text: seg.text }));
+
+					if (runs.every(r => r.run.glyphs.length === 0)) return null;
+
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const pos = run.positions[i], x = currentX + pos.xOffset, y = pos.yOffset, bbox = glyph.bbox;
-						if (bbox) {
-							minX = Math.min(minX, x + bbox.minX);
-							maxX = Math.max(maxX, x + bbox.maxX);
-							minY = Math.min(minY, y + bbox.minY);
-							maxY = Math.max(maxY, y + bbox.maxY);
-						}
-						currentX += pos.xAdvance + tracking;
+
+					runs.forEach(({ run }) => {
+						run.glyphs.forEach((glyph, i) => {
+							const pos = run.positions[i], x = currentX + pos.xOffset, y = pos.yOffset, bbox = glyph.bbox;
+							if (bbox) {
+								minX = Math.min(minX, x + bbox.minX);
+								maxX = Math.max(maxX, x + bbox.maxX);
+								minY = Math.min(minY, y + bbox.minY);
+								maxY = Math.max(maxY, y + bbox.maxY);
+							}
+							currentX += pos.xAdvance + tracking;
+						});
 					});
+
 					if (minX === Infinity) { minX = maxX = minY = maxY = 0; }
 					const advanceWidth = Math.ceil(currentX * scale);
 					const x1 = minX * scale, x2 = maxX * scale, y1 = maxY * scale, y2 = minY * scale;
@@ -593,21 +628,25 @@
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
-					const context = fontCanvas.getContext('2d', { willReadFrequently: true });
+					const context = fontCanvas.getContext('2d');
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
 					context.scale(1, -1);
 					context.fillStyle = color;
+
 					let drawX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const pos = run.positions[i];
-						context.save();
-						context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
-						glyph.render(context, size);
-						context.restore();
-						drawX += pos.xAdvance + tracking;
+					runs.forEach(({ run }) => {
+						run.glyphs.forEach((glyph, i) => {
+							const pos = run.positions[i];
+							context.save();
+							context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
+							glyph.render(context, size);
+							context.restore();
+							drawX += pos.xAdvance + tracking;
+						});
 					});
+
 					context.restore();
 					const data = { ...this.analyzePixels(fontCanvas, width, height), ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderCache[index] = { inputs, data };
@@ -628,7 +667,7 @@
 				}
 
 				analyzePixels(canvas, width, height) {
-					const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
+					const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 					for (let y = 0; y < height; y++) {
