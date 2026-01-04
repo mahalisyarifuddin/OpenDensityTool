@@ -886,13 +886,27 @@
 					this.context.beginPath();
 					const scale = this.graphWidth / max;
 					const rows = analysis.densityByRow;
+					let currentWidth = 0;
+					let startY = -1;
+
+					// OPTIMIZATION: Merge consecutive rows with identical width into single rectangles.
+					// This significantly reduces the number of path commands for smoother rendering.
 					for (let rowY = 0; rowY < rows.length; rowY++) {
 						const value = rows[rowY];
-						if (value) {
-							const barWidth = value * scale;
-							this.context.rect(this.graphWidth - barWidth, rowY + y, barWidth, 1);
+						const barWidth = value ? value * scale : 0;
+
+						if (barWidth !== currentWidth) {
+							if (currentWidth > 0) {
+								this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
+							}
+							currentWidth = barWidth;
+							startY = rowY;
 						}
 					}
+					if (currentWidth > 0) {
+						this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rows.length - startY);
+					}
+
 					this.context.fill();
 					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
 					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
