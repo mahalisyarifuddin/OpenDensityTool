@@ -794,7 +794,9 @@
 								if (lastX > maxX) maxX = lastX;
 							}
 						}
-					} else {
+					}
+
+					if (!isLittleEndian) {
 						for (let y = 0; y < height; y++) {
 							const rowOffset = y * width;
 							let firstX = -1, lastX = -1;
