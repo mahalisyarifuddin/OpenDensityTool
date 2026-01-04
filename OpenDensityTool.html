@@ -736,24 +736,48 @@
 					const pixel32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
-					for (let y = 0; y < height; y++) {
-						let rowInk = 0, firstX = -1, lastX = -1;
-						const rowOffset = y * width;
-						for (let x = 0; x < width; x++) {
-							const alpha = isLittleEndian ? (pixel32[rowOffset + x] >>> 24) : (pixel32[rowOffset + x] & 0xff);
-							if (alpha >= 128) {
-								if (rowInk === 0) firstX = x;
-								lastX = x;
-								rowInk++;
+
+					if (isLittleEndian) {
+						for (let y = 0; y < height; y++) {
+							let rowInk = 0, firstX = -1, lastX = -1;
+							const rowOffset = y * width;
+							for (let x = 0; x < width; x++) {
+								if ((pixel32[rowOffset + x] >>> 24) >= 128) {
+									if (rowInk === 0) firstX = x;
+									lastX = x;
+									rowInk++;
+								}
+							}
+							if (rowInk > 0) {
+								inkPixels += rowInk;
+								densityByRow[y] = rowInk;
+								if (y < minY) minY = y;
+								maxY = y;
+								if (firstX < minX) minX = firstX;
+								if (lastX > maxX) maxX = lastX;
 							}
 						}
-						if (rowInk > 0) {
-							inkPixels += rowInk;
-							densityByRow[y] = rowInk;
-							if (y < minY) minY = y;
-							maxY = y;
-							if (firstX < minX) minX = firstX;
-							if (lastX > maxX) maxX = lastX;
+					}
+
+					if (!isLittleEndian) {
+						for (let y = 0; y < height; y++) {
+							let rowInk = 0, firstX = -1, lastX = -1;
+							const rowOffset = y * width;
+							for (let x = 0; x < width; x++) {
+								if ((pixel32[rowOffset + x] & 0xff) >= 128) {
+									if (rowInk === 0) firstX = x;
+									lastX = x;
+									rowInk++;
+								}
+							}
+							if (rowInk > 0) {
+								inkPixels += rowInk;
+								densityByRow[y] = rowInk;
+								if (y < minY) minY = y;
+								maxY = y;
+								if (firstX < minX) minX = firstX;
+								if (lastX > maxX) maxX = lastX;
+							}
 						}
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
