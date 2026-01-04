@@ -740,12 +740,21 @@
 					if (isLittleEndian) {
 						let i = 0;
 						for (let y = 0; y < height; y++) {
-							let rowInk = 0, firstX = -1, lastX = -1;
-							for (let x = 0; x < width; x++) {
+							let rowInk = 0, firstX = -1, lastX = -1, x = 0;
+							for (; x < width; x++) {
 								if ((pixel32[i++] >>> 24) >= 128) {
-									if (rowInk === 0) firstX = x;
+									firstX = x;
 									lastX = x;
-									rowInk++;
+									rowInk = 1;
+									break;
+								}
+							}
+							if (rowInk) {
+								for (x++; x < width; x++) {
+									if ((pixel32[i++] >>> 24) >= 128) {
+										lastX = x;
+										rowInk++;
+									}
 								}
 							}
 							if (rowInk > 0) {
@@ -762,12 +771,21 @@
 					if (!isLittleEndian) {
 						let i = 0;
 						for (let y = 0; y < height; y++) {
-							let rowInk = 0, firstX = -1, lastX = -1;
-							for (let x = 0; x < width; x++) {
+							let rowInk = 0, firstX = -1, lastX = -1, x = 0;
+							for (; x < width; x++) {
 								if ((pixel32[i++] & 0xff) >= 128) {
-									if (rowInk === 0) firstX = x;
+									firstX = x;
 									lastX = x;
-									rowInk++;
+									rowInk = 1;
+									break;
+								}
+							}
+							if (rowInk) {
+								for (x++; x < width; x++) {
+									if ((pixel32[i++] & 0xff) >= 128) {
+										lastX = x;
+										rowInk++;
+									}
 								}
 							}
 							if (rowInk > 0) {
