@@ -6,49 +6,41 @@
 		<title>Typographic Density Tool</title>
 		<style>
 			:root {
-				--primary: #1976d2;
-				--hover: #004080;
-				--bg: #f9f9ff;
-				--surface: #fff;
-				--text: #181c21;
-				--border: #c1c6d4;
-				--dim: #e0e2ec;
-				--success: #2e8534;
-				--danger: #ba1a1a
+				--primaryColor: #1976d2;
+				--hoverColor: #004080;
+				--backgroundColor: #f9f9ff;
+				--surfaceColor: #fff;
+				--textColor: #181c21;
+				--borderColor: #c1c6d4;
+				--dimmedColor: #e0e2ec;
+				--successColor: #2e8534;
+				--dangerColor: #ba1a1a
 			}
 
-			@media(prefers-color-scheme: dark) {
+			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--bg: #101319;
-					--surface: #0b0e14;
-					--text: #e0e2ea;
-					--border: #414752;
-					--dim: #44474f
+					--backgroundColor: #101319;
+					--surfaceColor: #0b0e14;
+					--textColor: #e0e2ea;
+					--borderColor: #414752;
+					--dimmedColor: #44474f
 				}
 			}
 
 			:root.dark {
-				--bg: #101319;
-				--surface: #0b0e14;
-				--text: #e0e2ea;
-				--border: #414752;
-				--dim: #44474f
+				--backgroundColor: #101319;
+				--surfaceColor: #0b0e14;
+				--textColor: #e0e2ea;
+				--borderColor: #414752;
+				--dimmedColor: #44474f
 			}
 
-			* {
-				box-sizing: border-box;
-				margin: 0;
-				padding: 0
-			}
-
-			*:focus-visible {
-				outline: 2px solid var(--primary);
-				outline-offset: 2px
-			}
+			* { box-sizing: border-box; margin: 0; padding: 0 }
+			*:focus-visible { outline: 2px solid var(--primaryColor); outline-offset: 2px }
 
 			body {
-				background: var(--bg);
-				color: var(--text);
+				background: var(--backgroundColor);
+				color: var(--textColor);
 				font-family: sans-serif;
 				line-height: 1.25;
 				padding: 1.5rem;
@@ -65,11 +57,7 @@
 				margin-right: auto
 			}
 
-			h1 {
-				margin: .5rem 0;
-				font-size: 2rem;
-				font-weight: 600
-			}
+			h1 { margin: .5rem 0; font-size: 2rem; font-weight: 600 }
 
 			main {
 				display: grid;
@@ -80,8 +68,8 @@
 			}
 
 			section {
-				background: var(--surface);
-				border: 1px solid var(--border);
+				background: var(--surfaceColor);
+				border: 1px solid var(--borderColor);
 				border-radius: 8px;
 				padding: 1.5rem;
 				min-width: 0
@@ -89,33 +77,33 @@
 
 			h2 {
 				margin: .5rem 0 1rem;
-				border-bottom: 1px solid var(--border);
+				border-bottom: 1px solid var(--borderColor);
 				padding-bottom: .75rem;
 				font-size: 1.2rem;
 				font-weight: 600
 			}
 
 			.group {
-				background: var(--bg);
-				border: 1px solid var(--border);
+				background: var(--backgroundColor);
+				border: 1px solid var(--borderColor);
 				padding: 1rem;
 				border-radius: 6px;
 				margin-bottom: 1rem;
 				position: relative;
-				transition: border-color .15s,background-color .15s
+				transition: border-color .15s, background-color .15s
 			}
 
-			.group.drag-active {
-				border-color: var(--primary);
-				background: var(--surface)
+			.group.dragActive {
+				border-color: var(--primaryColor);
+				background: var(--surfaceColor)
 			}
 
-			.group.drag-active::after {
+			.group.dragActive::after {
 				content: "Drop Font File";
 				position: absolute;
 				inset: 0;
-				background: var(--surface);
-				color: var(--primary);
+				background: var(--surfaceColor);
+				color: var(--primaryColor);
 				display: flex;
 				align-items: center;
 				justify-content: center;
@@ -157,13 +145,13 @@
 				font-size: .9rem
 			}
 
-			input:not([type=color]),textarea,select,button {
+			input:not([type=color]), textarea, select, button {
 				width: 100%;
 				padding: .5rem .75rem;
-				border: 1px solid var(--border);
+				border: 1px solid var(--borderColor);
 				border-radius: 4px;
-				background: var(--surface);
-				color: var(--text);
+				background: var(--surfaceColor);
+				color: var(--textColor);
 				margin-top: 4px;
 				font-family: inherit;
 				font-size: .95rem
@@ -176,10 +164,7 @@
 				font-size: .8rem
 			}
 
-			.row {
-				display: flex;
-				gap: 1rem
-			}
+			.row { display: flex; gap: 1rem }
 
 			.controls {
 				display: flex;
@@ -188,63 +173,46 @@
 				margin-bottom: 1rem
 			}
 
-			.controls-selects {
+			.controlsSelection {
 				display: flex;
 				flex-wrap: wrap;
 				gap: .75rem;
 				flex: 1
 			}
 
-			.controls select {
-				width: auto;
-				margin-top: 0
-			}
-
-			button {
-				background: var(--primary);
-				color: #fff;
-				border: 0;
-				padding: .5rem 1rem;
-				cursor: pointer;
-				transition: background .1s;
+			.controls select, button {
 				width: auto;
 				margin-top: 0;
 				flex-shrink: 0
 			}
 
-			button:hover {
-				background: var(--hover)
+			button {
+				background: var(--primaryColor);
+				color: #fff;
+				border: 0;
+				padding: .5rem 1rem;
+				cursor: pointer;
+				transition: background .1s
 			}
 
+			button:hover { background: var(--hoverColor) }
+
 			#preview {
-				background: var(--surface);
-				border: 1px solid var(--border);
+				background: var(--surfaceColor);
+				border: 1px solid var(--borderColor);
 				border-radius: 6px;
 				overflow: auto;
 				margin-bottom: 1.5rem
 			}
 
-			#container {
-				padding: 1rem;
-				display: flex;
-				align-items: flex-start
-			}
+			#container { padding: 1rem; display: flex; align-items: flex-start }
+			canvas { transform-origin: top left; display: block; flex-shrink: 0 }
 
-			canvas {
-				transform-origin: top left;
-				display: block;
-				flex-shrink: 0
-			}
-
-			.results {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-				gap: 1rem
-			}
+			.results { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem }
 
 			.card {
-				background: var(--bg);
-				border: 1px solid var(--border);
+				background: var(--backgroundColor);
+				border: 1px solid var(--borderColor);
 				padding: 1rem;
 				border-radius: 6px;
 				min-width: 0
@@ -257,37 +225,23 @@
 				margin-top: .5rem
 			}
 
-			.stat-grid {
-				display: grid;
-				gap: .5rem
-			}
+			.statisticGrid { display: grid; gap: .5rem }
+			.statisticRow { display: flex; justify-content: space-between; align-items: center }
 
-			.stat-row {
-				display: flex;
-				justify-content: space-between;
-				align-items: center
-			}
-
-			.stat-group {
+			.statisticGroup {
 				margin-top: .5rem;
-				border-top: 1px solid var(--border);
+				border-top: 1px solid var(--borderColor);
 				padding-top: .5rem
 			}
 
-			.stat-group-title {
+			.statisticTitle {
 				font-weight: 600;
 				margin-bottom: .25rem;
-				color: var(--text)
+				color: var(--textColor)
 			}
 
-			.stat-label {
-				color: var(--text);
-				opacity: .8
-			}
-
-			.stat-value {
-				font-weight: 600
-			}
+			.statisticLabel { color: var(--textColor); opacity: .8 }
+			.statisticValue { font-weight: 600 }
 
 			.indicator {
 				width: 14px;
@@ -298,49 +252,37 @@
 				flex-shrink: 0
 			}
 
-			.action-btn {
+			.actionButton {
 				margin-left: auto;
 				background: transparent;
-				color: var(--primary);
+				color: var(--primaryColor);
 				border: 1px solid transparent;
 				padding: .25rem .5rem;
 				font-size: .8rem;
 				border-radius: 4px
 			}
 
-			.action-btn:hover {
-				background: var(--bg);
-				border-color: var(--dim)
+			.actionButton:hover {
+				background: var(--backgroundColor);
+				border-color: var(--dimmedColor)
 			}
 
 			.spinner {
 				width: 24px;
 				height: 24px;
-				border: 3px solid var(--border);
-				border-top-color: var(--primary);
+				border: 3px solid var(--borderColor);
+				border-top-color: var(--primaryColor);
 				border-radius: 50%;
 				animation: spin 1s linear infinite;
 				margin: 1rem auto
 			}
 
-			@keyframes spin {
-				to {
-					transform: rotate(360deg)
-				}
-			}
+			@keyframes spin { to { transform: rotate(360deg) } }
+			[hidden] { display: none !important }
 
-			[hidden] {
-				display: none!important
-			}
-
-			@media(max-width: 900px) {
-				main {
-					grid-template-columns:1fr
-				}
-
-				.results {
-					grid-template-columns: 1fr
-				}
+			@media (max-width: 900px) {
+				main { grid-template-columns: 1fr }
+				.results { grid-template-columns: 1fr }
 			}
 		</style>
 	</head>
@@ -363,22 +305,14 @@
 					</div>
 					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
 						<label for="file1" style="margin-bottom:0">Font File</label>
-						<button id="clear1" class="action-btn" aria-label="Clear Font 1" title="Clear font">Clear</button>
+						<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>
-						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
-					</label>
-					<label>
-						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
-					</label>
+					<label>Text<textarea id="text1" maxlength="1000">Idealogy</textarea></label>
+					<label>Size (px)<input type="number" id="size1" value="100" min="8" max="500"></label>
 					<div class="row">
-						<label>
-							Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100">
-						</label>
-						<label>
-							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
-						</label>
+						<label>Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100"></label>
+						<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"></label>
 					</div>
 				</div>
 				<div class="group">
@@ -388,29 +322,21 @@
 					</div>
 					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
 						<label for="file2" style="margin-bottom:0">Font File</label>
-						<button id="clear2" class="action-btn" aria-label="Clear Font 2" title="Clear font">Clear</button>
+						<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>
-						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
-					</label>
-					<label>
-						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
-					</label>
+					<label>Text<textarea id="text2" maxlength="1000">Идеология</textarea></label>
+					<label>Size (px)<input type="number" id="size2" value="100" min="8" max="500"></label>
 					<div class="row">
-						<label>
-							Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100">
-						</label>
-						<label>
-							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
-						</label>
+						<label>Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100"></label>
+						<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"></label>
 					</div>
 				</div>
 			</section>
 			<section>
 				<h2>Visualization</h2>
 				<div class="controls">
-					<div class="controls-selects">
+					<div class="controlsSelection">
 						<select id="zoom" aria-label="Zoom level">
 							<option value="fit">Fit to View</option>
 							<option value="100">100% Scale</option>
@@ -441,7 +367,7 @@
 						<div class="header">
 							<div id="dot1" class="indicator"></div>
 							<span id="analysisName1">Font 1 Analysis</span>
-							<button class="action-btn copy-btn" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
+							<button class="actionButton copyButton" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
 						<div id="result1" class="output" aria-live="polite"></div>
 					</div>
@@ -449,7 +375,7 @@
 						<div class="header">
 							<div id="dot2" class="indicator"></div>
 							<span id="analysisName2">Font 2 Analysis</span>
-							<button class="action-btn copy-btn" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
+							<button class="actionButton copyButton" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
 						<div id="result2" class="output" aria-live="polite"></div>
 					</div>
@@ -463,33 +389,30 @@
 			const fontkit = fontkitModule.default || fontkitModule;
 			window.Buffer = Buffer;
 
-			const dom = new Proxy({}, { get: (_, id) => document.getElementById(id) });
-			const isLittleEndian = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
+			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
+			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 
 			class DensityTool {
 				constructor() {
 					this.fonts = [];
 					this.loadErrors = [];
 					this.loading = [false, false];
-					this.loadCounters = [0, 0];
-					this.renderCache = [];
-					this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
+					this.loadSequence = [0, 0];
+					this.renderingCache = [];
+					this.offscreenCanvases = [document.createElement('canvas'), document.createElement('canvas')];
 					this.graphWidth = 150;
 					this.graphPadding = 20;
-					this.context = dom.canvas.getContext('2d');
-					this.blocks = [];
-					this.fetchBlocks();
-					this.bind();
+					this.context = elements.canvas.getContext('2d');
+					this.unicodeBlocks = [];
+					this.fetchUnicodeBlocks();
+					this.bindEvents();
 					this.setTheme('auto');
 					this.update();
 				}
 
-				fetchBlocks() {
+				fetchUnicodeBlocks() {
 					fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.unicode.org/Public/latest/ucd/Blocks.txt'))
-						.then(response => {
-							if (!response.ok) throw new Error('Network response was not ok');
-							return response.text();
-						})
+						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
 						.then(text => {
 							const ranges = [];
 							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/;
@@ -498,49 +421,49 @@
 								const match = line.match(regex);
 								match && ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
 							});
-							ranges.length > 0 && (this.blocks = ranges, console.log('Unicode Blocks updated dynamically.'), this.update());
+							ranges.length > 0 && (this.unicodeBlocks = ranges, this.update());
 						})
-						.catch(error => console.warn('Failed to fetch Unicode Blocks dynamically. Script detection will fallback to basic heuristics.', error));
+						.catch(error => console.warn('Block fetch failed', error));
 				}
 
-				bind() {
-					const schedule = callback => { let frame; return () => (frame && cancelAnimationFrame(frame), frame = requestAnimationFrame(callback)); };
+				bindEvents() {
 					const debounce = (callback, delay) => { let timer; return (...args) => (clearTimeout(timer), timer = setTimeout(() => callback(...args), delay)); };
-					const refresh = schedule(() => this.update());
-					const debouncedRefresh = debounce(() => this.update(), 300);
-					const resize = schedule(() => this.updateScale());
+					const debouncedUpdate = debounce(() => this.update(), 300);
+					const updateScale = () => this.updateScale();
 
-					dom.zoom.onchange = resize;
-					['render', 'density', 'guides'].forEach(id => dom[id].onchange = refresh);
-					dom.export.onclick = () => Object.assign(document.createElement('a'), {
-						href: dom.canvas.toDataURL(),
+					elements.zoom.onchange = updateScale;
+					['render', 'density', 'guides'].forEach(id => elements[id].onchange = () => this.update());
+
+					elements.export.onclick = () => Object.assign(document.createElement('a'), {
+						href: elements.canvas.toDataURL(),
 						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
 					}).click();
-					dom.theme.onchange = event => this.setTheme(event.target.value);
-					window.onresize = resize;
 					
-					document.querySelectorAll('.copy-btn').forEach(button => {
-						const original = button.textContent;
+					elements.theme.onchange = event => this.setTheme(event.target.value);
+					window.onresize = updateScale;
+
+					document.querySelectorAll('.copyButton').forEach(button => {
+						const originalText = button.textContent;
 						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText)
 							.then(() => button.textContent = 'Copied!').catch(() => button.textContent = 'Error')
-							.finally(() => setTimeout(() => button.textContent = original, 2000));
+							.finally(() => setTimeout(() => button.textContent = originalText, 2000));
 					});
 
 					[1, 2].forEach((number, index) => {
-						const file = dom[`file${number}`];
-						const group = file.closest('.group');
+						const fileInput = elements[`file${number}`];
+						const group = fileInput.closest('.group');
 						
-						file.onchange = event => this.loadFont(event.target.files[0], index);
-						dom[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, file.value = '', this.update());
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => dom[`${key}${number}`].oninput = debouncedRefresh);
+						fileInput.onchange = event => this.loadFont(event.target.files[0], index);
+						elements[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, fileInput.value = '', this.update());
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => elements[`${key}${number}`].oninput = debouncedUpdate);
 						
-						group.ondragover = event => (event.preventDefault(), group.classList.add('drag-active'));
-						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('drag-active');
+						group.ondragover = event => (event.preventDefault(), group.classList.add('dragActive'));
+						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('dragActive');
 						group.ondrop = event => {
 							event.preventDefault();
-							group.classList.remove('drag-active');
-							const dropped = event.dataTransfer.files[0];
-							dropped && (file.files = event.dataTransfer.files, this.loadFont(dropped, index));
+							group.classList.remove('dragActive');
+							const droppedFile = event.dataTransfer.files[0];
+							droppedFile && (fileInput.files = event.dataTransfer.files, this.loadFont(droppedFile, index));
 						};
 					});
 				}
@@ -548,32 +471,28 @@
 				setTheme(theme) {
 					document.documentElement.classList.remove('light', 'dark');
 					theme !== 'auto' && document.documentElement.classList.add(theme);
-					dom.theme.value = theme;
-				}
-
-				getFontName(font, number) {
-					return font ? (font.fullName || font.familyName || font.postscriptName || `Font ${number}`) : `Font ${number}`;
+					elements.theme.value = theme;
 				}
 
 				async loadFont(file, index) {
-					const loadId = ++this.loadCounters[index];
+					const currentSequence = ++this.loadSequence[index];
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
 					
 					try {
 						if (!file) return;
-						if (file.size > 30 << 20) throw new Error('File too large (max 30MB)');
+						if (file.size > 30 * 1024 * 1024) throw new Error('File too large (max 30MB)');
 						const buffer = await file.arrayBuffer();
-						if (loadId === this.loadCounters[index]) {
+						if (currentSequence === this.loadSequence[index]) {
 							const font = fontkit.create(window.Buffer.from(buffer));
 							if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}
 					} catch (error) {
-						loadId === this.loadCounters[index] && (this.loadErrors[index] = error.message);
+						currentSequence === this.loadSequence[index] && (this.loadErrors[index] = error.message);
 					} finally {
-						loadId === this.loadCounters[index] && (this.loading[index] = false, this.update());
+						currentSequence === this.loadSequence[index] && (this.loading[index] = false, this.update());
 					}
 				}
 
@@ -581,27 +500,25 @@
 					const number = index + 1;
 					const inputs = {
 						font: this.fonts[index],
-						content: dom[`text${number}`].value,
-						fontSize: +dom[`size${number}`].value || 0,
-						letterSpacing: +dom[`spacing${number}`].value || 0,
-						color: dom[`color${number}`].value
+						content: elements[`text${number}`].value,
+						fontSize: +elements[`size${number}`].value || 0,
+						letterSpacing: +elements[`spacing${number}`].value || 0,
+						color: elements[`color${number}`].value
 					};
 					
 					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
 					
-					const cached = this.renderCache[index];
+					const cached = this.renderingCache[index];
 					if (cached) {
 						const keys = Object.keys(inputs);
 						if (keys.every(key => cached.inputs[key] === inputs[key])) return cached.data;
-						
-						const otherPropsMatch = keys.every(key => key === 'color' || cached.inputs[key] === inputs[key]);
-						if (otherPropsMatch && cached.data) {
-							const ctx = cached.data.canvas.getContext('2d');
-							ctx.save();
-							ctx.globalCompositeOperation = 'source-in';
-							ctx.fillStyle = inputs.color;
-							ctx.fillRect(0, 0, cached.data.width, cached.data.height);
-							ctx.restore();
+						if (keys.every(key => key === 'color' || cached.inputs[key] === inputs[key]) && cached.data) {
+							const context = cached.data.canvas.getContext('2d');
+							context.save();
+							context.globalCompositeOperation = 'source-in';
+							context.fillStyle = inputs.color;
+							context.fillRect(0, 0, cached.data.width, cached.data.height);
+							context.restore();
 							cached.inputs.color = inputs.color;
 							return cached.data;
 						}
@@ -612,101 +529,73 @@
 
 				getScript(char) {
 					const code = char.codePointAt(0);
-					let low = 0, high = this.blocks.length - 1;
+					let low = 0, high = this.unicodeBlocks.length - 1;
 					
 					while (low <= high) {
 						const mid = (low + high) >>> 1;
-						const block = this.blocks[mid];
-						
+						const block = this.unicodeBlocks[mid];
 						if (code < block[0]) { high = mid - 1; continue; }
 						if (code > block[1]) { low = mid + 1; continue; }
 						
 						const name = block[2];
-						if (name === "Basic Latin") {
-							if (code <= 0x0040 || (code >= 0x005B && code <= 0x0060) || (code >= 0x007B)) return 'Common';
-							return 'Latin';
-						}
+						if (name === "Basic Latin") return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
 						if (name.includes("Latin")) return 'Latin';
-						if (['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols', 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing', 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B', 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
-							.includes(name)) return 'Common';
-						return name;
+						return ['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols', 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing', 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B', 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
+							.includes(name) ? 'Common' : name;
 					}
 					return 'Other';
 				}
 
-				segmentText(text) {
+				generateRenderData(index, inputs) {
+					const { font, content, fontSize, letterSpacing, color } = inputs;
+					const size = Math.min(Math.max(fontSize, 1), 2000);
+					const scale = size / font.unitsPerEm;
+					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
+
 					const segments = [];
 					let currentSegment = { text: '', script: null };
-					
-					for (const char of text) {
+					for (const char of content) {
 						const script = this.getScript(char);
-						if (!currentSegment.script) {
-							currentSegment.script = script === 'Common' ? 'Other' : script;
-							currentSegment.text += char;
-							continue;
-						}
-						if (script === 'Common' || script === currentSegment.script) {
-							currentSegment.text += char;
-							continue;
-						}
+						if (!currentSegment.script) { currentSegment = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
+						if (script === 'Common' || script === currentSegment.script) { currentSegment.text += char; continue; }
 						segments.push(currentSegment);
 						currentSegment = { text: char, script };
 					}
 					currentSegment.text && segments.push(currentSegment);
-					return segments;
-				}
 
-				generateRenderData(index, inputs) {
-					const { font, content, fontSize, letterSpacing, color } = inputs;
-					const size = Math.max(1, Math.min(fontSize, 2000));
-					const scale = size / font.unitsPerEm;
-					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-					const fontAscent = (font.ascent || 0) * scale;
-					const fontDescent = Math.abs(font.descent || 0) * scale;
-					const fontXHeight = (font.xHeight || 0) * scale;
-					const fontCapHeight = (font.capHeight || 0) * scale;
-
-					const segments = this.segmentText(content);
-					const runs = segments.map(seg => ({ run: font.layout(seg.text), text: seg.text }));
-
+					const runs = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
 					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
-							const pos = run.positions[i];
-							const x = currentX + pos.xOffset;
-							const y = pos.yOffset;
-							const bbox = glyph.bbox;
-							
-							if (bbox) {
-								minX = Math.min(minX, x + bbox.minX);
-								maxX = Math.max(maxX, x + bbox.maxX);
-								minY = Math.min(minY, y + bbox.minY);
-								maxY = Math.max(maxY, y + bbox.maxY);
+							const position = run.positions[i];
+							const boundingBox = glyph.bbox;
+							if (boundingBox) {
+								const x = currentX + position.xOffset;
+								const y = position.yOffset;
+								minX = Math.min(minX, x + boundingBox.minX);
+								maxX = Math.max(maxX, x + boundingBox.maxX);
+								minY = Math.min(minY, y + boundingBox.minY);
+								maxY = Math.max(maxY, y + boundingBox.maxY);
 							}
-							currentX += pos.xAdvance + tracking;
+							currentX += position.xAdvance + tracking;
 						});
 					});
 
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
-					
-					const advanceWidth = Math.ceil(currentX * scale);
-					const x1 = minX * scale, x2 = maxX * scale, y1 = maxY * scale, y2 = minY * scale;
-					const boundingBoxWidth = Math.ceil(x2 - x1);
-					
-					if (advanceWidth <= 0 && boundingBoxWidth <= 0) return null;
-					
 					const metrics = {
-						ascent: Math.max(y1, fontAscent),
-						descent: Math.max(-y2, fontDescent),
-						fontAscent, fontDescent, fontXHeight, fontCapHeight, x1, x2,
-						boundingBoxWidth, advanceWidth
+						ascent: Math.max(maxY * scale, (font.ascent || 0) * scale),
+						descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale),
+						fontAscent: (font.ascent || 0) * scale,
+						fontDescent: Math.abs(font.descent || 0) * scale,
+						fontCapHeight: (font.capHeight || 0) * scale,
+						fontXHeight: (font.xHeight || 0) * scale,
+						advanceWidth: Math.ceil(currentX * scale)
 					};
 					
-					const minXPixel = Math.min(0, metrics.x1);
-					const maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
+					const minXPixel = Math.min(0, minX * scale);
+					const maxXPixel = Math.max(metrics.advanceWidth, maxX * scale);
 					const drawOffsetX = -minXPixel;
 					const width = Math.ceil(maxXPixel - minXPixel);
 					const baseline = Math.ceil(metrics.ascent);
@@ -714,11 +603,10 @@
 					
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 					
-					const fontCanvas = this.analysisCanvases[index];
-					fontCanvas.width = Math.max(fontCanvas.width, width);
-					fontCanvas.height = Math.max(fontCanvas.height, height);
-					
-					const context = fontCanvas.getContext('2d');
+					const canvas = this.offscreenCanvases[index];
+					canvas.width = Math.max(canvas.width, width);
+					canvas.height = Math.max(canvas.height, height);
+					const context = canvas.getContext('2d');
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
@@ -728,86 +616,50 @@
 					let drawX = 0;
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
-							const pos = run.positions[i];
+							const position = run.positions[i];
 							context.save();
-							context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
+							context.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
 							context.beginPath();
 							glyph.render(context, size);
 							context.restore();
-							drawX += pos.xAdvance + tracking;
+							drawX += position.xAdvance + tracking;
 						});
 					});
-
 					context.restore();
 					
 					const data = {
-						...this.analyzePixels(fontCanvas, width, height),
-						...metrics, drawOffsetX, width, height, canvas: fontCanvas,
+						...this.analyzePixels(canvas, width, height),
+						...metrics, drawOffsetX, width, height, canvas,
 						baseline, letterSpacing, fontSize: size, font
 					};
-					
-					this.renderCache[index] = { inputs, data };
+					this.renderingCache[index] = { inputs, data };
 					return data;
-				}
-
-				analyze(index) {
-					const number = index + 1;
-					try {
-						const data = this.getRenderData(index);
-						if (!data) return null;
-						
-						const hasInk = data.maxY >= data.minY;
-						const area = Math.max(1, dom.density.value === 'ink'
-							? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1)
-							: Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-						
-						return {
-							...data,
-							baselineShift: +dom[`shift${number}`].value || 0,
-							density: ((data.inkPixels / area) * 100).toFixed(1),
-							yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-							yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
-						};
-					} catch (error) {
-						return { error: error.message };
-					}
 				}
 
 				analyzePixels(canvas, width, height) {
 					const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
-					const pixel32 = new Uint32Array(data.buffer);
+					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
-					const alphaShift = isLittleEndian ? 31 : 7;
-					const alphaMask = isLittleEndian ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
+					const alphaMask = isLittleEndianArchitecture
+						? (pixel => pixel >>> 31)
+						: (pixel => (pixel >>> 7) & 1);
 
 					for (let y = 0; y < height; y++) {
 						const rowOffset = y * width;
-						let firstX = -1, lastX = -1;
-
-						for (let x = 0; x < width; x++) {
-							if (alphaMask(pixel32[rowOffset + x])) {
-								firstX = x;
-								break;
-							}
-						}
+						let firstX = -1;
+						for (let x = 0; x < width; x++) if (alphaMask(pixelDataInt32[rowOffset + x])) { firstX = x; break; }
 
 						if (firstX !== -1) {
-							for (let x = width - 1; x > firstX; x--) {
-								if (alphaMask(pixel32[rowOffset + x])) {
-									lastX = x;
-									break;
-								}
-							}
+							let lastX = -1;
+							for (let x = width - 1; x > firstX; x--) if (alphaMask(pixelDataInt32[rowOffset + x])) { lastX = x; break; }
 							if (lastX === -1) lastX = firstX;
 
 							let rowInk = 1;
 							if (lastX > firstX) {
 								rowInk++;
-								for (let k = firstX + 1; k < lastX; k++) {
-									rowInk += alphaMask(pixel32[rowOffset + k]);
-								}
+								for (let k = firstX + 1; k < lastX; k++) rowInk += alphaMask(pixelDataInt32[rowOffset + k]);
 							}
 
 							inkPixels += rowInk;
@@ -818,168 +670,152 @@
 							if (lastX > maxX) maxX = lastX;
 						}
 					}
-					
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
 
 				update() {
 					this.analyses = [1, 2].map((number, index) => {
-						dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value;
-						return this.analyze(index);
+						elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
+						try {
+							const data = this.getRenderData(index);
+							if (!data) return null;
+							const hasInk = data.maxY >= data.minY;
+							const area = Math.max(1, elements.density.value === 'ink'
+								? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1)
+								: Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+
+							return {
+								...data,
+								baselineShift: +elements[`shift${number}`].value || 0,
+								density: ((data.inkPixels / area) * 100).toFixed(1),
+								yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+								yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
+							};
+						} catch (error) { return { error: error.message }; }
 					});
 					this.draw();
 					[1, 2].forEach((number, index) => this.updateResult(number, index));
 				}
 
 				draw() {
-					const valid = this.analyses.filter(analysis => analysis && !analysis.error);
-					if (!valid.length) {
-						dom.canvas.height = 150;
-						this.updateScale();
-						return;
-					}
-					
-					const dimensions = this.computeDimensions(valid);
-					dom.canvas.width = dimensions.width;
-					dom.canvas.height = dimensions.height;
-					
-					const side = dom.render.value === 'side' && valid.length > 1;
-					let translateX = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
-					
-					this.analyses.forEach((analysis, index) => {
-						analysis && !analysis.error && this.drawAnalysis(analysis, index, dimensions, side, translateX);
-						side && analysis && !analysis.error && (translateX += analysis.canvas.width);
-					});
-					
-					const guides = dom.guides.value;
-					if (['baseline', 'metrics'].includes(guides)) {
-						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
-					}
-					
-					if (guides === 'metrics') {
-						valid.forEach((analysis, index) => {
-							const y = dimensions.baseline - analysis.baselineShift;
-							this.context.fillStyle = dom[`color${index + 1}`].value;
-							this.context.globalAlpha = 0.5;
-							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), dom.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), dom.canvas.width, 1);
-							this.context.globalAlpha = 0.3;
-							analysis.fontCapHeight && this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), dom.canvas.width, 1);
-							analysis.fontXHeight && this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), dom.canvas.width, 1);
-							this.context.globalAlpha = 1.0;
-						});
-					}
-					
-					this.updateScale();
-				}
+					const validAnalyses = this.analyses.filter(analysis => analysis && !analysis.error);
+					if (!validAnalyses.length) { elements.canvas.height = 150; this.updateScale(); return; }
 
-				drawAnalysis(analysis, index, dimensions, side, translateX) {
-					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-					const blend = index > 0 && this.analyses.every(item => item && !item.error);
-					const color = dom[`color${index + 1}`].value;
-					
-					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-					
-					const max = Math.max(1, ...analysis.densityByRow);
-					this.context.fillStyle = color;
-					this.context.beginPath();
-					
-					const scale = this.graphWidth / max;
-					const rows = analysis.densityByRow;
-					let currentWidth = 0, startY = -1;
-
-					for (let rowY = 0; rowY < rows.length; rowY++) {
-						const value = rows[rowY];
-						const barWidth = value ? value * scale : 0;
-
-						if (barWidth !== currentWidth) {
-							if (currentWidth > 0) {
-								this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
-							}
-							currentWidth = barWidth;
-							startY = rowY;
-						}
-					}
-					
-					if (currentWidth > 0) {
-						this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rows.length - startY);
-					}
-
-					this.context.fill();
-					
-					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
-					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height,
-						graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
-					this.context.globalCompositeOperation = 'source-over';
-				}
-
-				computeDimensions(analyses) {
-					const side = dom.render.value === 'side' && analyses.length > 1;
-					const max = callback => Math.max(0, ...analyses.map(callback));
+					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
+					const max = callback => Math.max(0, ...validAnalyses.map(callback));
 					const maxAscent = max(item => item.baseline + item.baselineShift);
 					const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
 					const maxOffsetX = max(item => item.drawOffsetX);
-					const width = side 
-						? analyses.reduce((total, item) => total + item.width, 0)
+
+					const totalWidth = sideMode
+						? validAnalyses.reduce((total, item) => total + item.width, 0)
 						: maxOffsetX + max(item => item.width - item.drawOffsetX);
-					
-					return {
-						width: Math.ceil(this.graphWidth + this.graphPadding + width),
+
+					const dimensions = {
+						width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth),
 						height: Math.ceil(maxAscent + maxDescent),
 						baseline: Math.ceil(maxAscent),
 						maxDrawOffsetX: maxOffsetX
 					};
+					
+					elements.canvas.width = dimensions.width;
+					elements.canvas.height = dimensions.height;
+					
+					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
+					
+					this.analyses.forEach((analysis, index) => {
+						if (!analysis || analysis.error) return;
+						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+						const blend = index > 0 && this.analyses.every(item => item && !item.error);
+
+						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+						this.context.fillStyle = elements[`color${index + 1}`].value;
+						this.context.beginPath();
+
+						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
+						let currentWidth = 0, startY = -1;
+						for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
+							const barWidth = analysis.densityByRow[rowY] ? analysis.densityByRow[rowY] * scale : 0;
+							if (barWidth !== currentWidth) {
+								if (currentWidth > 0) this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
+								currentWidth = barWidth; startY = rowY;
+							}
+						}
+						if (currentWidth > 0) this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
+						this.context.fill();
+
+						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
+						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height,
+							drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+						this.context.globalCompositeOperation = 'source-over';
+
+						if (sideMode) currentTranslateX += analysis.canvas.width;
+					});
+					
+					const guides = elements.guides.value;
+					if (['baseline', 'metrics'].includes(guides)) {
+						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+						this.context.fillRect(0, dimensions.baseline, elements.canvas.width, 1);
+					}
+					
+					if (guides === 'metrics') {
+						validAnalyses.forEach((analysis, index) => {
+							const y = dimensions.baseline - analysis.baselineShift;
+							this.context.fillStyle = elements[`color${index + 1}`].value;
+							this.context.globalAlpha = 0.5;
+							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), elements.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), elements.canvas.width, 1);
+							this.context.globalAlpha = 0.3;
+							this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), elements.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), elements.canvas.width, 1);
+							this.context.globalAlpha = 1.0;
+						});
+					}
+					this.updateScale();
 				}
 
 				updateScale() {
-					const { canvas, container, preview } = dom;
+					const { canvas, container, preview } = elements;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
 					
-					if (dom.zoom.value !== 'fit' || !canvas.width) return;
+					if (elements.zoom.value !== 'fit' || !canvas.width) return;
 					
 					const style = getComputedStyle(container);
-					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-					const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
+					const scale = Math.min((preview.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / canvas.width, 1);
 					
 					canvas.style.transform = `scale(${scale})`;
-					container.style.width = `${canvas.width * scale + paddingX}px`;
-					container.style.height = `${canvas.height * scale + paddingY}px`;
+					container.style.width = `${canvas.width * scale + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)}px`;
+					container.style.height = `${canvas.height * scale + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)}px`;
 					container.style.overflow = 'hidden';
 				}
 
 				updateResult(number, index) {
 					const analysis = this.analyses[index];
-					const root = dom[`result${number}`];
-					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}`
-						: !this.fonts[index] ? 'Load font.'
-						: !analysis ? 'Enter text.'
-						: analysis.error ? `Error: ${analysis.error}`
-						: '';
+					const error = this.loadErrors[index] || (analysis && analysis.error);
+					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : '';
 					
-					const name = this.getFontName(this.fonts[index], number);
-					dom[`name${number}`].textContent = dom[`name${number}`].title = name;
-					dom[`analysisName${number}`].textContent = dom[`analysisName${number}`].title = `${name} Analysis`;
-					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
-					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
+					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
+					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
+					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
+					elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
+					elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 					
-					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>'
+					elements[`result${number}`].innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>'
 						: message ? `<div class="state-message">${message}</div>`
-						: `<div class="stat-grid">
-							<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div>
-							<div class="stat-group">
-								<div class="stat-group-title">Ink Bounds</div>
-								<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div>
-								<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div>
+						: `<div class="statisticGrid">
+							<div class="statisticRow"><span class="statisticLabel">Density</span><span class="statisticValue">${analysis.density}%</span></div>
+							<div class="statisticGroup">
+								<div class="statisticTitle">Ink Bounds</div>
+								<div class="statisticRow"><span class="statisticLabel">Max Y</span><span class="statisticValue">${analysis.yMax}</span></div>
+								<div class="statisticRow"><span class="statisticLabel">Min Y</span><span class="statisticValue">${analysis.yMin}</span></div>
 							</div>
-							<div class="stat-group">
-								<div class="stat-group-title">Metrics</div>
-								<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div>
-								<div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div>
-								<div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div>
-								<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div>
+							<div class="statisticGroup">
+								<div class="statisticTitle">Metrics</div>
+								<div class="statisticRow"><span class="statisticLabel">Ascent</span><span class="statisticValue">${Math.round(analysis.fontAscent)}</span></div>
+								<div class="statisticRow"><span class="statisticLabel">Cap Height</span><span class="statisticValue">${Math.round(analysis.fontCapHeight)}</span></div>
+								<div class="statisticRow"><span class="statisticLabel">x-Height</span><span class="statisticValue">${Math.round(analysis.fontXHeight)}</span></div>
+								<div class="statisticRow"><span class="statisticLabel">Descent</span><span class="statisticValue">${Math.round(analysis.fontDescent)}</span></div>
 							</div>
 						</div>`;
 				}
