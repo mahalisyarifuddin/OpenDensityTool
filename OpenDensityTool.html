@@ -734,11 +734,22 @@
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 					for (let y = 0; y < height; y++) {
-						let rowInk = 0;
+						let rowInk = 0, firstX = -1, lastX = -1;
 						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
-							data[i] >= 128 && (rowInk++ === 0 && x < minX && (minX = x), x > maxX && (maxX = x));
+							if (data[i] >= 128) {
+								if (rowInk === 0) firstX = x;
+								lastX = x;
+								rowInk++;
+							}
 						}
-						rowInk > 0 && (inkPixels += rowInk, densityByRow[y] = rowInk, y < minY && (minY = y), maxY = y);
+						if (rowInk > 0) {
+							inkPixels += rowInk;
+							densityByRow[y] = rowInk;
+							if (y < minY) minY = y;
+							maxY = y;
+							if (firstX < minX) minX = firstX;
+							if (lastX > maxX) maxX = lastX;
+						}
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
