@@ -704,7 +704,17 @@
 							const pos = run.positions[i];
 							context.save();
 							context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
-							glyph.render(context, size);
+							context.beginPath();
+							const path = glyph.path;
+							for (let j = 0; j < path.commands.length; j++) {
+								const cmd = path.commands[j];
+								if (cmd.command === 'moveTo') context.moveTo(cmd.args[0] * scale, cmd.args[1] * scale);
+								else if (cmd.command === 'lineTo') context.lineTo(cmd.args[0] * scale, cmd.args[1] * scale);
+								else if (cmd.command === 'quadraticCurveTo') context.quadraticCurveTo(cmd.args[0] * scale, cmd.args[1] * scale, cmd.args[2] * scale, cmd.args[3] * scale);
+								else if (cmd.command === 'bezierCurveTo') context.bezierCurveTo(cmd.args[0] * scale, cmd.args[1] * scale, cmd.args[2] * scale, cmd.args[3] * scale, cmd.args[4] * scale, cmd.args[5] * scale);
+								else if (cmd.command === 'closePath') context.closePath();
+							}
+							context.fill();
 							context.restore();
 							drawX += pos.xAdvance + tracking;
 						});
