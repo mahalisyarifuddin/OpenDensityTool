@@ -507,7 +507,7 @@
 							if (ranges.length > 0) {
 								this.blocks = ranges;
 								console.log('Unicode Blocks updated dynamically.');
-								this.update(); // Refresh if fonts are already loaded
+								this.update();
 							}
 						})
 						.catch(error => {
@@ -600,17 +600,21 @@
 					while (low <= high) {
 						const mid = (low + high) >>> 1;
 						const block = this.blocks[mid];
-						if (code < block[0]) high = mid - 1;
-						else if (code > block[1]) low = mid + 1;
-						else {
-							const name = block[2];
-							if (name === "Basic Latin") {
-								// Basic Latin splits into Common and Latin
-								if (code <= 0x0040 || (code >= 0x005B && code <= 0x0060) || (code >= 0x007B)) return 'Common';
-								return 'Latin';
-							}
-							if (name.includes("Latin")) return 'Latin';
-							if (['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols',
+						if (code < block[0]) {
+							high = mid - 1;
+							continue;
+						}
+						if (code > block[1]) {
+							low = mid + 1;
+							continue;
+						}
+						const name = block[2];
+						if (name === "Basic Latin") {
+							if (code <= 0x0040 || (code >= 0x005B && code <= 0x0060) || (code >= 0x007B)) return 'Common';
+							return 'Latin';
+						}
+						if (name.includes("Latin")) return 'Latin';
+						if (['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols',
 								 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms',
 								 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures',
 								 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing',
@@ -620,8 +624,7 @@
 								 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows',
 								 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
 								 .includes(name)) return 'Common';
-							return name;
-						}
+						return name;
 					}
 					return 'Other';
 				}
@@ -634,12 +637,14 @@
 						if (!currentSegment.script) {
 							currentSegment.script = script === 'Common' ? 'Other' : script;
 							currentSegment.text += char;
-						} else if (script === 'Common' || script === currentSegment.script) {
-							currentSegment.text += char;
-						} else {
-							segments.push(currentSegment);
-							currentSegment = { text: char, script };
+							continue;
 						}
+						if (script === 'Common' || script === currentSegment.script) {
+							currentSegment.text += char;
+							continue;
+						}
+						segments.push(currentSegment);
+						currentSegment = { text: char, script };
 					}
 					if (currentSegment.text) segments.push(currentSegment);
 					return segments;
