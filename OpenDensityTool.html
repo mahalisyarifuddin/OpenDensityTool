@@ -473,6 +473,7 @@
 					this.loadCounters = [0, 0];
 					this.renderCache = [];
 					this.analysisCanvases = [document.createElement('canvas'), document.createElement('canvas')];
+					this.highResCanvas = document.createElement('canvas');
 					this.graphWidth = 150;
 					this.graphPadding = 20;
 					this.context = dom.canvas.getContext('2d');
@@ -688,12 +689,16 @@
 					const drawOffsetX = -minXPixel, width = Math.ceil(maxXPixel - minXPixel);
 					const baseline = Math.ceil(metrics.ascent), height = Math.ceil(baseline + metrics.descent);
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
-					const fontCanvas = this.analysisCanvases[index];
-					fontCanvas.width = Math.max(fontCanvas.width, width);
-					fontCanvas.height = Math.max(fontCanvas.height, height);
-					const context = fontCanvas.getContext('2d');
-					context.clearRect(0, 0, width, height);
+					const renderScale = (width * 2 > 32767 || height * 2 > 32767) ? 1 : 2;
+					const hrWidth = width * renderScale;
+					const hrHeight = height * renderScale;
+
+					this.highResCanvas.width = Math.max(this.highResCanvas.width, hrWidth);
+					this.highResCanvas.height = Math.max(this.highResCanvas.height, hrHeight);
+					const context = this.highResCanvas.getContext('2d');
+					context.clearRect(0, 0, hrWidth, hrHeight);
 					context.save();
+					context.scale(renderScale, renderScale);
 					context.translate(drawOffsetX, baseline);
 					context.scale(1, -1);
 					context.fillStyle = color;
@@ -711,6 +716,15 @@
 					});
 
 					context.restore();
+
+					const fontCanvas = this.analysisCanvases[index];
+					fontCanvas.width = Math.max(fontCanvas.width, width);
+					fontCanvas.height = Math.max(fontCanvas.height, height);
+					const destCtx = fontCanvas.getContext('2d');
+					destCtx.clearRect(0, 0, width, height);
+					destCtx.imageSmoothingQuality = 'high';
+					destCtx.drawImage(this.highResCanvas, 0, 0, hrWidth, hrHeight, 0, 0, width, height);
+
 					const data = { ...this.analyzePixels(fontCanvas, width, height), ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderCache[index] = { inputs, data };
 					return data;
