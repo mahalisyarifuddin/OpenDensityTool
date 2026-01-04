@@ -867,7 +867,17 @@
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
-					analysis.densityByRow.forEach((value, rowY) => value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
+					this.context.beginPath();
+					const scale = this.graphWidth / max;
+					const rows = analysis.densityByRow;
+					for (let rowY = 0; rowY < rows.length; rowY++) {
+						const value = rows[rowY];
+						if (value) {
+							const barWidth = value * scale;
+							this.context.rect(this.graphWidth - barWidth, rowY + y, barWidth, 1);
+						}
+					}
+					this.context.fill();
 					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
 					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 					this.context.globalCompositeOperation = 'source-over';
