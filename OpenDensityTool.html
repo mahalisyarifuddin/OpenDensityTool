@@ -492,34 +492,24 @@
 						})
 						.then(text => {
 							const ranges = [];
-							const lines = text.split(/\r?\n/);
 							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/;
-							for (const line of lines) {
-								if (!line || line.trim().startsWith('#')) continue;
+							text.split(/\r?\n/).forEach(line => {
+								if (!line || line.trim().startsWith('#')) return;
 								const match = line.match(regex);
-								if (match) {
-									ranges.push([
-										parseInt(match[1], 16),
-										parseInt(match[2], 16),
-										match[3]
-									]);
-								}
-							}
-							if (ranges.length > 0) {
-								this.blocks = ranges;
-								console.log('Unicode Blocks updated dynamically.');
-								this.update();
-							}
+								match && ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
+							});
+							ranges.length > 0 && (this.blocks = ranges, console.log('Unicode Blocks updated dynamically.'), this.update());
 						})
-						.catch(error => {
-							console.warn('Failed to fetch Unicode Blocks dynamically. Script detection will fallback to basic heuristics.', error);
-						});
+						.catch(error => console.warn('Failed to fetch Unicode Blocks dynamically. Script detection will fallback to basic heuristics.', error));
 				}
 
 				bind() {
 					const schedule = callback => { let frame; return () => (frame && cancelAnimationFrame(frame), frame = requestAnimationFrame(callback)); };
 					const debounce = (callback, delay) => { let timer; return (...args) => (clearTimeout(timer), timer = setTimeout(() => callback(...args), delay)); };
-					const refresh = schedule(() => this.update()), debouncedRefresh = debounce(() => this.update(), 300), resize = schedule(() => this.updateScale());
+					const refresh = schedule(() => this.update());
+					const debouncedRefresh = debounce(() => this.update(), 300);
+					const resize = schedule(() => this.updateScale());
+
 					dom.zoom.onchange = resize;
 					['render', 'density', 'guides'].forEach(id => dom[id].onchange = refresh);
 					dom.export.onclick = () => Object.assign(document.createElement('a'), {
@@ -528,17 +518,22 @@
 					}).click();
 					dom.theme.onchange = event => this.setTheme(event.target.value);
 					window.onresize = resize;
+					
 					document.querySelectorAll('.copy-btn').forEach(button => {
 						const original = button.textContent;
 						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText)
 							.then(() => button.textContent = 'Copied!').catch(() => button.textContent = 'Error')
 							.finally(() => setTimeout(() => button.textContent = original, 2000));
 					});
+
 					[1, 2].forEach((number, index) => {
-						const file = dom[`file${number}`], group = file.closest('.group');
+						const file = dom[`file${number}`];
+						const group = file.closest('.group');
+						
 						file.onchange = event => this.loadFont(event.target.files[0], index);
 						dom[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, file.value = '', this.update());
 						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => dom[`${key}${number}`].oninput = debouncedRefresh);
+						
 						group.ondragover = event => (event.preventDefault(), group.classList.add('drag-active'));
 						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('drag-active');
 						group.ondrop = event => {
@@ -565,6 +560,7 @@
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
+					
 					try {
 						if (!file) return;
 						if (file.size > 30 << 20) throw new Error('File too large (max 30MB)');
@@ -590,15 +586,14 @@
 						letterSpacing: +dom[`spacing${number}`].value || 0,
 						color: dom[`color${number}`].value
 					};
+					
 					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
+					
 					const cached = this.renderCache[index];
-
 					if (cached) {
 						const keys = Object.keys(inputs);
 						if (keys.every(key => cached.inputs[key] === inputs[key])) return cached.data;
-
-						// OPTIMIZATION: If only color changed, tint the existing canvas instead of re-rendering.
-						// This avoids expensive font layout and pixel analysis.
+						
 						const otherPropsMatch = keys.every(key => key === 'color' || cached.inputs[key] === inputs[key]);
 						if (otherPropsMatch && cached.data) {
 							const ctx = cached.data.canvas.getContext('2d');
@@ -611,40 +606,29 @@
 							return cached.data;
 						}
 					}
-
+					
 					return this.generateRenderData(index, inputs);
 				}
 
 				getScript(char) {
 					const code = char.codePointAt(0);
 					let low = 0, high = this.blocks.length - 1;
+					
 					while (low <= high) {
 						const mid = (low + high) >>> 1;
 						const block = this.blocks[mid];
-						if (code < block[0]) {
-							high = mid - 1;
-							continue;
-						}
-						if (code > block[1]) {
-							low = mid + 1;
-							continue;
-						}
+						
+						if (code < block[0]) { high = mid - 1; continue; }
+						if (code > block[1]) { low = mid + 1; continue; }
+						
 						const name = block[2];
 						if (name === "Basic Latin") {
 							if (code <= 0x0040 || (code >= 0x005B && code <= 0x0060) || (code >= 0x007B)) return 'Common';
 							return 'Latin';
 						}
 						if (name.includes("Latin")) return 'Latin';
-						if (['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols',
-								 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms',
-								 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures',
-								 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing',
-								 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats',
-								 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns',
-								 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B',
-								 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows',
-								 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
-								 .includes(name)) return 'Common';
+						if (['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols', 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing', 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B', 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
+							.includes(name)) return 'Common';
 						return name;
 					}
 					return 'Other';
@@ -653,6 +637,7 @@
 				segmentText(text) {
 					const segments = [];
 					let currentSegment = { text: '', script: null };
+					
 					for (const char of text) {
 						const script = this.getScript(char);
 						if (!currentSegment.script) {
@@ -667,7 +652,7 @@
 						segments.push(currentSegment);
 						currentSegment = { text: char, script };
 					}
-					if (currentSegment.text) segments.push(currentSegment);
+					currentSegment.text && segments.push(currentSegment);
 					return segments;
 				}
 
@@ -676,8 +661,10 @@
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const scale = size / font.unitsPerEm;
 					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-					const fontAscent = (font.ascent || 0) * scale, fontDescent = Math.abs(font.descent || 0) * scale;
-					const fontXHeight = (font.xHeight || 0) * scale, fontCapHeight = (font.capHeight || 0) * scale;
+					const fontAscent = (font.ascent || 0) * scale;
+					const fontDescent = Math.abs(font.descent || 0) * scale;
+					const fontXHeight = (font.xHeight || 0) * scale;
+					const fontCapHeight = (font.capHeight || 0) * scale;
 
 					const segments = this.segmentText(content);
 					const runs = segments.map(seg => ({ run: font.layout(seg.text), text: seg.text }));
@@ -688,7 +675,11 @@
 
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
-							const pos = run.positions[i], x = currentX + pos.xOffset, y = pos.yOffset, bbox = glyph.bbox;
+							const pos = run.positions[i];
+							const x = currentX + pos.xOffset;
+							const y = pos.yOffset;
+							const bbox = glyph.bbox;
+							
 							if (bbox) {
 								minX = Math.min(minX, x + bbox.minX);
 								maxX = Math.max(maxX, x + bbox.maxX);
@@ -699,19 +690,34 @@
 						});
 					});
 
-					if (minX === Infinity) { minX = maxX = minY = maxY = 0; }
+					if (minX === Infinity) minX = maxX = minY = maxY = 0;
+					
 					const advanceWidth = Math.ceil(currentX * scale);
 					const x1 = minX * scale, x2 = maxX * scale, y1 = maxY * scale, y2 = minY * scale;
 					const boundingBoxWidth = Math.ceil(x2 - x1);
+					
 					if (advanceWidth <= 0 && boundingBoxWidth <= 0) return null;
-					const metrics = { ascent: Math.max(y1, fontAscent), descent: Math.max(-y2, fontDescent), fontAscent, fontDescent, fontXHeight, fontCapHeight, x1, x2, boundingBoxWidth, advanceWidth };
-					const minXPixel = Math.min(0, metrics.x1), maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minXPixel, width = Math.ceil(maxXPixel - minXPixel);
-					const baseline = Math.ceil(metrics.ascent), height = Math.ceil(baseline + metrics.descent);
+					
+					const metrics = {
+						ascent: Math.max(y1, fontAscent),
+						descent: Math.max(-y2, fontDescent),
+						fontAscent, fontDescent, fontXHeight, fontCapHeight, x1, x2,
+						boundingBoxWidth, advanceWidth
+					};
+					
+					const minXPixel = Math.min(0, metrics.x1);
+					const maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minXPixel;
+					const width = Math.ceil(maxXPixel - minXPixel);
+					const baseline = Math.ceil(metrics.ascent);
+					const height = Math.ceil(baseline + metrics.descent);
+					
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+					
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
+					
 					const context = fontCanvas.getContext('2d');
 					context.clearRect(0, 0, width, height);
 					context.save();
@@ -733,7 +739,13 @@
 					});
 
 					context.restore();
-					const data = { ...this.analyzePixels(fontCanvas, width, height), ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
+					
+					const data = {
+						...this.analyzePixels(fontCanvas, width, height),
+						...metrics, drawOffsetX, width, height, canvas: fontCanvas,
+						baseline, letterSpacing, fontSize: size, font
+					};
+					
 					this.renderCache[index] = { inputs, data };
 					return data;
 				}
@@ -743,12 +755,22 @@
 					try {
 						const data = this.getRenderData(index);
 						if (!data) return null;
+						
 						const hasInk = data.maxY >= data.minY;
 						const area = Math.max(1, dom.density.value === 'ink'
 							? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1)
 							: Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-						return { ...data, baselineShift: +dom[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0, yMax: hasInk ? Math.round(data.baseline - data.minY) : 0 };
-					} catch (error) { return { error: error.message }; }
+						
+						return {
+							...data,
+							baselineShift: +dom[`shift${number}`].value || 0,
+							density: ((data.inkPixels / area) * 100).toFixed(1),
+							yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+							yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
+						};
+					} catch (error) {
+						return { error: error.message };
+					}
 				}
 
 				analyzePixels(canvas, width, height) {
@@ -757,109 +779,84 @@
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
-					if (isLittleEndian) {
-						for (let y = 0; y < height; y++) {
-							const rowOffset = y * width;
-							let firstX = -1, lastX = -1;
+					const alphaShift = isLittleEndian ? 31 : 7;
+					const alphaMask = isLittleEndian ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
 
-							for (let x = 0; x < width; x++) {
-								if (pixel32[rowOffset + x] >>> 31) {
-									firstX = x;
+					for (let y = 0; y < height; y++) {
+						const rowOffset = y * width;
+						let firstX = -1, lastX = -1;
+
+						for (let x = 0; x < width; x++) {
+							if (alphaMask(pixel32[rowOffset + x])) {
+								firstX = x;
+								break;
+							}
+						}
+
+						if (firstX !== -1) {
+							for (let x = width - 1; x > firstX; x--) {
+								if (alphaMask(pixel32[rowOffset + x])) {
+									lastX = x;
 									break;
 								}
 							}
+							if (lastX === -1) lastX = firstX;
 
-							if (firstX !== -1) {
-								for (let x = width - 1; x > firstX; x--) {
-									if (pixel32[rowOffset + x] >>> 31) {
-										lastX = x;
-										break;
-									}
+							let rowInk = 1;
+							if (lastX > firstX) {
+								rowInk++;
+								for (let k = firstX + 1; k < lastX; k++) {
+									rowInk += alphaMask(pixel32[rowOffset + k]);
 								}
-								if (lastX === -1) lastX = firstX;
-
-								let rowInk = 1;
-								if (lastX > firstX) {
-									rowInk++;
-									for (let k = firstX + 1; k < lastX; k++) {
-										rowInk += pixel32[rowOffset + k] >>> 31;
-									}
-								}
-
-								inkPixels += rowInk;
-								densityByRow[y] = rowInk;
-								if (y < minY) minY = y;
-								maxY = y;
-								if (firstX < minX) minX = firstX;
-								if (lastX > maxX) maxX = lastX;
 							}
+
+							inkPixels += rowInk;
+							densityByRow[y] = rowInk;
+							if (y < minY) minY = y;
+							maxY = y;
+							if (firstX < minX) minX = firstX;
+							if (lastX > maxX) maxX = lastX;
 						}
 					}
-
-					if (!isLittleEndian) {
-						for (let y = 0; y < height; y++) {
-							const rowOffset = y * width;
-							let firstX = -1, lastX = -1;
-
-							for (let x = 0; x < width; x++) {
-								if ((pixel32[rowOffset + x] >>> 7) & 1) {
-									firstX = x;
-									break;
-								}
-							}
-
-							if (firstX !== -1) {
-								for (let x = width - 1; x > firstX; x--) {
-									if ((pixel32[rowOffset + x] >>> 7) & 1) {
-										lastX = x;
-										break;
-									}
-								}
-								if (lastX === -1) lastX = firstX;
-
-								let rowInk = 1;
-								if (lastX > firstX) {
-									rowInk++;
-									for (let k = firstX + 1; k < lastX; k++) {
-										rowInk += (pixel32[rowOffset + k] >>> 7) & 1;
-									}
-								}
-
-								inkPixels += rowInk;
-								densityByRow[y] = rowInk;
-								if (y < minY) minY = y;
-								maxY = y;
-								if (firstX < minX) minX = firstX;
-								if (lastX > maxX) maxX = lastX;
-							}
-						}
-					}
+					
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
 
 				update() {
-					this.analyses = [1, 2].map((number, index) => (dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value, this.analyze(index)));
+					this.analyses = [1, 2].map((number, index) => {
+						dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value;
+						return this.analyze(index);
+					});
 					this.draw();
 					[1, 2].forEach((number, index) => this.updateResult(number, index));
 				}
 
 				draw() {
 					const valid = this.analyses.filter(analysis => analysis && !analysis.error);
-					if (!valid.length) { dom.canvas.height = 150; this.updateScale(); return; }
+					if (!valid.length) {
+						dom.canvas.height = 150;
+						this.updateScale();
+						return;
+					}
+					
 					const dimensions = this.computeDimensions(valid);
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
+					
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let translateX = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
+					
 					this.analyses.forEach((analysis, index) => {
 						analysis && !analysis.error && this.drawAnalysis(analysis, index, dimensions, side, translateX);
 						side && analysis && !analysis.error && (translateX += analysis.canvas.width);
 					});
+					
 					const guides = dom.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
 						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
 					}
+					
 					if (guides === 'metrics') {
 						valid.forEach((analysis, index) => {
 							const y = dimensions.baseline - analysis.baselineShift;
@@ -873,6 +870,7 @@
 							this.context.globalAlpha = 1.0;
 						});
 					}
+					
 					this.updateScale();
 				}
 
@@ -880,17 +878,17 @@
 					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
 					const blend = index > 0 && this.analyses.every(item => item && !item.error);
 					const color = dom[`color${index + 1}`].value;
+					
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+					
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
 					this.context.beginPath();
+					
 					const scale = this.graphWidth / max;
 					const rows = analysis.densityByRow;
-					let currentWidth = 0;
-					let startY = -1;
+					let currentWidth = 0, startY = -1;
 
-					// OPTIMIZATION: Merge consecutive rows with identical width into single rectangles.
-					// This significantly reduces the number of path commands for smoother rendering.
 					for (let rowY = 0; rowY < rows.length; rowY++) {
 						const value = rows[rowY];
 						const barWidth = value ? value * scale : 0;
@@ -903,33 +901,49 @@
 							startY = rowY;
 						}
 					}
+					
 					if (currentWidth > 0) {
 						this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rows.length - startY);
 					}
 
 					this.context.fill();
+					
 					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
-					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height,
+						graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 					this.context.globalCompositeOperation = 'source-over';
 				}
 
 				computeDimensions(analyses) {
 					const side = dom.render.value === 'side' && analyses.length > 1;
 					const max = callback => Math.max(0, ...analyses.map(callback));
-					const maxAscent = max(item => item.baseline + item.baselineShift), maxDescent = max(item => item.height - item.baseline - item.baselineShift), maxOffsetX = max(item => item.drawOffsetX);
-					const width = side ? analyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
-					return { width: Math.ceil(this.graphWidth + this.graphPadding + width), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
+					const maxAscent = max(item => item.baseline + item.baselineShift);
+					const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
+					const maxOffsetX = max(item => item.drawOffsetX);
+					const width = side 
+						? analyses.reduce((total, item) => total + item.width, 0)
+						: maxOffsetX + max(item => item.width - item.drawOffsetX);
+					
+					return {
+						width: Math.ceil(this.graphWidth + this.graphPadding + width),
+						height: Math.ceil(maxAscent + maxDescent),
+						baseline: Math.ceil(maxAscent),
+						maxDrawOffsetX: maxOffsetX
+					};
 				}
 
 				updateScale() {
 					const { canvas, container, preview } = dom;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
+					
 					if (dom.zoom.value !== 'fit' || !canvas.width) return;
+					
 					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
 					const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
+					
 					canvas.style.transform = `scale(${scale})`;
 					container.style.width = `${canvas.width * scale + paddingX}px`;
 					container.style.height = `${canvas.height * scale + paddingY}px`;
@@ -937,15 +951,37 @@
 				}
 
 				updateResult(number, index) {
-					const analysis = this.analyses[index], root = dom[`result${number}`];
-					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
+					const analysis = this.analyses[index];
+					const root = dom[`result${number}`];
+					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}`
+						: !this.fonts[index] ? 'Load font.'
+						: !analysis ? 'Enter text.'
+						: analysis.error ? `Error: ${analysis.error}`
+						: '';
+					
 					const name = this.getFontName(this.fonts[index], number);
 					dom[`name${number}`].textContent = dom[`name${number}`].title = name;
 					dom[`analysisName${number}`].textContent = dom[`analysisName${number}`].title = `${name} Analysis`;
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` :
-						`<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div><div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
+					
+					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>'
+						: message ? `<div class="state-message">${message}</div>`
+						: `<div class="stat-grid">
+							<div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div>
+							<div class="stat-group">
+								<div class="stat-group-title">Ink Bounds</div>
+								<div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div>
+								<div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div>
+							</div>
+							<div class="stat-group">
+								<div class="stat-group-title">Metrics</div>
+								<div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div>
+								<div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div>
+								<div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div>
+								<div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div>
+							</div>
+						</div>`;
 				}
 			}
 
