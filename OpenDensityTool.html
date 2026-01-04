@@ -592,7 +592,27 @@
 					};
 					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
 					const cached = this.renderCache[index];
-					return cached && Object.keys(inputs).every(key => cached.inputs[key] === inputs[key]) ? cached.data : this.generateRenderData(index, inputs);
+
+					if (cached) {
+						const keys = Object.keys(inputs);
+						if (keys.every(key => cached.inputs[key] === inputs[key])) return cached.data;
+
+						// OPTIMIZATION: If only color changed, tint the existing canvas instead of re-rendering.
+						// This avoids expensive font layout and pixel analysis.
+						const otherPropsMatch = keys.every(key => key === 'color' || cached.inputs[key] === inputs[key]);
+						if (otherPropsMatch && cached.data) {
+							const ctx = cached.data.canvas.getContext('2d');
+							ctx.save();
+							ctx.globalCompositeOperation = 'source-in';
+							ctx.fillStyle = inputs.color;
+							ctx.fillRect(0, 0, cached.data.width, cached.data.height);
+							ctx.restore();
+							cached.inputs.color = inputs.color;
+							return cached.data;
+						}
+					}
+
+					return this.generateRenderData(index, inputs);
 				}
 
 				getScript(char) {
