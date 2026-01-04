@@ -6,47 +6,49 @@
 		<title>Typographic Density Tool</title>
 		<style>
 			:root {
-				--primaryColor: #1976d2;
-				--hoverColor: #004080;
-				--backgroundColor: #f9f9ff;
-				--surfaceColor: #fff;
-				--textColor: #181c21;
-				--borderColor: #c1c6d4;
-				--dimmedColor: #e0e2ec;
-				--successColor: #2e8534;
-				--dangerColor: #ba1a1a
+				--primary: #1976d2;
+				--hover: #1565c0;
+				--background: #f9f9ff;
+				--surface: #fff;
+				--text: #181c21;
+				--border: #c1c6d4;
+				--muted: #e0e2ec;
+				--success: #2e8534;
+				--danger: #ba1a1a;
 			}
-
 			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--backgroundColor: #101319;
-					--surfaceColor: #0b0e14;
-					--textColor: #e0e2ea;
-					--borderColor: #414752;
-					--dimmedColor: #44474f
+					--background: #101319;
+					--surface: #0b0e14;
+					--text: #e0e2ea;
+					--border: #414752;
+					--muted: #44474f;
 				}
 			}
-
 			:root.dark {
-				--backgroundColor: #101319;
-				--surfaceColor: #0b0e14;
-				--textColor: #e0e2ea;
-				--borderColor: #414752;
-				--dimmedColor: #44474f
+				--background: #101319;
+				--surface: #0b0e14;
+				--text: #e0e2ea;
+				--border: #414752;
+				--muted: #44474f;
 			}
-
-			* { box-sizing: border-box; margin: 0; padding: 0 }
-			*:focus-visible { outline: 2px solid var(--primaryColor); outline-offset: 2px }
-
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+			*:focus-visible {
+				outline: 2px solid var(--primary);
+				outline-offset: 2px;
+			}
 			body {
-				background: var(--backgroundColor);
-				color: var(--textColor);
+				background: var(--background);
+				color: var(--text);
 				font-family: sans-serif;
 				line-height: 1.25;
 				padding: 1.5rem;
-				min-height: 100vh
+				min-height: 100vh;
 			}
-
 			header {
 				display: flex;
 				justify-content: space-between;
@@ -54,79 +56,73 @@
 				margin-bottom: 2rem;
 				max-width: 1600px;
 				margin-left: auto;
-				margin-right: auto
+				margin-right: auto;
 			}
-
-			h1 { margin: .5rem 0; font-size: 2rem; font-weight: 600 }
-
+			h1 {
+				margin: .5rem 0;
+				font-size: 2rem;
+				font-weight: 600;
+			}
 			main {
 				display: grid;
 				grid-template-columns: 340px 1fr;
 				gap: 1.5rem;
 				max-width: 1600px;
-				margin: 0 auto
+				margin: 0 auto;
 			}
-
 			section {
-				background: var(--surfaceColor);
-				border: 1px solid var(--borderColor);
+				background: var(--surface);
+				border: 1px solid var(--border);
 				border-radius: 8px;
 				padding: 1.5rem;
-				min-width: 0
+				min-width: 0;
 			}
-
 			h2 {
 				margin: .5rem 0 1rem;
-				border-bottom: 1px solid var(--borderColor);
+				border-bottom: 1px solid var(--border);
 				padding-bottom: .75rem;
 				font-size: 1.2rem;
-				font-weight: 600
+				font-weight: 600;
 			}
-
 			.group {
-				background: var(--backgroundColor);
-				border: 1px solid var(--borderColor);
+				background: var(--background);
+				border: 1px solid var(--border);
 				padding: 1rem;
 				border-radius: 6px;
 				margin-bottom: 1rem;
 				position: relative;
-				transition: border-color .15s, background-color .15s
+				transition: border-color .15s, background-color .15s;
 			}
-
 			.group.dragActive {
-				border-color: var(--primaryColor);
-				background: var(--surfaceColor)
+				border-color: var(--primary);
+				background: var(--surface);
 			}
-
 			.group.dragActive::after {
 				content: "Drop Font File";
 				position: absolute;
 				inset: 0;
-				background: var(--surfaceColor);
-				color: var(--primaryColor);
+				background: var(--surface);
+				color: var(--primary);
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				font-size: 1.5rem;
 				font-weight: 700;
 				border-radius: 6px;
-				z-index: 10
+				z-index: 10;
 			}
-
 			.header {
 				display: flex;
 				align-items: center;
 				margin-bottom: .75rem;
-				font-weight: 700
+				font-weight: 700;
 			}
-
 			.header span {
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
-				min-width: 0
+				min-width: 0;
 			}
-
 			input[type=color] {
 				width: 24px;
 				height: 24px;
@@ -135,154 +131,170 @@
 				padding: 0;
 				margin-right: .5em;
 				cursor: pointer;
-				flex-shrink: 0
+				flex-shrink: 0;
 			}
-
 			label {
 				display: block;
 				margin-bottom: .5rem;
 				font-weight: 500;
-				font-size: .9rem
+				font-size: .9rem;
 			}
-
 			input:not([type=color]), textarea, select, button {
 				width: 100%;
 				padding: .5rem .75rem;
-				border: 1px solid var(--borderColor);
+				border: 1px solid var(--border);
 				border-radius: 4px;
-				background: var(--surfaceColor);
-				color: var(--textColor);
+				background: var(--surface);
+				color: var(--text);
 				margin-top: 4px;
 				font-family: inherit;
-				font-size: .95rem
+				font-size: .95rem;
 			}
-
 			textarea {
 				resize: vertical;
 				min-height: 80px;
 				font-family: monospace;
-				font-size: .8rem
+				font-size: .8rem;
 			}
-
-			.row { display: flex; gap: 1rem }
-
+			.row {
+				display: flex;
+				gap: 1rem;
+			}
 			.controls {
 				display: flex;
 				gap: .75rem;
 				align-items: center;
-				margin-bottom: 1rem
+				margin-bottom: 1rem;
 			}
-
 			.controlsSelection {
 				display: flex;
 				flex-wrap: wrap;
 				gap: .75rem;
-				flex: 1
+				flex: 1;
 			}
-
 			.controls select, button {
 				width: auto;
 				margin-top: 0;
-				flex-shrink: 0
+				flex-shrink: 0;
 			}
-
 			button {
-				background: var(--primaryColor);
+				background: var(--primary);
 				color: #fff;
 				border: 0;
 				padding: .5rem 1rem;
 				cursor: pointer;
-				transition: background .1s
+				transition: background .1s;
 			}
-
-			button:hover { background: var(--hoverColor) }
-
+			button:hover {
+				background: var(--hover);
+			}
 			#preview {
-				background: var(--surfaceColor);
-				border: 1px solid var(--borderColor);
+				background: var(--surface);
+				border: 1px solid var(--border);
 				border-radius: 6px;
 				overflow: auto;
-				margin-bottom: 1.5rem
+				margin-bottom: 1.5rem;
 			}
-
-			#container { padding: 1rem; display: flex; align-items: flex-start }
-			canvas { transform-origin: top left; display: block; flex-shrink: 0 }
-
-			.results { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem }
-
+			#container {
+				padding: 1rem;
+				display: flex;
+				align-items: flex-start;
+			}
+			canvas {
+				transform-origin: top left;
+				display: block;
+				flex-shrink: 0;
+			}
+			.results {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1rem;
+			}
 			.card {
-				background: var(--backgroundColor);
-				border: 1px solid var(--borderColor);
+				background: var(--background);
+				border: 1px solid var(--border);
 				padding: 1rem;
 				border-radius: 6px;
-				min-width: 0
+				min-width: 0;
 			}
-
 			.output {
 				font-family: monospace;
 				font-size: .8rem;
 				line-height: 1.5;
-				margin-top: .5rem
+				margin-top: .5rem;
 			}
-
-			.statisticGrid { display: grid; gap: .5rem }
-			.statisticRow { display: flex; justify-content: space-between; align-items: center }
-
+			.statisticGrid {
+				display: grid;
+				gap: .5rem;
+			}
+			.statisticRow {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
 			.statisticGroup {
 				margin-top: .5rem;
-				border-top: 1px solid var(--borderColor);
-				padding-top: .5rem
+				border-top: 1px solid var(--border);
+				padding-top: .5rem;
 			}
-
 			.statisticTitle {
 				font-weight: 600;
 				margin-bottom: .25rem;
-				color: var(--textColor)
+				color: var(--text);
 			}
-
-			.statisticLabel { color: var(--textColor); opacity: .8 }
-			.statisticValue { font-weight: 600 }
-
+			.statisticLabel {
+				color: var(--text);
+				opacity: .8;
+			}
+			.statisticValue {
+				font-weight: 600;
+			}
 			.indicator {
 				width: 14px;
 				height: 14px;
 				border-radius: 3px;
 				display: inline-block;
 				margin-right: .5em;
-				flex-shrink: 0
+				flex-shrink: 0;
 			}
-
 			.actionButton {
 				margin-left: auto;
 				background: transparent;
-				color: var(--primaryColor);
+				color: var(--primary);
 				border: 1px solid transparent;
 				padding: .25rem .5rem;
 				font-size: .8rem;
-				border-radius: 4px
+				border-radius: 4px;
 			}
-
 			.actionButton:hover {
-				background: var(--backgroundColor);
-				border-color: var(--dimmedColor)
+				background: var(--background);
+				border-color: var(--muted);
+				color: var(--hover);
 			}
-
 			.spinner {
 				width: 24px;
 				height: 24px;
-				border: 3px solid var(--borderColor);
-				border-top-color: var(--primaryColor);
+				border: 3px solid var(--border);
+				border-top-color: var(--primary);
 				border-radius: 50%;
 				animation: spin 1s linear infinite;
-				margin: 1rem auto
+				margin: 1rem auto;
 			}
-
-			@keyframes spin { to { transform: rotate(360deg) } }
-			[hidden] { display: none !important }
-
+			@keyframes spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+			[hidden] {
+				display: none !important;
+			}
 			@media (max-width: 900px) {
-				main { grid-template-columns: 1fr }
-				.results { grid-template-columns: 1fr }
+				main {
+					grid-template-columns: 1fr;
+				}
+				.results {
+					grid-template-columns: 1fr;
+				}
 			}
 		</style>
 	</head>
@@ -308,11 +320,19 @@
 						<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>Text<textarea id="text1" maxlength="1000">Idealogy</textarea></label>
-					<label>Size (px)<input type="number" id="size1" value="100" min="8" max="500"></label>
+					<label>
+						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
+					</label>
+					<label>
+						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
+					</label>
 					<div class="row">
-						<label>Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100"></label>
-						<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"></label>
+						<label>
+							Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100">
+						</label>
+						<label>
+							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
+						</label>
 					</div>
 				</div>
 				<div class="group">
@@ -325,11 +345,19 @@
 						<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>Text<textarea id="text2" maxlength="1000">Идеология</textarea></label>
-					<label>Size (px)<input type="number" id="size2" value="100" min="8" max="500"></label>
+					<label>
+						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
+					</label>
+					<label>
+						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
+					</label>
 					<div class="row">
-						<label>Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100"></label>
-						<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"></label>
+						<label>
+							Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100">
+						</label>
+						<label>
+							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
+						</label>
 					</div>
 				</div>
 			</section>
@@ -385,10 +413,8 @@
 		<script type="module">
 			import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
 			import { Buffer } from 'https://esm.sh/buffer@6.0.3';
-
 			const fontkit = fontkitModule.default || fontkitModule;
 			window.Buffer = Buffer;
-
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 
@@ -404,12 +430,44 @@
 					this.graphPadding = 20;
 					this.context = elements.canvas.getContext('2d');
 					this.unicodeBlocks = [];
-					this.fetchUnicodeBlocks();
-					this.bindEvents();
-					this.setTheme('auto');
+					this.setup();
+					this.theme('auto');
 					this.update();
 				}
-
+				setup() {
+					this.fetchUnicodeBlocks();
+					const debounce = (callback, delay) => { let timer; return (...args) => (clearTimeout(timer), timer = setTimeout(() => callback(...args), delay)); };
+					const debouncedUpdate = debounce(() => this.update(), 300);
+					const updateScale = () => this.updateScale();
+					elements.zoom.onchange = updateScale;
+					['render', 'density', 'guides'].forEach(id => elements[id].onchange = () => this.update());
+					elements.export.onclick = () => Object.assign(document.createElement('a'), { href: elements.canvas.toDataURL(), download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png` }).click();
+					elements.theme.onchange = event => this.theme(event.target.value);
+					window.onresize = updateScale;
+					document.querySelectorAll('.copyButton').forEach(button => {
+						const originalText = button.textContent;
+						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(() => button.textContent = 'Copied!').catch(() => button.textContent = 'Error').finally(() => setTimeout(() => button.textContent = originalText, 2000));
+					});
+					[1, 2].forEach((number, index) => {
+						const fileInput = elements[`file${number}`];
+						const group = fileInput.closest('.group');
+						fileInput.onchange = event => this.loadFont(event.target.files[0], index);
+						elements[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, fileInput.value = '', this.update());
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => elements[`${key}${number}`].oninput = debouncedUpdate);
+						group.ondragover = event => (event.preventDefault(), group.classList.add('dragActive'));
+						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('dragActive');
+						group.ondrop = event => {
+							event.preventDefault();
+							group.classList.remove('dragActive');
+							const droppedFile = event.dataTransfer.files[0];
+							droppedFile && (fileInput.files = event.dataTransfer.files, this.loadFont(droppedFile, index));
+						};
+					});
+				}
+				theme(themeName) {
+					document.documentElement.className = themeName === 'auto' ? '' : themeName;
+					elements.theme.value = themeName;
+				}
 				fetchUnicodeBlocks() {
 					fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.unicode.org/Public/latest/ucd/Blocks.txt'))
 						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
@@ -425,61 +483,11 @@
 						})
 						.catch(error => console.warn('Block fetch failed', error));
 				}
-
-				bindEvents() {
-					const debounce = (callback, delay) => { let timer; return (...args) => (clearTimeout(timer), timer = setTimeout(() => callback(...args), delay)); };
-					const debouncedUpdate = debounce(() => this.update(), 300);
-					const updateScale = () => this.updateScale();
-
-					elements.zoom.onchange = updateScale;
-					['render', 'density', 'guides'].forEach(id => elements[id].onchange = () => this.update());
-
-					elements.export.onclick = () => Object.assign(document.createElement('a'), {
-						href: elements.canvas.toDataURL(),
-						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
-					}).click();
-					
-					elements.theme.onchange = event => this.setTheme(event.target.value);
-					window.onresize = updateScale;
-
-					document.querySelectorAll('.copyButton').forEach(button => {
-						const originalText = button.textContent;
-						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText)
-							.then(() => button.textContent = 'Copied!').catch(() => button.textContent = 'Error')
-							.finally(() => setTimeout(() => button.textContent = originalText, 2000));
-					});
-
-					[1, 2].forEach((number, index) => {
-						const fileInput = elements[`file${number}`];
-						const group = fileInput.closest('.group');
-						
-						fileInput.onchange = event => this.loadFont(event.target.files[0], index);
-						elements[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, fileInput.value = '', this.update());
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => elements[`${key}${number}`].oninput = debouncedUpdate);
-						
-						group.ondragover = event => (event.preventDefault(), group.classList.add('dragActive'));
-						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('dragActive');
-						group.ondrop = event => {
-							event.preventDefault();
-							group.classList.remove('dragActive');
-							const droppedFile = event.dataTransfer.files[0];
-							droppedFile && (fileInput.files = event.dataTransfer.files, this.loadFont(droppedFile, index));
-						};
-					});
-				}
-
-				setTheme(theme) {
-					document.documentElement.classList.remove('light', 'dark');
-					theme !== 'auto' && document.documentElement.classList.add(theme);
-					elements.theme.value = theme;
-				}
-
 				async loadFont(file, index) {
 					const currentSequence = ++this.loadSequence[index];
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
-					
 					try {
 						if (!file) return;
 						if (file.size > 30 * 1024 * 1024) throw new Error('File too large (max 30MB)');
@@ -495,19 +503,10 @@
 						currentSequence === this.loadSequence[index] && (this.loading[index] = false, this.update());
 					}
 				}
-
 				getRenderData(index) {
 					const number = index + 1;
-					const inputs = {
-						font: this.fonts[index],
-						content: elements[`text${number}`].value,
-						fontSize: +elements[`size${number}`].value || 0,
-						letterSpacing: +elements[`spacing${number}`].value || 0,
-						color: elements[`color${number}`].value
-					};
-					
+					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
 					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
-					
 					const cached = this.renderingCache[index];
 					if (cached) {
 						const keys = Object.keys(inputs);
@@ -523,35 +522,28 @@
 							return cached.data;
 						}
 					}
-					
 					return this.generateRenderData(index, inputs);
 				}
-
 				getScript(char) {
 					const code = char.codePointAt(0);
 					let low = 0, high = this.unicodeBlocks.length - 1;
-					
 					while (low <= high) {
 						const mid = (low + high) >>> 1;
 						const block = this.unicodeBlocks[mid];
 						if (code < block[0]) { high = mid - 1; continue; }
 						if (code > block[1]) { low = mid + 1; continue; }
-						
 						const name = block[2];
 						if (name === "Basic Latin") return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
 						if (name.includes("Latin")) return 'Latin';
-						return ['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols', 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing', 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B', 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms']
-							.includes(name) ? 'Common' : name;
+						return ['General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols', 'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators', 'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing', 'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A', 'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B', 'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Supplemental Punctuation', 'CJK Symbols and Punctuation', 'Halfwidth and Fullwidth Forms'].includes(name) ? 'Common' : name;
 					}
 					return 'Other';
 				}
-
 				generateRenderData(index, inputs) {
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
 					const scale = size / font.unitsPerEm;
 					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-
 					const segments = [];
 					let currentSegment = { text: '', script: null };
 					for (const char of content) {
@@ -562,10 +554,8 @@
 						currentSegment = { text: char, script };
 					}
 					currentSegment.text && segments.push(currentSegment);
-
 					const runs = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
 					if (runs.every(r => r.run.glyphs.length === 0)) return null;
-
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
@@ -582,27 +572,15 @@
 							currentX += position.xAdvance + tracking;
 						});
 					});
-
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
-					const metrics = {
-						ascent: Math.max(maxY * scale, (font.ascent || 0) * scale),
-						descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale),
-						fontAscent: (font.ascent || 0) * scale,
-						fontDescent: Math.abs(font.descent || 0) * scale,
-						fontCapHeight: (font.capHeight || 0) * scale,
-						fontXHeight: (font.xHeight || 0) * scale,
-						advanceWidth: Math.ceil(currentX * scale)
-					};
-					
+					const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
 					const minXPixel = Math.min(0, minX * scale);
 					const maxXPixel = Math.max(metrics.advanceWidth, maxX * scale);
 					const drawOffsetX = -minXPixel;
 					const width = Math.ceil(maxXPixel - minXPixel);
 					const baseline = Math.ceil(metrics.ascent);
 					const height = Math.ceil(baseline + metrics.descent);
-					
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
-					
 					const canvas = this.offscreenCanvases[index];
 					canvas.width = Math.max(canvas.width, width);
 					canvas.height = Math.max(canvas.height, height);
@@ -612,7 +590,6 @@
 					context.translate(drawOffsetX, baseline);
 					context.scale(1, -1);
 					context.fillStyle = color;
-
 					let drawX = 0;
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
@@ -626,42 +603,29 @@
 						});
 					});
 					context.restore();
-					
-					const data = {
-						...this.analyzePixels(canvas, width, height),
-						...metrics, drawOffsetX, width, height, canvas,
-						baseline, letterSpacing, fontSize: size, font
-					};
+					const data = { ...this.analyzePixels(canvas, width, height), ...metrics, drawOffsetX, width, height, canvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderingCache[index] = { inputs, data };
 					return data;
 				}
-
 				analyzePixels(canvas, width, height) {
 					const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
-
-					const alphaMask = isLittleEndianArchitecture
-						? (pixel => pixel >>> 31)
-						: (pixel => (pixel >>> 7) & 1);
-
+					const alphaMask = isLittleEndianArchitecture ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
 					for (let y = 0; y < height; y++) {
 						const rowOffset = y * width;
 						let firstX = -1;
 						for (let x = 0; x < width; x++) if (alphaMask(pixelDataInt32[rowOffset + x])) { firstX = x; break; }
-
 						if (firstX !== -1) {
 							let lastX = -1;
 							for (let x = width - 1; x > firstX; x--) if (alphaMask(pixelDataInt32[rowOffset + x])) { lastX = x; break; }
 							if (lastX === -1) lastX = firstX;
-
 							let rowInk = 1;
 							if (lastX > firstX) {
 								rowInk++;
 								for (let k = firstX + 1; k < lastX; k++) rowInk += alphaMask(pixelDataInt32[rowOffset + k]);
 							}
-
 							inkPixels += rowInk;
 							densityByRow[y] = rowInk;
 							if (y < minY) minY = y;
@@ -672,7 +636,6 @@
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
-
 				update() {
 					this.analyses = [1, 2].map((number, index) => {
 						elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
@@ -680,58 +643,33 @@
 							const data = this.getRenderData(index);
 							if (!data) return null;
 							const hasInk = data.maxY >= data.minY;
-							const area = Math.max(1, elements.density.value === 'ink'
-								? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1)
-								: Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-
-							return {
-								...data,
-								baselineShift: +elements[`shift${number}`].value || 0,
-								density: ((data.inkPixels / area) * 100).toFixed(1),
-								yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-								yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
-							};
+							const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0, yMax: hasInk ? Math.round(data.baseline - data.minY) : 0 };
 						} catch (error) { return { error: error.message }; }
 					});
 					this.draw();
 					[1, 2].forEach((number, index) => this.updateResult(number, index));
 				}
-
 				draw() {
 					const validAnalyses = this.analyses.filter(analysis => analysis && !analysis.error);
 					if (!validAnalyses.length) { elements.canvas.height = 150; this.updateScale(); return; }
-
 					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
 					const max = callback => Math.max(0, ...validAnalyses.map(callback));
 					const maxAscent = max(item => item.baseline + item.baselineShift);
 					const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
 					const maxOffsetX = max(item => item.drawOffsetX);
-
-					const totalWidth = sideMode
-						? validAnalyses.reduce((total, item) => total + item.width, 0)
-						: maxOffsetX + max(item => item.width - item.drawOffsetX);
-
-					const dimensions = {
-						width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth),
-						height: Math.ceil(maxAscent + maxDescent),
-						baseline: Math.ceil(maxAscent),
-						maxDrawOffsetX: maxOffsetX
-					};
-					
+					const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
+					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 					elements.canvas.width = dimensions.width;
 					elements.canvas.height = dimensions.height;
-					
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-					
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
 						const blend = index > 0 && this.analyses.every(item => item && !item.error);
-
 						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 						this.context.fillStyle = elements[`color${index + 1}`].value;
 						this.context.beginPath();
-
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
 						let currentWidth = 0, startY = -1;
 						for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
@@ -743,21 +681,16 @@
 						}
 						if (currentWidth > 0) this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
 						this.context.fill();
-
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
-						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height,
-							drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 						this.context.globalCompositeOperation = 'source-over';
-
 						if (sideMode) currentTranslateX += analysis.canvas.width;
 					});
-					
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
 						this.context.fillRect(0, dimensions.baseline, elements.canvas.width, 1);
 					}
-					
 					if (guides === 'metrics') {
 						validAnalyses.forEach((analysis, index) => {
 							const y = dimensions.baseline - analysis.baselineShift;
@@ -773,54 +706,30 @@
 					}
 					this.updateScale();
 				}
-
 				updateScale() {
 					const { canvas, container, preview } = elements;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
-					
 					if (elements.zoom.value !== 'fit' || !canvas.width) return;
-					
 					const style = getComputedStyle(container);
 					const scale = Math.min((preview.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / canvas.width, 1);
-					
 					canvas.style.transform = `scale(${scale})`;
 					container.style.width = `${canvas.width * scale + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)}px`;
 					container.style.height = `${canvas.height * scale + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)}px`;
 					container.style.overflow = 'hidden';
 				}
-
 				updateResult(number, index) {
 					const analysis = this.analyses[index];
 					const error = this.loadErrors[index] || (analysis && analysis.error);
 					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : '';
-					
 					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
 					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
 					elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-					
-					elements[`result${number}`].innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>'
-						: message ? `<div class="state-message">${message}</div>`
-						: `<div class="statisticGrid">
-							<div class="statisticRow"><span class="statisticLabel">Density</span><span class="statisticValue">${analysis.density}%</span></div>
-							<div class="statisticGroup">
-								<div class="statisticTitle">Ink Bounds</div>
-								<div class="statisticRow"><span class="statisticLabel">Max Y</span><span class="statisticValue">${analysis.yMax}</span></div>
-								<div class="statisticRow"><span class="statisticLabel">Min Y</span><span class="statisticValue">${analysis.yMin}</span></div>
-							</div>
-							<div class="statisticGroup">
-								<div class="statisticTitle">Metrics</div>
-								<div class="statisticRow"><span class="statisticLabel">Ascent</span><span class="statisticValue">${Math.round(analysis.fontAscent)}</span></div>
-								<div class="statisticRow"><span class="statisticLabel">Cap Height</span><span class="statisticValue">${Math.round(analysis.fontCapHeight)}</span></div>
-								<div class="statisticRow"><span class="statisticLabel">x-Height</span><span class="statisticValue">${Math.round(analysis.fontXHeight)}</span></div>
-								<div class="statisticRow"><span class="statisticLabel">Descent</span><span class="statisticValue">${Math.round(analysis.fontDescent)}</span></div>
-							</div>
-						</div>`;
+					elements[`result${number}`].innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="statisticGrid"><div class="statisticRow"><span class="statisticLabel">Density</span><span class="statisticValue">${analysis.density}%</span></div><div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div><div class="statisticRow"><span class="statisticLabel">Max Y</span><span class="statisticValue">${analysis.yMax}</span></div><div class="statisticRow"><span class="statisticLabel">Min Y</span><span class="statisticValue">${analysis.yMin}</span></div></div><div class="statisticGroup"><div class="statisticTitle">Metrics</div><div class="statisticRow"><span class="statisticLabel">Ascent</span><span class="statisticValue">${Math.round(analysis.fontAscent)}</span></div><div class="statisticRow"><span class="statisticLabel">Cap Height</span><span class="statisticValue">${Math.round(analysis.fontCapHeight)}</span></div><div class="statisticRow"><span class="statisticLabel">x-Height</span><span class="statisticValue">${Math.round(analysis.fontXHeight)}</span></div><div class="statisticRow"><span class="statisticLabel">Descent</span><span class="statisticValue">-${Math.round(analysis.fontDescent)}</span></div></div></div>`;
 				}
 			}
-
 			new DensityTool();
 		</script>
 	</body>
