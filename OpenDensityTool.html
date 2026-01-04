@@ -737,7 +737,6 @@
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
-					// Optimization: Lift endianness check out of the loop to avoid per-pixel branching
 					if (isLittleEndian) {
 						for (let y = 0; y < height; y++) {
 							let rowInk = 0, firstX = -1, lastX = -1;
@@ -758,7 +757,9 @@
 								if (lastX > maxX) maxX = lastX;
 							}
 						}
-					} else {
+					}
+
+					if (!isLittleEndian) {
 						for (let y = 0; y < height; y++) {
 							let rowInk = 0, firstX = -1, lastX = -1;
 							const rowOffset = y * width;
