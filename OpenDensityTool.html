@@ -457,15 +457,13 @@
 			</section>
 		</main>
 		<script type="module">
-            import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
-            import { Buffer } from 'https://esm.sh/buffer@6.0.3';
+			import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+			import { Buffer } from 'https://esm.sh/buffer@6.0.3';
 
-            const fontkit = fontkitModule.default || fontkitModule;
-            window.Buffer = Buffer; // Necessary for fontkit
+			const fontkit = fontkitModule.default || fontkitModule;
+			window.Buffer = Buffer;
 
-			const dom = new Proxy({},{
-				get: (_,id)=>document.getElementById(id)
-			});
+			const dom = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 
 			class DensityTool {
 				constructor() {
@@ -484,59 +482,37 @@
 				}
 
 				bind() {
-					const schedule = callback=>{
-						let frame;
-						return ()=>(frame && cancelAnimationFrame(frame),
-						frame = requestAnimationFrame(callback));
-					}
-					;
-					const debounce = (callback,delay)=>{
-						let timer;
-						return (...args)=>(clearTimeout(timer),
-						timer = setTimeout(()=>callback(...args), delay));
-					}
-					;
-					const refresh = schedule(()=>this.update())
-					  , debouncedRefresh = debounce(()=>this.update(), 300)
-					  , resize = schedule(()=>this.updateScale());
-
+					const schedule = callback => { let frame; return () => (frame && cancelAnimationFrame(frame), frame = requestAnimationFrame(callback)); };
+					const debounce = (callback, delay) => { let timer; return (...args) => (clearTimeout(timer), timer = setTimeout(() => callback(...args), delay)); };
+					const refresh = schedule(() => this.update()), debouncedRefresh = debounce(() => this.update(), 300), resize = schedule(() => this.updateScale());
 					dom.zoom.onchange = resize;
-					['render', 'density', 'guides'].forEach(id=>dom[id].onchange = refresh);
-					dom.export.onclick = ()=>Object.assign(document.createElement('a'), {
+					['render', 'density', 'guides'].forEach(id => dom[id].onchange = refresh);
+					dom.export.onclick = () => Object.assign(document.createElement('a'), {
 						href: dom.canvas.toDataURL(),
 						download: `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`
 					}).click();
-					dom.theme.onchange = event=>this.setTheme(event.target.value);
+					dom.theme.onchange = event => this.setTheme(event.target.value);
 					window.onresize = resize;
-
-					document.querySelectorAll('.copy-btn').forEach(button=>{
+					document.querySelectorAll('.copy-btn').forEach(button => {
 						const original = button.textContent;
-						button.onclick = ()=>navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText).then(()=>button.textContent = 'Copied!').catch(()=>button.textContent = 'Error').finally(()=>setTimeout(()=>button.textContent = original, 2000));
-					}
-					);
-
-					[1, 2].forEach((number,index)=>{
-						const file = dom[`file${number}`]
-						  , group = file.closest('.group');
-						file.onchange = event=>this.loadFont(event.target.files[0], index);
-						dom[`clear${number}`].onclick = ()=>(this.fonts[index] = this.loadErrors[index] = null,
-						file.value = '',
-						this.update());
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key=>dom[`${key}${number}`].oninput = debouncedRefresh);
-
-						group.ondragover = event=>(event.preventDefault(),
-						group.classList.add('drag-active'));
-						group.ondragleave = event=>(!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('drag-active');
-						group.ondrop = event=>{
+						button.onclick = () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText)
+							.then(() => button.textContent = 'Copied!').catch(() => button.textContent = 'Error')
+							.finally(() => setTimeout(() => button.textContent = original, 2000));
+					});
+					[1, 2].forEach((number, index) => {
+						const file = dom[`file${number}`], group = file.closest('.group');
+						file.onchange = event => this.loadFont(event.target.files[0], index);
+						dom[`clear${number}`].onclick = () => (this.fonts[index] = this.loadErrors[index] = null, file.value = '', this.update());
+						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => dom[`${key}${number}`].oninput = debouncedRefresh);
+						group.ondragover = event => (event.preventDefault(), group.classList.add('drag-active'));
+						group.ondragleave = event => (!event.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('drag-active');
+						group.ondrop = event => {
 							event.preventDefault();
 							group.classList.remove('drag-active');
 							const dropped = event.dataTransfer.files[0];
-							dropped && (file.files = event.dataTransfer.files,
-							this.loadFont(dropped, index));
-						}
-						;
-					}
-					);
+							dropped && (file.files = event.dataTransfer.files, this.loadFont(dropped, index));
+						};
+					});
 				}
 
 				setTheme(theme) {
@@ -546,9 +522,7 @@
 				}
 
 				getFontName(font, number) {
-					if (!font)
-						return `Font ${number}`;
-					return font.fullName || font.familyName || font.postscriptName || `Font ${number}`;
+					return font ? (font.fullName || font.familyName || font.postscriptName || `Font ${number}`) : `Font ${number}`;
 				}
 
 				async loadFont(file, index) {
@@ -556,24 +530,19 @@
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
-
 					try {
-						if (!file)
-							return;
-						if (file.size > 30 << 20)
-							throw new Error('File too large (max 30MB)');
-						let buffer = await file.arrayBuffer();
+						if (!file) return;
+						if (file.size > 30 << 20) throw new Error('File too large (max 30MB)');
+						const buffer = await file.arrayBuffer();
 						if (loadId === this.loadCounters[index]) {
-                            const buf = window.Buffer.from(buffer);
-							const font = fontkit.create(buf);
-                            if (!font.unitsPerEm) throw new Error('Invalid font');
+							const font = fontkit.create(window.Buffer.from(buffer));
+							if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}
 					} catch (error) {
 						loadId === this.loadCounters[index] && (this.loadErrors[index] = error.message);
 					} finally {
-						loadId === this.loadCounters[index] && (this.loading[index] = false,
-						this.update());
+						loadId === this.loadCounters[index] && (this.loading[index] = false, this.update());
 					}
 				}
 
@@ -586,126 +555,62 @@
 						letterSpacing: +dom[`spacing${number}`].value || 0,
 						color: dom[`color${number}`].value
 					};
-					if (!inputs.font || !inputs.content || !inputs.fontSize)
-						return null;
+					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
 					const cached = this.renderCache[index];
-					return cached && Object.keys(inputs).every(key=>cached.inputs[key] === inputs[key]) ? cached.data : this.generateRenderData(index, inputs);
+					return cached && Object.keys(inputs).every(key => cached.inputs[key] === inputs[key]) ? cached.data : this.generateRenderData(index, inputs);
 				}
 
 				generateRenderData(index, inputs) {
-					const {font, content, fontSize, letterSpacing, color} = inputs;
+					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.max(1, Math.min(fontSize, 2000));
 					const scale = size / font.unitsPerEm;
-                    const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-
-					const fontAscent = (font.ascent || 0) * scale;
-					const fontDescent = Math.abs(font.descent || 0) * scale;
-					const fontXHeight = (font.xHeight || 0) * scale;
-					const fontCapHeight = (font.capHeight || 0) * scale;
-
-                    const run = font.layout(content);
-                    if (run.glyphs.length === 0) return null;
-
-                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                    let currentX = 0;
-
-                    run.glyphs.forEach((glyph, i) => {
-                        const pos = run.positions[i];
-                        const x = currentX + pos.xOffset;
-                        const y = pos.yOffset;
-
-                        const bbox = glyph.bbox;
-                        if (bbox) {
-                             minX = Math.min(minX, x + bbox.minX);
-                             maxX = Math.max(maxX, x + bbox.maxX);
-                             minY = Math.min(minY, y + bbox.minY);
-                             maxY = Math.max(maxY, y + bbox.maxY);
-                        }
-
-                        currentX += pos.xAdvance + tracking;
-                    });
-
-                    if (minX === Infinity) { minX = 0; maxX = 0; minY = 0; maxY = 0; }
-
-                    const advanceWidth = Math.ceil(currentX * scale);
-
-                    const x1 = minX * scale;
-                    const x2 = maxX * scale;
-                    const y1 = maxY * scale;
-                    const y2 = minY * scale;
-
+					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
+					const fontAscent = (font.ascent || 0) * scale, fontDescent = Math.abs(font.descent || 0) * scale;
+					const fontXHeight = (font.xHeight || 0) * scale, fontCapHeight = (font.capHeight || 0) * scale;
+					const run = font.layout(content);
+					if (run.glyphs.length === 0) return null;
+					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
+					run.glyphs.forEach((glyph, i) => {
+						const pos = run.positions[i], x = currentX + pos.xOffset, y = pos.yOffset, bbox = glyph.bbox;
+						if (bbox) {
+							minX = Math.min(minX, x + bbox.minX);
+							maxX = Math.max(maxX, x + bbox.maxX);
+							minY = Math.min(minY, y + bbox.minY);
+							maxY = Math.max(maxY, y + bbox.maxY);
+						}
+						currentX += pos.xAdvance + tracking;
+					});
+					if (minX === Infinity) { minX = maxX = minY = maxY = 0; }
+					const advanceWidth = Math.ceil(currentX * scale);
+					const x1 = minX * scale, x2 = maxX * scale, y1 = maxY * scale, y2 = minY * scale;
 					const boundingBoxWidth = Math.ceil(x2 - x1);
-					if (advanceWidth <= 0 && boundingBoxWidth <= 0)
-						return null;
-
-					const metrics = {
-						ascent: Math.max(y1, fontAscent),
-						descent: Math.max(-y2, fontDescent),
-						fontAscent,
-						fontDescent,
-						fontXHeight,
-						fontCapHeight,
-						x1,
-						x2,
-						boundingBoxWidth,
-						advanceWidth
-					};
-
-					const minXPixel = Math.min(0, metrics.x1);
-					const maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
-					const drawOffsetX = -minXPixel;
-					const width = Math.ceil(maxXPixel - minXPixel);
-					const baseline = Math.ceil(metrics.ascent);
-					const height = Math.ceil(baseline + metrics.descent);
-
-					if (width > 32767 || height > 32767)
-						throw new Error('Canvas dimensions too large');
-
+					if (advanceWidth <= 0 && boundingBoxWidth <= 0) return null;
+					const metrics = { ascent: Math.max(y1, fontAscent), descent: Math.max(-y2, fontDescent), fontAscent, fontDescent, fontXHeight, fontCapHeight, x1, x2, boundingBoxWidth, advanceWidth };
+					const minXPixel = Math.min(0, metrics.x1), maxXPixel = Math.max(metrics.advanceWidth, metrics.x2);
+					const drawOffsetX = -minXPixel, width = Math.ceil(maxXPixel - minXPixel);
+					const baseline = Math.ceil(metrics.ascent), height = Math.ceil(baseline + metrics.descent);
+					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 					const fontCanvas = this.analysisCanvases[index];
 					fontCanvas.width = Math.max(fontCanvas.width, width);
 					fontCanvas.height = Math.max(fontCanvas.height, height);
-					const context = fontCanvas.getContext('2d', {
-						willReadFrequently: true
-					});
+					const context = fontCanvas.getContext('2d', { willReadFrequently: true });
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
-                    context.scale(1, -1);
-
-                    context.fillStyle = color;
-
-                    let drawX = 0;
-                    run.glyphs.forEach((glyph, i) => {
-                        const pos = run.positions[i];
-                        const x = drawX + pos.xOffset;
-                        const y = pos.yOffset;
-
-                        context.save();
-                        context.translate(x * scale, y * scale);
-                        glyph.render(context, size);
-                        context.restore();
-
-                        drawX += pos.xAdvance + tracking;
-                    });
-
+					context.scale(1, -1);
+					context.fillStyle = color;
+					let drawX = 0;
+					run.glyphs.forEach((glyph, i) => {
+						const pos = run.positions[i];
+						context.save();
+						context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
+						glyph.render(context, size);
+						context.restore();
+						drawX += pos.xAdvance + tracking;
+					});
 					context.restore();
-
-					const data = {
-						...this.analyzePixels(fontCanvas, width, height),
-						...metrics,
-						drawOffsetX,
-						width,
-						height,
-						canvas: fontCanvas,
-						baseline,
-						letterSpacing,
-						fontSize: size,
-						font
-					};
-					this.renderCache[index] = {
-						inputs,
-						data
-					};
+					const data = { ...this.analyzePixels(fontCanvas, width, height), ...metrics, drawOffsetX, width, height, canvas: fontCanvas, baseline, letterSpacing, fontSize: size, font };
+					this.renderCache[index] = { inputs, data };
 					return data;
 				}
 
@@ -713,91 +618,52 @@
 					const number = index + 1;
 					try {
 						const data = this.getRenderData(index);
-						if (!data)
-							return null;
+						if (!data) return null;
 						const hasInk = data.maxY >= data.minY;
-						const area = Math.max(1, dom.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-						return {
-							...data,
-							baselineShift: +dom[`shift${number}`].value || 0,
-							density: ((data.inkPixels / area) * 100).toFixed(1),
-							yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
-							yMax: hasInk ? Math.round(data.baseline - data.minY) : 0
-						};
-					} catch (error) {
-						return {
-							error: error.message
-						};
-					}
+						const area = Math.max(1, dom.density.value === 'ink'
+							? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1)
+							: Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+						return { ...data, baselineShift: +dom[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0, yMax: hasInk ? Math.round(data.baseline - data.minY) : 0 };
+					} catch (error) { return { error: error.message }; }
 				}
 
 				analyzePixels(canvas, width, height) {
-					const {data} = canvas.getContext('2d', {
-						willReadFrequently: true
-					}).getImageData(0, 0, width, height);
+					const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0
-					  , minX = width
-					  , maxX = -1
-					  , minY = height
-					  , maxY = -1;
-
+					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 					for (let y = 0; y < height; y++) {
 						let rowInk = 0;
-						for (let x = 0, i = y * width * 4 + 3; x < width; x++,
-						i += 4) {
-							data[i] >= 128 && (rowInk++ === 0 && x < minX && (minX = x),
-							x > maxX && (maxX = x));
+						for (let x = 0, i = y * width * 4 + 3; x < width; x++, i += 4) {
+							data[i] >= 128 && (rowInk++ === 0 && x < minX && (minX = x), x > maxX && (maxX = x));
 						}
-						rowInk > 0 && (inkPixels += rowInk,
-						densityByRow[y] = rowInk,
-						y < minY && (minY = y),
-						maxY = y);
+						rowInk > 0 && (inkPixels += rowInk, densityByRow[y] = rowInk, y < minY && (minY = y), maxY = y);
 					}
-					return {
-						densityByRow,
-						inkPixels,
-						minX,
-						maxX,
-						minY,
-						maxY
-					};
+					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
 
 				update() {
-					this.analyses = [1, 2].map((number,index)=>(dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value,
-					this.analyze(index)));
+					this.analyses = [1, 2].map((number, index) => (dom[`dot${number}`].style.backgroundColor = dom[`color${number}`].value, this.analyze(index)));
 					this.draw();
-					[1, 2].forEach((number,index)=>this.updateResult(number, index));
+					[1, 2].forEach((number, index) => this.updateResult(number, index));
 				}
 
 				draw() {
-					const valid = this.analyses.filter(analysis=>analysis && !analysis.error);
-					if (!valid.length) {
-						dom.canvas.height = 150;
-						this.updateScale();
-						return;
-					}
-
+					const valid = this.analyses.filter(analysis => analysis && !analysis.error);
+					if (!valid.length) { dom.canvas.height = 150; this.updateScale(); return; }
 					const dimensions = this.computeDimensions(valid);
 					dom.canvas.width = dimensions.width;
 					dom.canvas.height = dimensions.height;
-
 					const side = dom.render.value === 'side' && valid.length > 1;
 					let translateX = this.graphWidth + this.graphPadding + (side ? 0 : dimensions.maxDrawOffsetX);
-
-					this.analyses.forEach((analysis,index)=>{
+					this.analyses.forEach((analysis, index) => {
 						analysis && !analysis.error && this.drawAnalysis(analysis, index, dimensions, side, translateX);
 						side && analysis && !analysis.error && (translateX += analysis.canvas.width);
-					}
-					);
-
+					});
 					const guides = dom.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
 						this.context.fillRect(0, dimensions.baseline, dom.canvas.width, 1);
 					}
-
 					if (guides === 'metrics') {
 						valid.forEach((analysis, index) => {
 							const y = dimensions.baseline - analysis.baselineShift;
@@ -805,14 +671,9 @@
 							this.context.globalAlpha = 0.5;
 							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), dom.canvas.width, 1);
 							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), dom.canvas.width, 1);
-
 							this.context.globalAlpha = 0.3;
-							if (analysis.fontCapHeight) {
-								this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), dom.canvas.width, 1);
-							}
-							if (analysis.fontXHeight) {
-								this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), dom.canvas.width, 1);
-							}
+							analysis.fontCapHeight && this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), dom.canvas.width, 1);
+							analysis.fontXHeight && this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), dom.canvas.width, 1);
 							this.context.globalAlpha = 1.0;
 						});
 					}
@@ -821,14 +682,12 @@
 
 				drawAnalysis(analysis, index, dimensions, side, translateX) {
 					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-					const blend = index > 0 && this.analyses.every(item=>item && !item.error);
+					const blend = index > 0 && this.analyses.every(item => item && !item.error);
 					const color = dom[`color${index + 1}`].value;
-
 					this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 					const max = Math.max(1, ...analysis.densityByRow);
 					this.context.fillStyle = color;
-					analysis.densityByRow.forEach((value,rowY)=>value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
-
+					analysis.densityByRow.forEach((value, rowY) => value && this.context.fillRect(this.graphWidth - (value / max) * this.graphWidth, rowY + y, (value / max) * this.graphWidth, 1));
 					const graphX = side ? translateX + (analysis.drawOffsetX || 0) : translateX;
 					this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, graphX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 					this.context.globalCompositeOperation = 'source-over';
@@ -836,31 +695,21 @@
 
 				computeDimensions(analyses) {
 					const side = dom.render.value === 'side' && analyses.length > 1;
-					const max = callback=>Math.max(0, ...analyses.map(callback));
-					const maxAscent = max(item=>item.baseline + item.baselineShift)
-					  , maxDescent = max(item=>item.height - item.baseline - item.baselineShift)
-					  , maxOffsetX = max(item=>item.drawOffsetX);
-					const width = side ? analyses.reduce((total,item)=>total + item.width, 0) : maxOffsetX + max(item=>item.width - item.drawOffsetX);
-					return {
-						width: Math.ceil(this.graphWidth + this.graphPadding + width),
-						height: Math.ceil(maxAscent + maxDescent),
-						baseline: Math.ceil(maxAscent),
-						maxDrawOffsetX: maxOffsetX
-					};
+					const max = callback => Math.max(0, ...analyses.map(callback));
+					const maxAscent = max(item => item.baseline + item.baselineShift), maxDescent = max(item => item.height - item.baseline - item.baselineShift), maxOffsetX = max(item => item.drawOffsetX);
+					const width = side ? analyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
+					return { width: Math.ceil(this.graphWidth + this.graphPadding + width), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 				}
 
 				updateScale() {
-					const {canvas, container, preview} = dom;
+					const { canvas, container, preview } = dom;
 					canvas.style.transform = 'none';
 					container.style.width = container.style.height = container.style.overflow = '';
-					if (dom.zoom.value !== 'fit' || !canvas.width)
-						return;
-
+					if (dom.zoom.value !== 'fit' || !canvas.width) return;
 					const style = getComputedStyle(container);
 					const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
 					const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
 					const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
-
 					canvas.style.transform = `scale(${scale})`;
 					container.style.width = `${canvas.width * scale + paddingX}px`;
 					container.style.height = `${canvas.height * scale + paddingY}px`;
@@ -868,17 +717,15 @@
 				}
 
 				updateResult(number, index) {
-					const analysis = this.analyses[index]
-					  , root = dom[`result${number}`];
+					const analysis = this.analyses[index], root = dom[`result${number}`];
 					const message = this.loadErrors[index] ? `Error: ${this.loadErrors[index]}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : analysis.error ? `Error: ${analysis.error}` : '';
 					const name = this.getFontName(this.fonts[index], number);
-
 					dom[`name${number}`].textContent = dom[`name${number}`].title = name;
 					dom[`analysisName${number}`].textContent = dom[`analysisName${number}`].title = `${name} Analysis`;
 					dom[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					dom[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-
-					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div><div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
+					root.innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` :
+						`<div class="stat-grid"><div class="stat-row"><span class="stat-label">Density</span><span class="stat-value">${analysis.density}%</span></div><div class="stat-group"><div class="stat-group-title">Ink Bounds</div><div class="stat-row"><span class="stat-label">Max Y</span><span class="stat-value">${analysis.yMax}</span></div><div class="stat-row"><span class="stat-label">Min Y</span><span class="stat-value">${analysis.yMin}</span></div></div><div class="stat-group"><div class="stat-group-title">Metrics</div><div class="stat-row"><span class="stat-label">Ascent</span><span class="stat-value">${Math.round(analysis.fontAscent)}</span></div><div class="stat-row"><span class="stat-label">Cap Height</span><span class="stat-value">${Math.round(analysis.fontCapHeight)}</span></div><div class="stat-row"><span class="stat-label">x-Height</span><span class="stat-value">${Math.round(analysis.fontXHeight)}</span></div><div class="stat-row"><span class="stat-label">Descent</span><span class="stat-value">${Math.round(analysis.fontDescent)}</span></div></div></div>`;
 				}
 			}
 
