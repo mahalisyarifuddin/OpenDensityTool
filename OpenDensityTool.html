@@ -732,7 +732,6 @@
 				}
 
 				analyzePixels(canvas, width, height) {
-					// Optimization: Use Uint32Array to read pixels faster (verified >2x speedup)
 					const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
 					const pixel32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
