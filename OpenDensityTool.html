@@ -704,6 +704,7 @@
 							const pos = run.positions[i];
 							context.save();
 							context.translate((drawX + pos.xOffset) * scale, pos.yOffset * scale);
+							context.beginPath();
 							glyph.render(context, size);
 							context.restore();
 							drawX += pos.xAdvance + tracking;
