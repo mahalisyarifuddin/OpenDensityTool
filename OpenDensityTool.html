@@ -85,7 +85,7 @@
 			}
 			main {
 				display: grid;
-				grid-template-columns: 340px 1fr;
+				grid-template-columns: 330px 1fr;
 				gap: 1.5rem;
 				max-width: 1600px;
 				margin: 0 auto;
@@ -111,7 +111,6 @@
 				border-radius: 6px;
 				margin-bottom: 1rem;
 				position: relative;
-				transition: border-color .15s, background-color .15s;
 			}
 			.group.dragActive {
 				border-color: var(--primary);
@@ -203,10 +202,44 @@
 				border: 0;
 				padding: .5rem 1rem;
 				cursor: pointer;
-				transition: background .1s;
 			}
 			button:hover {
 				background: var(--hover);
+			}
+			dialog {
+				background: var(--surface);
+				color: var(--text);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 1.5rem;
+				max-width: 400px;
+				width: 100%;
+				margin: auto;
+				position: fixed;
+			}
+			dialog::backdrop {
+				background: rgba(0, 0, 0, 0.5);
+			}
+			.dialog-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 1.5rem;
+			}
+			.dialog-header h3 {
+				font-size: 1.25rem;
+				font-weight: 600;
+			}
+			.close-button {
+				background: transparent;
+				color: var(--text);
+				padding: .25rem;
+				font-size: 1.5rem;
+				line-height: 1;
+			}
+			.close-button:hover {
+				background: var(--background);
+				color: var(--text);
 			}
 			#preview {
 				background: var(--surface);
@@ -316,17 +349,47 @@
 					grid-template-columns: 1fr;
 				}
 			}
+			.row label {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				flex: 1;
+				min-width: 0;
+			}
+			.row label input {
+				margin-top: auto;
+			}
 		</style>
 	</head>
 	<body>
 		<header>
 			<h1>Typographic Density Tool</h1>
-			<select id="theme" style="width:auto" aria-label="Color theme">
-				<option value="auto">Auto Theme</option>
-				<option value="light">Light</option>
-				<option value="dark">Dark</option>
-			</select>
+			<button id="openSettings" style="width:auto" aria-label="Open Settings">Settings</button>
 		</header>
+		<dialog id="preferencesDialog">
+			<div class="dialog-header">
+				<h3>Preferences</h3>
+				<button id="closeSettings" class="close-button" aria-label="Close Settings">&times;</button>
+			</div>
+			<div class="group">
+				<label>
+					Theme
+					<select id="theme" style="margin-top:4px">
+						<option value="auto">Auto Theme</option>
+						<option value="light">Light</option>
+						<option value="dark">Dark</option>
+					</select>
+				</label>
+				<label>
+					Letter Spacing Unit
+					<select id="spacingUnit" style="margin-top:4px">
+						<option value="em" selected>Per mille (‰ em)</option>
+						<option value="px">Pixels (px)</option>
+						<option value="percent">Tracking (%)</option>
+					</select>
+				</label>
+			</div>
+		</dialog>
 		<main>
 			<section>
 				<h2>Configuration</h2>
@@ -348,7 +411,7 @@
 					</label>
 					<div class="row">
 						<label>
-							Letter Spacing<input type="number" id="spacing1" value="0" min="-100" max="100">
+							Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
@@ -373,7 +436,7 @@
 					</label>
 					<div class="row">
 						<label>
-							Letter Spacing<input type="number" id="spacing2" value="0" min="-100" max="100">
+							Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
@@ -476,6 +539,7 @@
 					this.loading = [false, false];
 					this.loadSequence = [0, 0];
 					this.renderingCache = [];
+					this.layoutCache = [null, null];
 					this.offscreenCanvases = [document.createElement('canvas'), document.createElement('canvas')];
 					this.graphWidth = 150;
 					this.graphPadding = 20;
@@ -512,6 +576,14 @@
 					};
 
 					elements.theme.onchange = event => this.theme(event.target.value);
+
+					elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
+					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
+					elements.spacingUnit.onchange = () => {
+						this.updateSpacingLabels();
+						this.update();
+					};
+
 					window.onresize = updateScale;
 
 					document.querySelectorAll('.copyButton').forEach(button => {
@@ -541,6 +613,11 @@
 						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => {
 							elements[`${key}${number}`].oninput = debouncedUpdate;
 						});
+
+						elements[`spacing${number}`].oninput = () => {
+							elements[`spacing${number}`].setAttribute('value', elements[`spacing${number}`].value);
+							debouncedUpdate();
+						};
 
 						group.ondragover = event => {
 							event.preventDefault();
@@ -581,7 +658,7 @@
 								const match = line.match(regex);
 								match && ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
 							});
-							ranges.length > 0 && (this.unicodeBlocks = ranges, this.update());
+							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.update());
 						})
 						.catch(error => console.warn('Block fetch failed', error));
 				}
@@ -648,7 +725,6 @@
 
 						const name = block[2];
 						if (name === "Basic Latin") {
-							// Basic Latin split: punctuation/symbols vs letters
 							return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
 						}
 
@@ -664,18 +740,32 @@
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
 					const scale = size / font.unitsPerEm;
-					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-					const segments = [];
-					let currentSegment = { text: '', script: null };
-					for (const char of content) {
-						const script = this.getScript(char);
-						if (!currentSegment.script) { currentSegment = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
-						if (script === 'Common' || script === currentSegment.script) { currentSegment.text += char; continue; }
-						segments.push(currentSegment);
-						currentSegment = { text: char, script };
-					}
-					currentSegment.text && segments.push(currentSegment);
-					const runs = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
+					const unit = elements.spacingUnit.value;
+
+					const tracking = unit === 'percent' ? 0 :
+									 unit === 'em' ? (letterSpacing / 1000) * font.unitsPerEm :
+									 (letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0);
+
+					const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
+
+					const cachedLayout = this.layoutCache[index];
+					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
+					const runs = hit ? cachedLayout.runs : (() => {
+						const segments = [];
+						let currentSegment = { text: '', script: null };
+						for (const char of content) {
+							const script = this.getScript(char);
+							if (!currentSegment.script) { currentSegment = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
+							if (script === 'Common' || script === currentSegment.script) { currentSegment.text += char; continue; }
+							segments.push(currentSegment);
+							currentSegment = { text: char, script };
+						}
+						currentSegment.text && segments.push(currentSegment);
+						const result = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
+						this.layoutCache[index] = { content, font, runs: result };
+						return result;
+					})();
+
 					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 					runs.forEach(({ run }) => {
@@ -690,7 +780,7 @@
 								minY = Math.min(minY, y + boundingBox.minY);
 								maxY = Math.max(maxY, y + boundingBox.maxY);
 							}
-							currentX += position.xAdvance + tracking;
+							currentX += (position.xAdvance * advanceScale) + tracking;
 						});
 					});
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
@@ -705,7 +795,7 @@
 					const canvas = this.offscreenCanvases[index];
 					canvas.width = Math.max(canvas.width, width);
 					canvas.height = Math.max(canvas.height, height);
-					const context = canvas.getContext('2d');
+					const context = canvas.getContext('2d', { willReadFrequently: true });
 					context.clearRect(0, 0, width, height);
 					context.save();
 					context.translate(drawOffsetX, baseline);
@@ -720,7 +810,7 @@
 							context.beginPath();
 							glyph.render(context, size);
 							context.restore();
-							drawX += position.xAdvance + tracking;
+							drawX += (position.xAdvance * advanceScale) + tracking;
 						});
 					});
 					context.restore();
@@ -730,7 +820,7 @@
 				}
 
 				analyzePixels(canvas, width, height) {
-					const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
+					const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
@@ -757,6 +847,18 @@
 						}
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
+				}
+
+				updateSpacingLabels() {
+					const unit = elements.spacingUnit.value;
+					const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
+					const defaultVal = unit === 'percent' ? 100 : 0;
+					[1, 2].forEach(n => {
+						const input = elements[`spacing${n}`];
+						const prevLabel = input.parentElement.firstChild;
+						prevLabel.textContent = label;
+						input.value = defaultVal;
+					});
 				}
 
 				update() {
