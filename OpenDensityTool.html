@@ -501,7 +501,6 @@
 			window.Buffer = Buffer;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
-			// ⚡ Bolt: Define alphaMask at module scope to avoid re-creation in the hot path.
 			const alphaMask = isLittleEndianArchitecture ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
 
 			const COMMON_SCRIPT_NAMES = new Set([
@@ -826,7 +825,6 @@
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
-					// ⚡ Bolt: alphaMask is now used from module scope to reduce allocation overhead.
 					for (let y = 0; y < height; y++) {
 						const rowOffset = y * width;
 						let firstX = -1;
@@ -880,7 +878,6 @@
 
 				draw() {
 					const validAnalyses = this.analyses.filter(analysis => analysis && !analysis.error);
-					// ⚡ Bolt: Use this.context.canvas to avoid Proxy/DOM lookup overhead.
 					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
 					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
 					const max = callback => Math.max(0, ...validAnalyses.map(callback));
