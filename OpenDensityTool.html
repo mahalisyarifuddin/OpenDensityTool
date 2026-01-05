@@ -625,7 +625,6 @@
 						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
 						.then(text => {
 							const ranges = [];
-							// Optimization: Use regex.exec loop instead of split() for 6x faster parsing
 							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/gm;
 							let match;
 							while ((match = regex.exec(text)) !== null) {
