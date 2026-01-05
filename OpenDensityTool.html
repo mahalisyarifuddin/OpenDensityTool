@@ -324,6 +324,14 @@
 				border-color: var(--muted);
 				color: var(--hover);
 			}
+			.actionButton.active {
+				background: var(--primary);
+				color: var(--on-primary);
+			}
+			.actionButton.active:hover {
+				background: var(--hover);
+				color: var(--on-primary);
+			}
 			.spinner {
 				width: 24px;
 				height: 24px;
@@ -397,6 +405,10 @@
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
 						<span id="name1">Font 1</span>
+						<div class="controls" style="margin:0 0 0 auto;gap:4px">
+							<button id="mute1" class="actionButton" aria-label="Toggle visibility Font 1" title="Toggle Visibility">M</button>
+							<button id="solo1" class="actionButton" aria-label="Solo Font 1" title="Solo">S</button>
+						</div>
 					</div>
 					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
 						<label for="file1" style="margin-bottom:0">Font File</label>
@@ -422,6 +434,10 @@
 					<div class="header">
 						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">
 						<span id="name2">Font 2</span>
+						<div class="controls" style="margin:0 0 0 auto;gap:4px">
+							<button id="mute2" class="actionButton" aria-label="Toggle visibility Font 2" title="Toggle Visibility">M</button>
+							<button id="solo2" class="actionButton" aria-label="Solo Font 2" title="Solo">S</button>
+						</div>
 					</div>
 					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
 						<label for="file2" style="margin-bottom:0">Font File</label>
@@ -509,6 +525,8 @@
 				constructor() {
 					this.fonts = [];
 					this.loadErrors = [];
+					this.visibility = [true, true];
+					this.solo = [false, false];
 					this.loading = [false, false];
 					this.loadSequence = [0, 0];
 					this.renderingCache = [];
@@ -611,6 +629,19 @@
 								fileInput.files = event.dataTransfer.files;
 								this.loadFont(droppedFile, index);
 							}
+						};
+					});
+
+					[1, 2].forEach((number, index) => {
+						elements[`mute${number}`].onclick = () => {
+							this.visibility[index] = !this.visibility[index];
+							elements[`mute${number}`].classList.toggle('active', !this.visibility[index]);
+							this.draw();
+						};
+						elements[`solo${number}`].onclick = () => {
+							this.solo[index] = !this.solo[index];
+							elements[`solo${number}`].classList.toggle('active', this.solo[index]);
+							this.draw();
 						};
 					});
 				}
@@ -908,7 +939,8 @@
 				}
 
 				draw() {
-					const validAnalyses = this.analyses.filter(analysis => analysis && !analysis.error);
+					const isVisible = (index) => this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
+					const validAnalyses = this.analyses.filter((analysis, index) => analysis && !analysis.error && isVisible(index));
 					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
 					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
 					const max = callback => Math.max(0, ...validAnalyses.map(callback));
@@ -920,10 +952,11 @@
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
+					let drawnCount = 0;
 					this.analyses.forEach((analysis, index) => {
-						if (!analysis || analysis.error) return;
+						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = index > 0 && this.analyses.every(item => item && !item.error);
+						const blend = !sideMode && drawnCount > 0;
 						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
 						this.context.fillStyle = elements[`color${index + 1}`].value;
 						this.context.beginPath();
@@ -942,6 +975,7 @@
 						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 						this.context.globalCompositeOperation = 'source-over';
 						if (sideMode) currentTranslateX += analysis.canvas.width;
+						drawnCount++;
 					});
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
