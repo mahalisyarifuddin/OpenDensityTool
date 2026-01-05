@@ -796,22 +796,22 @@
 						});
 					});
 					context.restore();
-					const data = { ...this.analyzePixels(canvas, width, height), ...metrics, drawOffsetX, width, height, canvas, baseline, letterSpacing, fontSize: size, font };
+					const data = { ...this.analyzePixels(context, width, height), ...metrics, drawOffsetX, width, height, canvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderingCache[index] = { inputs, data };
 					return data;
 				}
 
-				analyzePixels(canvas, width, height) {
-					const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
+				analyzePixels(context, width, height) {
+					const { data } = context.getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
+					const widthMinus3 = width - 3;
+					let rowOffset = 0;
 					for (let y = 0; y < height; y++) {
-						const rowOffset = y * width;
 						let firstX = -1;
 						let ptr = rowOffset;
 						let x = 0;
-						const widthMinus3 = width - 3;
 						while (x < widthMinus3) {
 							if ((pixelDataInt32[ptr] | pixelDataInt32[ptr + 1] | pixelDataInt32[ptr + 2] | pixelDataInt32[ptr + 3]) === 0) {
 								x += 4;
@@ -875,6 +875,7 @@
 							if (firstX < minX) minX = firstX;
 							if (lastX > maxX) maxX = lastX;
 						}
+						rowOffset += width;
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
