@@ -649,6 +649,7 @@
 				theme(themeName) {
 					document.documentElement.className = themeName === 'auto' ? '' : themeName;
 					elements.theme.value = themeName;
+					this.draw();
 				}
 
 				fetchUnicodeBlocks() {
@@ -951,32 +952,65 @@
 					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
+					const backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
+					this.context.fillStyle = backgroundColor;
+					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
+					const compositeCanvas = document.createElement('canvas');
+					compositeCanvas.width = dimensions.width;
+					compositeCanvas.height = dimensions.height;
+					const compositeCtx = compositeCanvas.getContext('2d');
+					compositeCtx.fillStyle = '#ffffff';
+					compositeCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-					let drawnCount = 0;
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = !sideMode && drawnCount > 0;
-						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
-						this.context.fillStyle = elements[`color${index + 1}`].value;
-						this.context.beginPath();
+
+						// Draw density graph on composite buffer
+						compositeCtx.save();
+						compositeCtx.globalCompositeOperation = 'multiply';
+						compositeCtx.fillStyle = elements[`color${index + 1}`].value;
+						compositeCtx.beginPath();
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
 						let currentWidth = 0, startY = -1;
 						for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
 							const barWidth = analysis.densityByRow[rowY] ? analysis.densityByRow[rowY] * scale : 0;
 							if (barWidth !== currentWidth) {
-								if (currentWidth > 0) this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
+								if (currentWidth > 0) compositeCtx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
 								currentWidth = barWidth; startY = rowY;
 							}
 						}
-						if (currentWidth > 0) this.context.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
-						this.context.fill();
+						if (currentWidth > 0) compositeCtx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
+						compositeCtx.fill();
+
+						// Draw glyphs on composite buffer
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
-						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
-						this.context.globalCompositeOperation = 'source-over';
-						if (sideMode) currentTranslateX += analysis.canvas.width;
-						drawnCount++;
+						compositeCtx.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+						compositeCtx.restore();
+
+						if (sideMode) currentTranslateX += analysis.width;
 					});
+
+					// Convert white background to transparency
+					const imageData = compositeCtx.getImageData(0, 0, dimensions.width, dimensions.height);
+					const data = imageData.data;
+					for (let i = 0; i < data.length; i += 4) {
+						const r = data[i], g = data[i + 1], b = data[i + 2];
+						if (r === 255 && g === 255 && b === 255) {
+							data[i + 3] = 0;
+						} else {
+							const alpha = 255 - Math.min(r, Math.min(g, b));
+							data[i + 3] = alpha;
+							if (alpha > 0) {
+								data[i] = Math.max(0, Math.min(255, 255 + (r - 255) * 255 / alpha));
+								data[i + 1] = Math.max(0, Math.min(255, 255 + (g - 255) * 255 / alpha));
+								data[i + 2] = Math.max(0, Math.min(255, 255 + (b - 255) * 255 / alpha));
+							}
+						}
+					}
+					compositeCtx.putImageData(imageData, 0, 0);
+					this.context.drawImage(compositeCanvas, 0, 0);
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
