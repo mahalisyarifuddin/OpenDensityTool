@@ -532,6 +532,7 @@
 					this.renderingCache = [];
 					this.layoutCache = [null, null];
 					this.offscreenCanvases = [document.createElement('canvas'), document.createElement('canvas')];
+					this.compositeCanvas = document.createElement('canvas');
 					this.graphWidth = 150;
 					this.graphPadding = 20;
 					this.context = elements.canvas.getContext('2d');
@@ -955,7 +956,7 @@
 					const backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
 					this.context.fillStyle = backgroundColor;
 					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
-					const compositeCanvas = document.createElement('canvas');
+					const compositeCanvas = this.compositeCanvas;
 					compositeCanvas.width = dimensions.width;
 					compositeCanvas.height = dimensions.height;
 					const compositeCtx = compositeCanvas.getContext('2d');
