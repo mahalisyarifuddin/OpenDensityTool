@@ -208,6 +208,41 @@
 			button:hover {
 				background: var(--hover);
 			}
+			dialog {
+				background: var(--surface);
+				color: var(--text);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 1.5rem;
+				max-width: 400px;
+				width: 100%;
+				margin: auto;
+				position: fixed;
+			}
+			dialog::backdrop {
+				background: rgba(0, 0, 0, 0.5);
+			}
+			.dialog-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 1.5rem;
+			}
+			.dialog-header h3 {
+				font-size: 1.25rem;
+				font-weight: 600;
+			}
+			.close-button {
+				background: transparent;
+				color: var(--text);
+				padding: .25rem;
+				font-size: 1.5rem;
+				line-height: 1;
+			}
+			.close-button:hover {
+				background: var(--background);
+				color: var(--text);
+			}
 			#preview {
 				background: var(--surface);
 				border: 1px solid var(--border);
@@ -321,12 +356,32 @@
 	<body>
 		<header>
 			<h1>Typographic Density Tool</h1>
-			<select id="theme" style="width:auto" aria-label="Color theme">
-				<option value="auto">Auto Theme</option>
-				<option value="light">Light</option>
-				<option value="dark">Dark</option>
-			</select>
+			<button id="openSettings" style="width:auto" aria-label="Open Settings">Settings</button>
 		</header>
+		<dialog id="preferencesDialog">
+			<div class="dialog-header">
+				<h3>Preferences</h3>
+				<button id="closeSettings" class="close-button" aria-label="Close Settings">&times;</button>
+			</div>
+			<div class="group">
+				<label>
+					Theme
+					<select id="theme" style="margin-top:4px">
+						<option value="auto">Auto Theme</option>
+						<option value="light">Light</option>
+						<option value="dark">Dark</option>
+					</select>
+				</label>
+				<label>
+					Letter Spacing Unit
+					<select id="spacingUnit" style="margin-top:4px">
+						<option value="px">Pixels (px)</option>
+						<option value="em">Per mille (‰ em)</option>
+						<option value="percent">Tracking (%)</option>
+					</select>
+				</label>
+			</div>
+		</dialog>
 		<main>
 			<section>
 				<h2>Configuration</h2>
@@ -513,6 +568,14 @@
 					};
 
 					elements.theme.onchange = event => this.theme(event.target.value);
+
+					elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
+					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
+					elements.spacingUnit.onchange = () => {
+						this.updateSpacingLabels();
+						this.update();
+					};
+
 					window.onresize = updateScale;
 
 					document.querySelectorAll('.copyButton').forEach(button => {
@@ -542,6 +605,11 @@
 						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => {
 							elements[`${key}${number}`].oninput = debouncedUpdate;
 						});
+
+						elements[`spacing${number}`].oninput = () => {
+							elements[`spacing${number}`].setAttribute('value', elements[`spacing${number}`].value);
+							debouncedUpdate();
+						};
 
 						group.ondragover = event => {
 							event.preventDefault();
@@ -665,12 +733,17 @@
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
 					const scale = size / font.unitsPerEm;
-					const tracking = letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0;
-					let runs;
+					const unit = elements.spacingUnit.value;
+
+					const tracking = unit === 'percent' ? 0 :
+									 unit === 'em' ? (letterSpacing / 1000) * font.unitsPerEm :
+									 (letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0);
+
+					const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
+
 					const cachedLayout = this.layoutCache[index];
-					if (cachedLayout && cachedLayout.content === content && cachedLayout.font === font) {
-						runs = cachedLayout.runs;
-					} else {
+					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
+					const runs = hit ? cachedLayout.runs : (() => {
 						const segments = [];
 						let currentSegment = { text: '', script: null };
 						for (const char of content) {
@@ -681,12 +754,14 @@
 							currentSegment = { text: char, script };
 						}
 						currentSegment.text && segments.push(currentSegment);
-						runs = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
-						this.layoutCache[index] = { content, font, runs };
-					}
+						const result = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
+						this.layoutCache[index] = { content, font, runs: result };
+						return result;
+					})();
 
 					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
+					// Calculate metrics with custom spacing (advanceScale, tracking)
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
 							const position = run.positions[i];
@@ -699,7 +774,7 @@
 								minY = Math.min(minY, y + boundingBox.minY);
 								maxY = Math.max(maxY, y + boundingBox.maxY);
 							}
-							currentX += position.xAdvance + tracking;
+							currentX += (position.xAdvance * advanceScale) + tracking;
 						});
 					});
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
@@ -721,6 +796,7 @@
 					context.scale(1, -1);
 					context.fillStyle = color;
 					let drawX = 0;
+					// Apply custom spacing (advanceScale, tracking) during render
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
 							const position = run.positions[i];
@@ -729,7 +805,7 @@
 							context.beginPath();
 							glyph.render(context, size);
 							context.restore();
-							drawX += position.xAdvance + tracking;
+							drawX += (position.xAdvance * advanceScale) + tracking;
 						});
 					});
 					context.restore();
@@ -766,6 +842,18 @@
 						}
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
+				}
+
+				updateSpacingLabels() {
+					const unit = elements.spacingUnit.value;
+					const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
+					const defaultVal = unit === 'percent' ? 100 : 0;
+					[1, 2].forEach(n => {
+						const input = elements[`spacing${n}`];
+						const prevLabel = input.parentElement.firstChild;
+						prevLabel.textContent = label;
+						input.value = defaultVal;
+					});
 				}
 
 				update() {
