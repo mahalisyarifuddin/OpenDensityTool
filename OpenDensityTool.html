@@ -801,19 +801,61 @@
 						const rowOffset = y * width;
 						let firstX = -1;
 						let ptr = rowOffset;
-						for (let x = 0; x < width; x++, ptr++) {
-							if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
-								firstX = x;
-								break;
+						let x = 0;
+						// OPTIMIZATION: Block scan. Check 4 pixels at a time for 0 (transparent).
+						// This significantly speeds up scanning through empty margins and line spacing.
+						const widthMinus3 = width - 3;
+						while (x < widthMinus3) {
+							// Fast skip: if 4 pixels are 0, we can skip them entirely.
+							if ((pixelDataInt32[ptr] | pixelDataInt32[ptr + 1] | pixelDataInt32[ptr + 2] | pixelDataInt32[ptr + 3]) === 0) {
+								x += 4;
+								ptr += 4;
+								continue;
+							}
+							// Check individual pixels if the block is not empty
+							if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) { firstX = x; break; }
+							if ((pixelDataInt32[ptr + 1] >>> ALPHA_SHIFT) & 1) { firstX = x + 1; break; }
+							if ((pixelDataInt32[ptr + 2] >>> ALPHA_SHIFT) & 1) { firstX = x + 2; break; }
+							if ((pixelDataInt32[ptr + 3] >>> ALPHA_SHIFT) & 1) { firstX = x + 3; break; }
+							x += 4;
+							ptr += 4;
+						}
+						// Handle remaining pixels (less than 4) or if loop finished without match
+						if (firstX === -1) {
+							for (; x < width; x++, ptr++) {
+								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+									firstX = x;
+									break;
+								}
 							}
 						}
 						if (firstX !== -1) {
 							let lastX = -1;
 							ptr = rowOffset + width - 1;
-							for (let x = width - 1; x > firstX; x--, ptr--) {
-								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
-									lastX = x;
-									break;
+							x = width - 1;
+							// OPTIMIZATION: Backward block scan for lastX
+							while (x > firstX + 3) {
+								// Fast skip for empty blocks
+								if ((pixelDataInt32[ptr] | pixelDataInt32[ptr - 1] | pixelDataInt32[ptr - 2] | pixelDataInt32[ptr - 3]) === 0) {
+									x -= 4;
+									ptr -= 4;
+									continue;
+								}
+								// Check individual pixels backwards
+								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) { lastX = x; break; }
+								if ((pixelDataInt32[ptr - 1] >>> ALPHA_SHIFT) & 1) { lastX = x - 1; break; }
+								if ((pixelDataInt32[ptr - 2] >>> ALPHA_SHIFT) & 1) { lastX = x - 2; break; }
+								if ((pixelDataInt32[ptr - 3] >>> ALPHA_SHIFT) & 1) { lastX = x - 3; break; }
+								x -= 4;
+								ptr -= 4;
+							}
+							// Handle remaining pixels
+							if (lastX === -1) {
+								for (; x > firstX; x--, ptr--) {
+									if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+										lastX = x;
+										break;
+									}
 								}
 							}
 							if (lastX === -1) lastX = firstX;
