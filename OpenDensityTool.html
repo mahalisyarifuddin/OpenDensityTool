@@ -631,7 +631,7 @@
 								const match = line.match(regex);
 								match && ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
 							});
-							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.update());
+							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.lastBlock = null, this.update());
 						})
 						.catch(error => console.warn('Block fetch failed', error));
 				}
@@ -681,6 +681,10 @@
 
 				getScript(char) {
 					const code = char.codePointAt(0);
+					if (this.lastBlock && code >= this.lastBlock[0] && code <= this.lastBlock[1]) {
+						return this.getScriptName(code, this.lastBlock);
+					}
+
 					let low = 0, high = this.unicodeBlocks.length - 1;
 
 					while (low <= high) {
@@ -696,17 +700,22 @@
 							continue;
 						}
 
-						const name = block[2];
-						if (name === "Basic Latin") {
-							return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
-						}
-
-						if (name.includes("Latin")) return 'Latin';
-						if (COMMON_SCRIPT_NAMES.has(name)) return 'Common';
-
-						return name;
+						this.lastBlock = block;
+						return this.getScriptName(code, block);
 					}
 					return 'Other';
+				}
+
+				getScriptName(code, block) {
+					const name = block[2];
+					if (name === "Basic Latin") {
+						return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
+					}
+
+					if (name.includes("Latin")) return 'Latin';
+					if (COMMON_SCRIPT_NAMES.has(name)) return 'Common';
+
+					return name;
 				}
 
 				generateRenderData(index, inputs) {
