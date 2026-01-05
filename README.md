@@ -78,6 +78,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 
 ## Known Limitations
 - No vertical writing / ideographic baseline: The tool measures in horizontal layout only.
+- Variable fonts: Only static fonts are supported; variable font axes (e.g., weight, width) are not adjustable.
 - Rendering variability: Density depends on the browser’s canvas rasterization and anti‑aliasing; results can differ by OS/zoom/GPU.
 - Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs can be slow to process.
 
