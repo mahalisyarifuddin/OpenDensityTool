@@ -850,6 +850,18 @@
 								rowInk = 2;
 								ptr = rowOffset + firstX + 1;
 								const endPtr = rowOffset + lastX;
+								const limit = endPtr - 7;
+								while (ptr < limit) {
+									rowInk += ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 1] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 2] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 3] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 4] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 5] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 6] >>> ALPHA_SHIFT) & 1) +
+										((pixelDataInt32[ptr + 7] >>> ALPHA_SHIFT) & 1);
+									ptr += 8;
+								}
 								for (; ptr < endPtr; ptr++) {
 									rowInk += (pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1;
 								}
