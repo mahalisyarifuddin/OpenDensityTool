@@ -501,6 +501,7 @@
 			window.Buffer = Buffer;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
+			const alphaMask = isLittleEndianArchitecture ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
 
 			const COMMON_SCRIPT_NAMES = new Set([
 				'General Punctuation',
@@ -824,7 +825,6 @@
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
-					const alphaMask = isLittleEndianArchitecture ? (pixel => pixel >>> 31) : (pixel => (pixel >>> 7) & 1);
 					for (let y = 0; y < height; y++) {
 						const rowOffset = y * width;
 						let firstX = -1;
@@ -878,7 +878,7 @@
 
 				draw() {
 					const validAnalyses = this.analyses.filter(analysis => analysis && !analysis.error);
-					if (!validAnalyses.length) { elements.canvas.height = 150; this.updateScale(); return; }
+					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
 					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
 					const max = callback => Math.max(0, ...validAnalyses.map(callback));
 					const maxAscent = max(item => item.baseline + item.baselineShift);
@@ -886,8 +886,8 @@
 					const maxOffsetX = max(item => item.drawOffsetX);
 					const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
 					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
-					elements.canvas.width = dimensions.width;
-					elements.canvas.height = dimensions.height;
+					this.context.canvas.width = dimensions.width;
+					this.context.canvas.height = dimensions.height;
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error) return;
@@ -915,18 +915,18 @@
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-						this.context.fillRect(0, dimensions.baseline, elements.canvas.width, 1);
+						this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
 					}
 					if (guides === 'metrics') {
 						validAnalyses.forEach((analysis, index) => {
 							const y = dimensions.baseline - analysis.baselineShift;
 							this.context.fillStyle = elements[`color${index + 1}`].value;
 							this.context.globalAlpha = 0.5;
-							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), elements.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), elements.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), this.context.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), this.context.canvas.width, 1);
 							this.context.globalAlpha = 0.3;
-							this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), elements.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), elements.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), this.context.canvas.width, 1);
+							this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), this.context.canvas.width, 1);
 							this.context.globalAlpha = 1.0;
 						});
 					}
