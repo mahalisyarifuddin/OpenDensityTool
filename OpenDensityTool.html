@@ -801,19 +801,52 @@
 						const rowOffset = y * width;
 						let firstX = -1;
 						let ptr = rowOffset;
-						for (let x = 0; x < width; x++, ptr++) {
-							if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
-								firstX = x;
-								break;
+						let x = 0;
+						const widthMinus3 = width - 3;
+						while (x < widthMinus3) {
+							if ((pixelDataInt32[ptr] | pixelDataInt32[ptr + 1] | pixelDataInt32[ptr + 2] | pixelDataInt32[ptr + 3]) === 0) {
+								x += 4;
+								ptr += 4;
+								continue;
+							}
+							if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) { firstX = x; break; }
+							if ((pixelDataInt32[ptr + 1] >>> ALPHA_SHIFT) & 1) { firstX = x + 1; break; }
+							if ((pixelDataInt32[ptr + 2] >>> ALPHA_SHIFT) & 1) { firstX = x + 2; break; }
+							if ((pixelDataInt32[ptr + 3] >>> ALPHA_SHIFT) & 1) { firstX = x + 3; break; }
+							x += 4;
+							ptr += 4;
+						}
+						if (firstX === -1) {
+							for (; x < width; x++, ptr++) {
+								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+									firstX = x;
+									break;
+								}
 							}
 						}
 						if (firstX !== -1) {
 							let lastX = -1;
 							ptr = rowOffset + width - 1;
-							for (let x = width - 1; x > firstX; x--, ptr--) {
-								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
-									lastX = x;
-									break;
+							x = width - 1;
+							while (x > firstX + 3) {
+								if ((pixelDataInt32[ptr] | pixelDataInt32[ptr - 1] | pixelDataInt32[ptr - 2] | pixelDataInt32[ptr - 3]) === 0) {
+									x -= 4;
+									ptr -= 4;
+									continue;
+								}
+								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) { lastX = x; break; }
+								if ((pixelDataInt32[ptr - 1] >>> ALPHA_SHIFT) & 1) { lastX = x - 1; break; }
+								if ((pixelDataInt32[ptr - 2] >>> ALPHA_SHIFT) & 1) { lastX = x - 2; break; }
+								if ((pixelDataInt32[ptr - 3] >>> ALPHA_SHIFT) & 1) { lastX = x - 3; break; }
+								x -= 4;
+								ptr -= 4;
+							}
+							if (lastX === -1) {
+								for (; x > firstX; x--, ptr--) {
+									if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+										lastX = x;
+										break;
+									}
 								}
 							}
 							if (lastX === -1) lastX = firstX;
