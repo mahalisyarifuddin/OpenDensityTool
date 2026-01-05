@@ -953,8 +953,6 @@
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
 					const backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
-					const rgb = backgroundColor.match(/\d+/g);
-					const isDark = rgb && (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) < 128;
 					this.context.fillStyle = backgroundColor;
 					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
@@ -962,7 +960,7 @@
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						this.context.globalCompositeOperation = isDark ? 'screen' : 'multiply';
+						this.context.globalCompositeOperation = 'multiply';
 						this.context.fillStyle = elements[`color${index + 1}`].value;
 						this.context.beginPath();
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
