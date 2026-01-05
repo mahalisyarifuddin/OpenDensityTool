@@ -951,13 +951,14 @@
 					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
+					this.context.fillStyle = '#ffffff';
+					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
 					let drawnCount = 0;
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const blend = !sideMode && drawnCount > 0;
-						this.context.globalCompositeOperation = blend ? 'multiply' : 'source-over';
+						this.context.globalCompositeOperation = 'multiply';
 						this.context.fillStyle = elements[`color${index + 1}`].value;
 						this.context.beginPath();
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
@@ -974,7 +975,7 @@
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						this.context.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 						this.context.globalCompositeOperation = 'source-over';
-						if (sideMode) currentTranslateX += analysis.canvas.width;
+						if (sideMode) currentTranslateX += analysis.width;
 						drawnCount++;
 					});
 					const guides = elements.guides.value;
