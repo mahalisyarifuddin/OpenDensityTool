@@ -36,6 +36,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Drag and drop font loading
 - Per‑scanline ink density graph to the left of the text
 - Baseline‑aware alignment with per‑font baseline shift and letter spacing
+- Mute/Solo buttons for individual font visibility control
 - Reporting of measured ink bounds vs. nominal font metrics
 - Copy analysis results to clipboard
 - Fit‑to‑view or 100% zoom; PNG export
@@ -47,6 +48,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Theme: Auto, Light, or Dark mode.
 - Font File: Load OTF/TTF/WOFF/WOFF2 (supports drag and drop).
 - Color: Choose a custom color for each font overlay.
+- Mute (M) / Solo (S): Toggle visibility of individual fonts.
 - Text: Enter the string to analyze (per font).
 - Size (px): Render size per font.
 - Letter Spacing: Adjust tracking (spacing between characters).
