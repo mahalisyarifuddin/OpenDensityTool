@@ -828,15 +828,33 @@
 					for (let y = 0; y < height; y++) {
 						const rowOffset = y * width;
 						let firstX = -1;
-						for (let x = 0; x < width; x++) if ((pixelDataInt32[rowOffset + x] >>> ALPHA_SHIFT) & 1) { firstX = x; break; }
+						// Optimization: Use pointer arithmetic to avoid repeated array index calculations
+						let ptr = rowOffset;
+						for (let x = 0; x < width; x++, ptr++) {
+							if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+								firstX = x;
+								break;
+							}
+						}
 						if (firstX !== -1) {
 							let lastX = -1;
-							for (let x = width - 1; x > firstX; x--) if ((pixelDataInt32[rowOffset + x] >>> ALPHA_SHIFT) & 1) { lastX = x; break; }
+							ptr = rowOffset + width - 1;
+							for (let x = width - 1; x > firstX; x--, ptr--) {
+								if ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) {
+									lastX = x;
+									break;
+								}
+							}
 							if (lastX === -1) lastX = firstX;
 							let rowInk = 1;
 							if (lastX > firstX) {
-								rowInk++;
-								for (let k = firstX + 1; k < lastX; k++) rowInk += (pixelDataInt32[rowOffset + k] >>> ALPHA_SHIFT) & 1;
+								rowInk = 2;
+								// Optimized inner loop using pointer arithmetic
+								ptr = rowOffset + firstX + 1;
+								const endPtr = rowOffset + lastX;
+								for (; ptr < endPtr; ptr++) {
+									rowInk += (pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1;
+								}
 							}
 							inkPixels += rowInk;
 							densityByRow[y] = rowInk;
