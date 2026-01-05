@@ -351,6 +351,14 @@
 					grid-template-columns: 1fr;
 				}
 			}
+			.row label {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+			}
+			.row label input {
+				margin-top: auto;
+			}
 		</style>
 	</head>
 	<body>
@@ -717,7 +725,6 @@
 
 						const name = block[2];
 						if (name === "Basic Latin") {
-							// Basic Latin split: punctuation/symbols vs letters
 							return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
 						}
 
@@ -761,7 +768,6 @@
 
 					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-					// Calculate metrics with custom spacing (advanceScale, tracking)
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
 							const position = run.positions[i];
@@ -796,7 +802,6 @@
 					context.scale(1, -1);
 					context.fillStyle = color;
 					let drawX = 0;
-					// Apply custom spacing (advanceScale, tracking) during render
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
 							const position = run.positions[i];
