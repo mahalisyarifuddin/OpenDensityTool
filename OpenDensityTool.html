@@ -850,7 +850,6 @@
 								rowInk = 2;
 								ptr = rowOffset + firstX + 1;
 								const endPtr = rowOffset + lastX;
-								// ⚡ Bolt Optimization: Unrolled loop for faster pixel iteration
 								const limit = endPtr - 7;
 								while (ptr < limit) {
 									rowInk += ((pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1) +
