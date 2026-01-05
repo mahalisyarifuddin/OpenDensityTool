@@ -960,7 +960,7 @@
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						this.context.globalCompositeOperation = 'multiply';
+						this.context.globalCompositeOperation = 'difference';
 						this.context.fillStyle = elements[`color${index + 1}`].value;
 						this.context.beginPath();
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
