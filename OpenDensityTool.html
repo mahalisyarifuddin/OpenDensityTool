@@ -727,21 +727,8 @@
 						return this.getScriptName(code, this.lastBlock);
 					}
 
-					let low = 0, high = this.unicodeBlocks.length - 1;
-
-					while (low <= high) {
-						const mid = (low + high) >>> 1;
-						const block = this.unicodeBlocks[mid];
-
-						if (code < block[0]) {
-							high = mid - 1;
-							continue;
-						}
-						if (code > block[1]) {
-							low = mid + 1;
-							continue;
-						}
-
+					const block = this.unicodeBlocks.find(block => code >= block[0] && code <= block[1]);
+					if (block) {
 						this.lastBlock = block;
 						return this.getScriptName(code, block);
 					}
