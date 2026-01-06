@@ -538,6 +538,8 @@
 					this.graphPadding = 20;
 					this.context = elements.canvas.getContext('2d');
 					this.unicodeBlocks = [];
+					this.surfaceColor = '#ffffff';
+					this.analyses = [];
 					this.setup();
 					this.theme('auto');
 					this.update();
@@ -569,6 +571,11 @@
 					};
 
 					elements.theme.onchange = event => this.theme(event.target.value);
+
+					window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+						this.updateThemeColor();
+						elements.theme.value === 'auto' && this.draw();
+					});
 
 					elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
 					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
@@ -649,7 +656,12 @@
 				theme(themeName) {
 					document.documentElement.className = themeName === 'auto' ? '' : themeName;
 					elements.theme.value = themeName;
+					this.updateThemeColor();
 					this.draw();
+				}
+
+				updateThemeColor() {
+					this.surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
 				}
 
 				fetchUnicodeBlocks() {
@@ -951,8 +963,7 @@
 					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
-					const backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
-					this.context.fillStyle = backgroundColor;
+					this.context.fillStyle = this.surfaceColor;
 					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
 					const compositeCanvas = this.compositeCanvas;
 					compositeCanvas.width = dimensions.width;
@@ -996,23 +1007,50 @@
 					const data = imageData.data;
 					const buf32 = new Uint32Array(data.buffer);
 					const len = buf32.length;
-					for (let i = 0; i < len; i++) {
-						if (buf32[i] === 0xFFFFFFFF) {
-							data[(i << 2) + 3] = 0;
-							continue;
+					if (isLittleEndianArchitecture) {
+						for (let i = 0; i < len; i++) {
+							const val = buf32[i];
+							if (val === 0xFFFFFFFF) {
+								buf32[i] = 0x00FFFFFF;
+								continue;
+							}
+							const r = val & 0xFF;
+							const g = (val >>> 8) & 0xFF;
+							const b = (val >>> 16) & 0xFF;
+							let min = r;
+							if (g < min) min = g;
+							if (b < min) min = b;
+							const alpha = 255 - min;
+							if (alpha > 0) {
+								const factor = 255 / alpha;
+								const idx = i << 2;
+								data[idx] = 255 - (255 - r) * factor;
+								data[idx + 1] = 255 - (255 - g) * factor;
+								data[idx + 2] = 255 - (255 - b) * factor;
+								data[idx + 3] = alpha;
+							} else {
+								buf32[i] = val & 0x00FFFFFF;
+							}
 						}
-						const idx = i << 2;
-						const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-						let min = r;
-						if (g < min) min = g;
-						if (b < min) min = b;
-						const alpha = 255 - min;
-						data[idx + 3] = alpha;
-						if (alpha > 0) {
-							const factor = 255 / alpha;
-							data[idx] = 255 - (255 - r) * factor;
-							data[idx + 1] = 255 - (255 - g) * factor;
-							data[idx + 2] = 255 - (255 - b) * factor;
+					} else {
+						for (let i = 0; i < len; i++) {
+							if (buf32[i] === 0xFFFFFFFF) {
+								data[(i << 2) + 3] = 0;
+								continue;
+							}
+							const idx = i << 2;
+							const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+							let min = r;
+							if (g < min) min = g;
+							if (b < min) min = b;
+							const alpha = 255 - min;
+							data[idx + 3] = alpha;
+							if (alpha > 0) {
+								const factor = 255 / alpha;
+								data[idx] = 255 - (255 - r) * factor;
+								data[idx + 1] = 255 - (255 - g) * factor;
+								data[idx + 2] = 255 - (255 - b) * factor;
+							}
 						}
 					}
 					compositeCtx.putImageData(imageData, 0, 0);
