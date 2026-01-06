@@ -658,12 +658,11 @@
 						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
 						.then(text => {
 							const ranges = [];
-							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/;
-							text.split(/\r?\n/).forEach(line => {
-								if (!line || line.trim().startsWith('#')) return;
-								const match = line.match(regex);
-								match && ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
-							});
+							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/gm;
+							let match;
+							while ((match = regex.exec(text)) !== null) {
+								ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
+							}
 							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.lastBlock = null, this.update());
 						})
 						.catch(error => console.warn('Block fetch failed', error));
