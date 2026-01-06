@@ -613,11 +613,6 @@
 							elements[`${key}${number}`].oninput = debouncedUpdate;
 						});
 
-						elements[`spacing${number}`].oninput = () => {
-							elements[`spacing${number}`].setAttribute('value', elements[`spacing${number}`].value);
-							debouncedUpdate();
-						};
-
 						group.ondragover = event => {
 							event.preventDefault();
 							group.classList.add('dragActive');
@@ -668,9 +663,7 @@
 						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
 						.then(text => {
 							const ranges = [];
-							const regex = /^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/gm;
-							let match;
-							while ((match = regex.exec(text)) !== null) {
+							for (const match of text.matchAll(/^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/gm)) {
 								ranges.push([parseInt(match[1], 16), parseInt(match[2], 16), match[3]]);
 							}
 							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.lastBlock = null, this.update());
@@ -921,7 +914,6 @@
 					compositeCanvas.width = dimensions.width;
 					compositeCanvas.height = dimensions.height;
 					const compositeCtx = compositeCanvas.getContext('2d');
-					compositeCtx.clearRect(0, 0, dimensions.width, dimensions.height);
 
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis, index) => {
