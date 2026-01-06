@@ -906,6 +906,19 @@
 								rowInk = 2;
 								ptr = rowOffset + firstX + 1;
 								const endPtr = rowOffset + lastX;
+								const endPtrMinus3 = endPtr - 3;
+								// Optimization: Unroll loop to process 4 pixels at a time and skip empty blocks
+								while (ptr < endPtrMinus3) {
+									if ((pixelDataInt32[ptr] | pixelDataInt32[ptr + 1] | pixelDataInt32[ptr + 2] | pixelDataInt32[ptr + 3]) === 0) {
+										ptr += 4;
+										continue;
+									}
+									rowInk += (pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1;
+									rowInk += (pixelDataInt32[ptr + 1] >>> ALPHA_SHIFT) & 1;
+									rowInk += (pixelDataInt32[ptr + 2] >>> ALPHA_SHIFT) & 1;
+									rowInk += (pixelDataInt32[ptr + 3] >>> ALPHA_SHIFT) & 1;
+									ptr += 4;
+								}
 								for (; ptr < endPtr; ptr++) {
 									rowInk += (pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1;
 								}
