@@ -723,28 +723,16 @@
 
 				getScript(char) {
 					const code = char.codePointAt(0);
-					if (this.lastBlock && code >= this.lastBlock[0] && code <= this.lastBlock[1]) {
-						return this.getScriptName(code, this.lastBlock);
+					if (!this.lastBlock || code < this.lastBlock[0] || code > this.lastBlock[1]) {
+						this.lastBlock = this.unicodeBlocks.find(b => code >= b[0] && code <= b[1]);
 					}
-
-					const block = this.unicodeBlocks.find(block => code >= block[0] && code <= block[1]);
-					if (block) {
-						this.lastBlock = block;
-						return this.getScriptName(code, block);
-					}
-					return 'Other';
+					return this.lastBlock ? this.getScriptName(code, this.lastBlock) : 'Other';
 				}
 
 				getScriptName(code, block) {
 					const name = block[2];
-					if (name === "Basic Latin") {
-						return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
-					}
-
-					if (name.includes("Latin")) return 'Latin';
-					if (COMMON_SCRIPT_NAMES.has(name)) return 'Common';
-
-					return name;
+					if (name === "Basic Latin") return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
+					return name.includes("Latin") ? 'Latin' : COMMON_SCRIPT_NAMES.has(name) ? 'Common' : name;
 				}
 
 				generateRenderData(index, inputs) {
