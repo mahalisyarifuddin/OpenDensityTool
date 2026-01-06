@@ -519,6 +519,10 @@
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
 
+			// Precompute division factors for alpha blending optimization
+			const factors = new Float32Array(256);
+			for (let i = 1; i < 256; i++) factors[i] = 255 / i;
+
 			const COMMON_SCRIPT_NAMES = new Set('General Punctuation|Superscripts and Subscripts|Currency Symbols|Combining Diacritical Marks for Symbols|Letterlike Symbols|Number Forms|Arrows|Mathematical Operators|Miscellaneous Technical|Control Pictures|Optical Character Recognition|Enclosed Alphanumerics|Box Drawing|Block Elements|Geometric Shapes|Miscellaneous Symbols|Dingbats|Miscellaneous Mathematical Symbols-A|Supplemental Arrows-A|Braille Patterns|Supplemental Arrows-B|Miscellaneous Mathematical Symbols-B|Supplemental Mathematical Operators|Miscellaneous Symbols and Arrows|Supplemental Punctuation|CJK Symbols and Punctuation|Halfwidth and Fullwidth Forms'.split('|'));
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
@@ -1022,12 +1026,11 @@
 							if (b < min) min = b;
 							const alpha = 255 - min;
 							if (alpha > 0) {
-								const factor = 255 / alpha;
-								const idx = i << 2;
-								data[idx] = 255 - (255 - r) * factor;
-								data[idx + 1] = 255 - (255 - g) * factor;
-								data[idx + 2] = 255 - (255 - b) * factor;
-								data[idx + 3] = alpha;
+								const factor = factors[alpha];
+								const newR = (255 - (255 - r) * factor + 0.5) | 0;
+								const newG = (255 - (255 - g) * factor + 0.5) | 0;
+								const newB = (255 - (255 - b) * factor + 0.5) | 0;
+								buf32[i] = (alpha << 24) | (newB << 16) | (newG << 8) | newR;
 							} else {
 								buf32[i] = val & 0x00FFFFFF;
 							}
