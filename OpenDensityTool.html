@@ -982,6 +982,7 @@
 
 						compositeCtx.save();
 						compositeCtx.globalAlpha = densityAlpha;
+						compositeCtx.globalCompositeOperation = 'multiply';
 
 						// Draw density graph
 						compositeCtx.fillStyle = colorHex;
