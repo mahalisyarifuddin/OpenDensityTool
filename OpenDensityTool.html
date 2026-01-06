@@ -631,9 +631,7 @@
 								this.loadFont(droppedFile, index);
 							}
 						};
-					});
 
-					[1, 2].forEach((number, index) => {
 						elements[`mute${number}`].onclick = () => {
 							this.visibility[index] = !this.visibility[index];
 							elements[`mute${number}`].classList.toggle('active', !this.visibility[index]);
