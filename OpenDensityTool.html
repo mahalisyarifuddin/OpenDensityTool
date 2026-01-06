@@ -520,6 +520,7 @@
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
 
 			const COMMON_SCRIPT_NAMES = new Set('General Punctuation|Superscripts and Subscripts|Currency Symbols|Combining Diacritical Marks for Symbols|Letterlike Symbols|Number Forms|Arrows|Mathematical Operators|Miscellaneous Technical|Control Pictures|Optical Character Recognition|Enclosed Alphanumerics|Box Drawing|Block Elements|Geometric Shapes|Miscellaneous Symbols|Dingbats|Miscellaneous Mathematical Symbols-A|Supplemental Arrows-A|Braille Patterns|Supplemental Arrows-B|Miscellaneous Mathematical Symbols-B|Supplemental Mathematical Operators|Miscellaneous Symbols and Arrows|Supplemental Punctuation|CJK Symbols and Punctuation|Halfwidth and Fullwidth Forms'.split('|'));
+			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
 			class DensityTool {
 				constructor() {
@@ -1052,7 +1053,17 @@
 					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
 					elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
 					elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-					elements[`result${number}`].innerHTML = this.loading[index] ? '<div class="spinner" aria-label="Loading"></div>' : message ? `<div class="state-message">${message}</div>` : `<div class="statisticGrid"><div class="statisticRow"><span class="statisticLabel">Density</span><span class="statisticValue">${analysis.density}%</span></div><div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div><div class="statisticRow"><span class="statisticLabel">Max Y</span><span class="statisticValue">${analysis.yMax}</span></div><div class="statisticRow"><span class="statisticLabel">Min Y</span><span class="statisticValue">${analysis.yMin}</span></div></div><div class="statisticGroup"><div class="statisticTitle">Metrics</div><div class="statisticRow"><span class="statisticLabel">Ascent</span><span class="statisticValue">${Math.round(analysis.fontAscent)}</span></div><div class="statisticRow"><span class="statisticLabel">Cap Height</span><span class="statisticValue">${Math.round(analysis.fontCapHeight)}</span></div><div class="statisticRow"><span class="statisticLabel">x-Height</span><span class="statisticValue">${Math.round(analysis.fontXHeight)}</span></div><div class="statisticRow"><span class="statisticLabel">Descent</span><span class="statisticValue">-${Math.round(analysis.fontDescent)}</span></div></div></div>`;
+
+					if (this.loading[index]) {
+						elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
+						return;
+					}
+					if (message) {
+						elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
+						return;
+					}
+
+					elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
 				}
 			}
 			new DensityTool();
