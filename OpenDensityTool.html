@@ -518,11 +518,6 @@
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
-
-			// Precompute division factors for alpha blending optimization
-			const factors = new Float32Array(256);
-			for (let i = 1; i < 256; i++) factors[i] = 255 / i;
-
 			const COMMON_SCRIPT_NAMES = new Set('General Punctuation|Superscripts and Subscripts|Currency Symbols|Combining Diacritical Marks for Symbols|Letterlike Symbols|Number Forms|Arrows|Mathematical Operators|Miscellaneous Technical|Control Pictures|Optical Character Recognition|Enclosed Alphanumerics|Box Drawing|Block Elements|Geometric Shapes|Miscellaneous Symbols|Dingbats|Miscellaneous Mathematical Symbols-A|Supplemental Arrows-A|Braille Patterns|Supplemental Arrows-B|Miscellaneous Mathematical Symbols-B|Supplemental Mathematical Operators|Miscellaneous Symbols and Arrows|Supplemental Punctuation|CJK Symbols and Punctuation|Halfwidth and Fullwidth Forms'.split('|'));
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
@@ -973,18 +968,23 @@
 					compositeCanvas.width = dimensions.width;
 					compositeCanvas.height = dimensions.height;
 					const compositeCtx = compositeCanvas.getContext('2d');
-					compositeCtx.fillStyle = '#ffffff';
-					compositeCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+					compositeCtx.clearRect(0, 0, dimensions.width, dimensions.height);
 
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis, index) => {
 						if (!analysis || analysis.error || !isVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+						const colorHex = elements[`color${index + 1}`].value;
+						const r = parseInt(colorHex.slice(1, 3), 16);
+						const g = parseInt(colorHex.slice(3, 5), 16);
+						const b = parseInt(colorHex.slice(5, 7), 16);
+						const densityAlpha = (255 - Math.min(r, g, b)) / 255;
 
-						// Draw density graph on composite buffer
 						compositeCtx.save();
-						compositeCtx.globalCompositeOperation = 'multiply';
-						compositeCtx.fillStyle = elements[`color${index + 1}`].value;
+						compositeCtx.globalAlpha = densityAlpha;
+
+						// Draw density graph
+						compositeCtx.fillStyle = colorHex;
 						compositeCtx.beginPath();
 						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
 						let currentWidth = 0, startY = -1;
@@ -998,65 +998,13 @@
 						if (currentWidth > 0) compositeCtx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
 						compositeCtx.fill();
 
-						// Draw glyphs on composite buffer
+						// Draw glyphs
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						compositeCtx.drawImage(analysis.canvas, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
 						compositeCtx.restore();
 
 						if (sideMode) currentTranslateX += analysis.width;
 					});
-
-					// Convert white background to transparency
-					const imageData = compositeCtx.getImageData(0, 0, dimensions.width, dimensions.height);
-					const data = imageData.data;
-					const buf32 = new Uint32Array(data.buffer);
-					const len = buf32.length;
-					if (isLittleEndianArchitecture) {
-						for (let i = 0; i < len; i++) {
-							const val = buf32[i];
-							if (val === 0xFFFFFFFF) {
-								buf32[i] = 0x00FFFFFF;
-								continue;
-							}
-							const r = val & 0xFF;
-							const g = (val >>> 8) & 0xFF;
-							const b = (val >>> 16) & 0xFF;
-							let min = r;
-							if (g < min) min = g;
-							if (b < min) min = b;
-							const alpha = 255 - min;
-							if (alpha > 0) {
-								const factor = factors[alpha];
-								const newR = (255 - (255 - r) * factor + 0.5) | 0;
-								const newG = (255 - (255 - g) * factor + 0.5) | 0;
-								const newB = (255 - (255 - b) * factor + 0.5) | 0;
-								buf32[i] = (alpha << 24) | (newB << 16) | (newG << 8) | newR;
-							} else {
-								buf32[i] = val & 0x00FFFFFF;
-							}
-						}
-					} else {
-						for (let i = 0; i < len; i++) {
-							if (buf32[i] === 0xFFFFFFFF) {
-								data[(i << 2) + 3] = 0;
-								continue;
-							}
-							const idx = i << 2;
-							const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-							let min = r;
-							if (g < min) min = g;
-							if (b < min) min = b;
-							const alpha = 255 - min;
-							data[idx + 3] = alpha;
-							if (alpha > 0) {
-								const factor = 255 / alpha;
-								data[idx] = 255 - (255 - r) * factor;
-								data[idx + 1] = 255 - (255 - g) * factor;
-								data[idx + 2] = 255 - (255 - b) * factor;
-							}
-						}
-					}
-					compositeCtx.putImageData(imageData, 0, 0);
 					this.context.drawImage(compositeCanvas, 0, 0);
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
