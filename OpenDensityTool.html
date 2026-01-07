@@ -851,58 +851,30 @@
 				}
 
 				analyzePixels(context, width, height) {
+					if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0 };
 					const { data } = context.getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, rowOffset = 0;
-					const hasInk = ptr => (pixelDataInt32[ptr] >>> ALPHA_SHIFT) & 1;
-					const isEmptyQuad = ptr => (pixelDataInt32[ptr] | pixelDataInt32[ptr + 1] | pixelDataInt32[ptr + 2] | pixelDataInt32[ptr + 3]) === 0;
-					const isEmptyQuadBack = ptr => (pixelDataInt32[ptr] | pixelDataInt32[ptr - 1] | pixelDataInt32[ptr - 2] | pixelDataInt32[ptr - 3]) === 0;
+					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
 
 					for (let y = 0; y < height; y++) {
-						let firstX = -1, ptr = rowOffset, x = 0;
-						while (x < width - 3) {
-							if (isEmptyQuad(ptr)) { x += 4; ptr += 4; continue; }
-							for (let k = 0; k < 4; k++) if (hasInk(ptr + k)) { firstX = x + k; break; }
-							if (firstX !== -1) break;
-							x += 4; ptr += 4;
+						let rowInk = 0, firstX = -1, lastX = -1;
+						const rowOffset = y * width;
+						for (let x = 0; x < width; x++) {
+							if ((pixelDataInt32[rowOffset + x] >>> ALPHA_SHIFT) & 1) {
+								rowInk++;
+								if (firstX === -1) firstX = x;
+								lastX = x;
+							}
 						}
-						if (firstX === -1) {
-							for (; x < width; x++, ptr++) if (hasInk(ptr)) { firstX = x; break; }
-						}
-
-						if (firstX !== -1) {
-							let lastX = -1; ptr = rowOffset + width - 1; x = width - 1;
-							while (x > firstX + 3) {
-								if (isEmptyQuadBack(ptr)) { x -= 4; ptr -= 4; continue; }
-								for (let k = 0; k < 4; k++) if (hasInk(ptr - k)) { lastX = x - k; break; }
-								if (lastX !== -1) break;
-								x -= 4; ptr -= 4;
-							}
-							if (lastX === -1) {
-								for (; x > firstX; x--, ptr--) if (hasInk(ptr)) { lastX = x; break; }
-							}
-							if (lastX === -1) lastX = firstX;
-
-							let rowInk = 1;
-							if (lastX > firstX) {
-								rowInk = 2; ptr = rowOffset + firstX + 1;
-								const endPtr = rowOffset + lastX;
-								while (ptr < endPtr - 3) {
-									if (isEmptyQuad(ptr)) { ptr += 4; continue; }
-									for (let k = 0; k < 4; k++) rowInk += hasInk(ptr + k);
-									ptr += 4;
-								}
-								for (; ptr < endPtr; ptr++) rowInk += hasInk(ptr);
-							}
-							inkPixels += rowInk;
+						if (rowInk > 0) {
 							densityByRow[y] = rowInk;
-							if (y < minY) minY = y;
+							inkPixels += rowInk;
+							if (minX > firstX) minX = firstX;
+							if (maxX < lastX) maxX = lastX;
+							if (minY > y) minY = y;
 							maxY = y;
-							if (firstX < minX) minX = firstX;
-							if (lastX > maxX) maxX = lastX;
 						}
-						rowOffset += width;
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
 				}
