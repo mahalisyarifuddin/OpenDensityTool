@@ -577,10 +577,18 @@
 					});
 
 					elements.export.onclick = () => {
-						const link = document.createElement('a');
-						link.href = elements.canvas.toDataURL();
-						link.download = `density_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`;
-						link.click();
+						const originalText = elements.export.textContent;
+						elements.export.textContent = 'Exporting...';
+						setTimeout(() => {
+							const link = document.createElement('a');
+							link.href = elements.canvas.toDataURL();
+							const names = this.fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
+							const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+							link.download = `density_${namePart}.png`;
+							link.click();
+							elements.export.textContent = 'Saved!';
+							setTimeout(() => elements.export.textContent = originalText, 2000);
+						}, 50);
 					};
 
 					elements.theme.onchange = event => this.theme(event.target.value);
