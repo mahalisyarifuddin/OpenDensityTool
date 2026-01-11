@@ -152,13 +152,22 @@
 				cursor: pointer;
 				flex-shrink: 0;
 			}
+			input[type=range] {
+				width: 100%;
+				margin-top: 6px;
+				cursor: grab;
+				accent-color: var(--primary);
+			}
+			input[type=range]:active {
+				cursor: grabbing;
+			}
 			label {
 				display: block;
 				margin-bottom: .5rem;
 				font-weight: 500;
 				font-size: .9rem;
 			}
-			input:not([type=color]), textarea, select, button {
+			input:not([type=color]):not([type=range]), textarea, select, button {
 				width: 100%;
 				padding: .5rem .75rem;
 				border: 1px solid var(--border);
@@ -434,13 +443,16 @@
 					</label>
 					<label>
 						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
+						<input type="range" id="sizeRange1" value="100" min="8" max="500">
 					</label>
 					<div class="row">
 						<label>
 							Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500">
+							<input type="range" id="spacingRange1" value="0" min="-500" max="500">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
+							<input type="range" id="shiftRange1" value="0" min="-200" max="200">
 						</label>
 					</div>
 				</div>
@@ -463,13 +475,16 @@
 					</label>
 					<label>
 						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
+						<input type="range" id="sizeRange2" value="100" min="8" max="500">
 					</label>
 					<div class="row">
 						<label>
 							Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500">
+							<input type="range" id="spacingRange2" value="0" min="-500" max="500">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
+							<input type="range" id="shiftRange2" value="0" min="-200" max="200">
 						</label>
 					</div>
 				</div>
@@ -631,8 +646,23 @@
 							this.update();
 						};
 
-						['color', 'text', 'size', 'spacing', 'shift'].forEach(key => {
+						['color', 'text'].forEach(key => {
 							elements[`${key}${number}`].oninput = debouncedUpdate;
+						});
+
+						['size', 'spacing', 'shift'].forEach(key => {
+							const numInput = elements[`${key}${number}`];
+							const rangeInput = elements[`${key}Range${number}`];
+
+							numInput.oninput = () => {
+								rangeInput.value = numInput.value;
+								debouncedUpdate();
+							};
+
+							rangeInput.oninput = () => {
+								numInput.value = rangeInput.value;
+								debouncedUpdate();
+							};
 						});
 
 						group.ondragover = event => {
@@ -893,9 +923,11 @@
 					const defaultVal = unit === 'percent' ? 100 : 0;
 					[1, 2].forEach(n => {
 						const input = elements[`spacing${n}`];
+						const range = elements[`spacingRange${n}`];
 						const prevLabel = input.parentElement.firstChild;
 						prevLabel.textContent = label;
 						input.value = defaultVal;
+						range.value = defaultVal;
 					});
 				}
 
