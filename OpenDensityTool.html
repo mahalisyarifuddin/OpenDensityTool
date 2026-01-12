@@ -584,6 +584,13 @@
 						};
 					};
 					const debouncedUpdate = debounce(() => this.update(), 300);
+					const throttledUpdate = () => {
+						if (this.rafId) return;
+						this.rafId = requestAnimationFrame(() => {
+							this.update();
+							this.rafId = null;
+						});
+					};
 					const updateScale = () => this.updateScale();
 
 					elements.zoom.onchange = updateScale;
@@ -646,24 +653,19 @@
 							this.update();
 						};
 
-						['color', 'text'].forEach(key => {
-							elements[`${key}${number}`].oninput = debouncedUpdate;
-						});
+						elements[`text${number}`].oninput = debouncedUpdate;
+						elements[`color${number}`].oninput = throttledUpdate;
 
-						['size', 'spacing', 'shift'].forEach(key => {
+						const bindInput = (key, updateFn) => {
 							const numInput = elements[`${key}${number}`];
 							const rangeInput = elements[`${key}Range${number}`];
+							numInput.oninput = () => { rangeInput.value = numInput.value; updateFn(); };
+							rangeInput.oninput = () => { numInput.value = rangeInput.value; updateFn(); };
+						};
 
-							numInput.oninput = () => {
-								rangeInput.value = numInput.value;
-								debouncedUpdate();
-							};
-
-							rangeInput.oninput = () => {
-								numInput.value = rangeInput.value;
-								debouncedUpdate();
-							};
-						});
+						bindInput('size', debouncedUpdate);
+						bindInput('spacing', debouncedUpdate);
+						bindInput('shift', throttledUpdate);
 
 						group.ondragover = event => {
 							event.preventDefault();
@@ -706,9 +708,8 @@
 
 						if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
 
-						const isVisible = (index) => this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
 						const content = this.analyses.map((a, i) => {
-							if (!a || !isVisible(i)) return null;
+							if (!a || !this.isFontVisible(i)) return null;
 							const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
 							const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
 							return val ? `Font ${i + 1}: ${val} px` : null;
@@ -931,6 +932,10 @@
 					});
 				}
 
+				isFontVisible(index) {
+					return this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
+				}
+
 				update() {
 					this.analyses = [1, 2].map((number, index) => {
 						elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
@@ -947,8 +952,7 @@
 				}
 
 				draw() {
-					const isVisible = (index) => this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
-					const validAnalyses = this.analyses.filter((analysis, index) => analysis && !analysis.error && isVisible(index));
+					const validAnalyses = this.analyses.filter((analysis, index) => analysis && !analysis.error && this.isFontVisible(index));
 					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
 					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
 					const max = callback => Math.max(0, ...validAnalyses.map(callback));
@@ -969,7 +973,7 @@
 
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
 					this.analyses.forEach((analysis, index) => {
-						if (!analysis || analysis.error || !isVisible(index)) return;
+						if (!analysis || analysis.error || !this.isFontVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
 						const colorHex = elements[`color${index + 1}`].value;
 						const r = parseInt(colorHex.slice(1, 3), 16);
