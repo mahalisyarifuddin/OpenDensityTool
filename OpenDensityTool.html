@@ -438,9 +438,15 @@
 						<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>
-						Text<textarea id="text1" maxlength="1000">Idealogy</textarea>
-					</label>
+					<div style="margin-bottom:.5rem">
+						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+							<label for="text1" style="margin-bottom:0">Text</label>
+							<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto">
+								<option value="">Samples...</option>
+							</select>
+						</div>
+						<textarea id="text1" maxlength="1000">Idealogy</textarea>
+					</div>
 					<label>
 						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
 						<input type="range" id="sizeRange1" value="100" min="8" max="500">
@@ -470,9 +476,15 @@
 						<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
 					</div>
 					<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" style="margin-top:0">
-					<label>
-						Text<textarea id="text2" maxlength="1000">Идеология</textarea>
-					</label>
+					<div style="margin-bottom:.5rem">
+						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+							<label for="text2" style="margin-bottom:0">Text</label>
+							<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto">
+								<option value="">Samples...</option>
+							</select>
+						</div>
+						<textarea id="text2" maxlength="1000">Идеология</textarea>
+					</div>
 					<label>
 						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
 						<input type="range" id="sizeRange2" value="100" min="8" max="500">
@@ -548,6 +560,13 @@
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
 			const COMMON_SCRIPT_NAMES = new Set('General Punctuation|Superscripts and Subscripts|Currency Symbols|Combining Diacritical Marks for Symbols|Letterlike Symbols|Number Forms|Arrows|Mathematical Operators|Miscellaneous Technical|Control Pictures|Optical Character Recognition|Enclosed Alphanumerics|Box Drawing|Block Elements|Geometric Shapes|Miscellaneous Symbols|Dingbats|Miscellaneous Mathematical Symbols-A|Supplemental Arrows-A|Braille Patterns|Supplemental Arrows-B|Miscellaneous Mathematical Symbols-B|Supplemental Mathematical Operators|Miscellaneous Symbols and Arrows|Supplemental Punctuation|CJK Symbols and Punctuation|Halfwidth and Fullwidth Forms'.split('|'));
+			const TEXT_SAMPLES = {
+				"Pangram (En)": "The quick brown fox jumps over the lazy dog",
+				"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
+				"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+				"Numbers": "0123456789",
+				"Alignment": "Haxodp"
+			};
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
 			class DensityTool {
@@ -592,6 +611,21 @@
 						});
 					};
 					const updateScale = () => this.updateScale();
+
+					const sampleOptions = Object.entries(TEXT_SAMPLES).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
+					[1, 2].forEach(n => {
+						const select = document.getElementById(`samples${n}`);
+						if (select) {
+							select.innerHTML += sampleOptions;
+							select.onchange = () => {
+								if (select.value) {
+									elements[`text${n}`].value = select.value;
+									select.value = "";
+									debouncedUpdate();
+								}
+							};
+						}
+					});
 
 					elements.zoom.onchange = updateScale;
 					['render', 'density', 'guides'].forEach(id => {
