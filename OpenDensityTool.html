@@ -610,7 +610,13 @@
 							this.rafId = null;
 						});
 					};
-					const updateScale = () => this.updateScale();
+					const updateScale = () => {
+						if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
+						this.resizeRaf = requestAnimationFrame(() => {
+							this.updateScale();
+							this.resizeRaf = null;
+						});
+					};
 
 					const sampleOptions = Object.entries(TEXT_SAMPLES).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 					[1, 2].forEach(n => {
@@ -735,26 +741,30 @@
 					});
 
 					elements.canvas.onmousemove = e => {
-						if (!this.lastDimensions) return;
-						const rect = elements.canvas.getBoundingClientRect();
-						const x = (e.clientX - rect.left) * (elements.canvas.width / rect.width);
-						const y = (e.clientY - rect.top) * (elements.canvas.height / rect.height);
+						const { clientX, clientY } = e;
+						if (this.tooltipRaf) cancelAnimationFrame(this.tooltipRaf);
+						this.tooltipRaf = requestAnimationFrame(() => {
+							if (!this.lastDimensions) return;
+							const rect = elements.canvas.getBoundingClientRect();
+							const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
+							const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
+							if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
 
-						if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
+							const content = this.analyses.map((a, i) => {
+								if (!a || !this.isFontVisible(i)) return null;
+								const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
+								const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
+								return val ? `Font ${i + 1}: ${val} px` : null;
+							}).filter(Boolean).join('\n');
 
-						const content = this.analyses.map((a, i) => {
-							if (!a || !this.isFontVisible(i)) return null;
-							const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
-							const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
-							return val ? `Font ${i + 1}: ${val} px` : null;
-						}).filter(Boolean).join('\n');
+							if (!content) return elements.tooltip.hidden = true;
 
-						if (!content) return elements.tooltip.hidden = true;
-
-						elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
-						elements.tooltip.hidden = false;
-						elements.tooltip.style.left = `${e.clientX + 15}px`;
-						elements.tooltip.style.top = `${e.clientY + 15}px`;
+							elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
+							elements.tooltip.hidden = false;
+							elements.tooltip.style.left = `${clientX + 15}px`;
+							elements.tooltip.style.top = `${clientY + 15}px`;
+							this.tooltipRaf = null;
+						});
 					};
 					elements.canvas.onmouseleave = () => elements.tooltip.hidden = true;
 				}
