@@ -523,6 +523,7 @@
 							<option value="metrics">Show Metrics</option>
 						</select>
 					</div>
+					<button id="copyImage">Copy Image</button>
 					<button id="export">Export PNG</button>
 				</div>
 				<div id="preview">
@@ -651,6 +652,32 @@
 							elements.export.textContent = 'Saved!';
 							setTimeout(() => elements.export.textContent = originalText, 2000);
 						}, 50);
+					};
+
+					elements.copyImage.onclick = () => {
+						const originalText = elements.copyImage.textContent;
+						elements.copyImage.textContent = 'Copying...';
+						elements.canvas.toBlob(blob => {
+							if (!blob) {
+								elements.copyImage.textContent = 'Error';
+								setTimeout(() => elements.copyImage.textContent = originalText, 2000);
+								return;
+							}
+							try {
+								const item = new ClipboardItem({ "image/png": blob });
+								navigator.clipboard.write([item])
+									.then(() => elements.copyImage.textContent = 'Copied!')
+									.catch(err => {
+										console.error(err);
+										elements.copyImage.textContent = 'Error';
+									})
+									.finally(() => setTimeout(() => elements.copyImage.textContent = originalText, 2000));
+							} catch (err) {
+								console.error(err);
+								elements.copyImage.textContent = 'Error';
+								setTimeout(() => elements.copyImage.textContent = originalText, 2000);
+							}
+						});
 					};
 
 					elements.theme.onchange = event => this.theme(event.target.value);
