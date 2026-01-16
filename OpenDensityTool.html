@@ -778,10 +778,12 @@
 							if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
 
 							const content = this.analyses.map((a, i) => {
-								if (!a || !this.isFontVisible(i)) return null;
+								if (!a || a.error || !this.isFontVisible(i)) return null;
 								const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
 								const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
-								return val ? `Font ${i + 1}: ${val} px` : null;
+								const name = this.fonts[i]?.fullName || `Font ${i + 1}`;
+								const percentage = Math.round((val / a.maxDensity) * 100);
+								return val ? `${name}: ${val}px (${percentage}%)` : null;
 							}).filter(Boolean).join('\n');
 
 							if (!content) return elements.tooltip.hidden = true;
@@ -961,11 +963,12 @@
 				}
 
 				analyzePixels(context, width, height) {
-					if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0 };
+					if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
 					const { data } = context.getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
+					let maxDensity = 0;
 
 					for (let y = 0; y < height; y++) {
 						let rowInk = 0, firstX = -1, lastX = -1;
@@ -979,6 +982,7 @@
 						}
 						if (rowInk > 0) {
 							densityByRow[y] = rowInk;
+							if (rowInk > maxDensity) maxDensity = rowInk;
 							inkPixels += rowInk;
 							if (minX > firstX) minX = firstX;
 							if (maxX < lastX) maxX = lastX;
@@ -986,7 +990,7 @@
 							maxY = y;
 						}
 					}
-					return { densityByRow, inkPixels, minX, maxX, minY, maxY };
+					return { densityByRow, inkPixels, minX, maxX, minY, maxY, maxDensity: Math.max(1, maxDensity) };
 				}
 
 				updateSpacingLabels() {
@@ -1059,7 +1063,7 @@
 						// Draw density graph
 						compositeCtx.fillStyle = colorHex;
 						compositeCtx.beginPath();
-						const scale = this.graphWidth / Math.max(1, ...analysis.densityByRow);
+						const scale = this.graphWidth / analysis.maxDensity;
 						let currentWidth = 0, startY = -1;
 						for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
 							const barWidth = analysis.densityByRow[rowY] ? analysis.densityByRow[rowY] * scale : 0;
