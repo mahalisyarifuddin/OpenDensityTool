@@ -441,7 +441,7 @@
 					<div style="margin-bottom:.5rem">
 						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
 							<label for="text1" style="margin-bottom:0">Text</label>
-							<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto">
+							<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples">
 								<option value="">Samples...</option>
 							</select>
 						</div>
@@ -449,16 +449,16 @@
 					</div>
 					<label>
 						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
-						<input type="range" id="sizeRange1" value="100" min="8" max="500">
+						<input type="range" id="sizeRange1" value="100" min="8" max="500" aria-label="Size (px)">
 					</label>
 					<div class="row">
 						<label>
 							Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500">
-							<input type="range" id="spacingRange1" value="0" min="-500" max="500">
+							<input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
-							<input type="range" id="shiftRange1" value="0" min="-200" max="200">
+							<input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift">
 						</label>
 					</div>
 				</div>
@@ -479,7 +479,7 @@
 					<div style="margin-bottom:.5rem">
 						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
 							<label for="text2" style="margin-bottom:0">Text</label>
-							<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto">
+							<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples">
 								<option value="">Samples...</option>
 							</select>
 						</div>
@@ -487,16 +487,16 @@
 					</div>
 					<label>
 						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
-						<input type="range" id="sizeRange2" value="100" min="8" max="500">
+						<input type="range" id="sizeRange2" value="100" min="8" max="500" aria-label="Size (px)">
 					</label>
 					<div class="row">
 						<label>
 							Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500">
-							<input type="range" id="spacingRange2" value="0" min="-500" max="500">
+							<input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)">
 						</label>
 						<label>
 							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
-							<input type="range" id="shiftRange2" value="0" min="-200" max="200">
+							<input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift">
 						</label>
 					</div>
 				</div>
@@ -534,7 +534,7 @@
 				<div class="results">
 					<div class="card">
 						<div class="header">
-							<div id="dot1" class="indicator"></div>
+							<div id="dot1" class="indicator" aria-hidden="true"></div>
 							<span id="analysisName1">Font 1 Analysis</span>
 							<button class="actionButton copyButton" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 						</div>
@@ -542,7 +542,7 @@
 					</div>
 					<div class="card">
 						<div class="header">
-							<div id="dot2" class="indicator"></div>
+							<div id="dot2" class="indicator" aria-hidden="true"></div>
 							<span id="analysisName2">Font 2 Analysis</span>
 							<button class="actionButton copyButton" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 						</div>
@@ -1013,6 +1013,7 @@
 						const range = elements[`spacingRange${n}`];
 						const prevLabel = input.parentElement.firstChild;
 						prevLabel.textContent = label;
+						range.setAttribute('aria-label', label);
 						input.value = defaultVal;
 						range.value = defaultVal;
 					});
