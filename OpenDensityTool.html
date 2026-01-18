@@ -423,7 +423,7 @@
 		</dialog>
 		<main>
 			<section>
-				<h2>Configuration</h2>
+				<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></h2>
 				<div class="group">
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
@@ -691,6 +691,17 @@
 					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
 					elements.spacingUnit.onchange = () => {
 						this.updateSpacingLabels();
+						this.update();
+					};
+
+					elements.resetConfig.onclick = () => {
+						[1, 2].forEach(n => {
+							['text', 'size', 'spacing', 'shift', 'color'].forEach(key => {
+								const el = elements[`${key}${n}`];
+								el.value = el.defaultValue;
+								if (key !== 'text' && key !== 'color') elements[`${key}Range${n}`].value = el.value;
+							});
+						});
 						this.update();
 					};
 
