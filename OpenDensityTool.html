@@ -1005,24 +1005,41 @@
 					let maxDensity = 0;
 
 					for (let y = 0; y < height; y++) {
-						let rowInk = 0, firstX = -1, lastX = -1;
 						const rowOffset = y * width;
-						for (let x = 0; x < width; x++) {
+						let firstX = -1, x = 0;
+
+						// Optimization: Scan for start
+						for (; x < width; x++) {
 							if ((pixelDataInt32[rowOffset + x] >>> ALPHA_SHIFT) & 1) {
-								rowInk++;
-								if (firstX === -1) firstX = x;
-								lastX = x;
+								firstX = x;
+								break;
 							}
 						}
-						if (rowInk > 0) {
-							densityByRow[y] = rowInk;
-							if (rowInk > maxDensity) maxDensity = rowInk;
-							inkPixels += rowInk;
-							if (minX > firstX) minX = firstX;
-							if (maxX < lastX) maxX = lastX;
-							if (minY > y) minY = y;
-							maxY = y;
+						if (firstX === -1) continue;
+
+						// Optimization: Scan for end
+						let lastX = width - 1;
+						for (; lastX >= firstX; lastX--) {
+							if ((pixelDataInt32[rowOffset + lastX] >>> ALPHA_SHIFT) & 1) {
+								break;
+							}
 						}
+
+						// Optimization: Count middle
+						let rowInk = 0;
+						for (let ix = firstX; ix <= lastX; ix++) {
+							if ((pixelDataInt32[rowOffset + ix] >>> ALPHA_SHIFT) & 1) {
+								rowInk++;
+							}
+						}
+
+						densityByRow[y] = rowInk;
+						if (rowInk > maxDensity) maxDensity = rowInk;
+						inkPixels += rowInk;
+						if (minX > firstX) minX = firstX;
+						if (maxX < lastX) maxX = lastX;
+						if (minY > y) minY = y;
+						maxY = y;
 					}
 					return { densityByRow, inkPixels, minX, maxX, minY, maxY, maxDensity: Math.max(1, maxDensity) };
 				}
