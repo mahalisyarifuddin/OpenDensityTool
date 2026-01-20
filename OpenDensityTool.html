@@ -857,7 +857,7 @@
 				getRenderData(index) {
 					const number = index + 1;
 					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
-					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
+					if (!inputs.font || !inputs.fontSize) return null;
 					const cached = this.renderingCache[index];
 					if (cached) {
 						const keys = Object.keys(inputs);
@@ -920,7 +920,6 @@
 						return result;
 					})();
 
-					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
@@ -939,12 +938,13 @@
 					});
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
 					const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
+					const safetyPadding = Math.ceil(size * 0.25);
 					const minXPixel = Math.min(0, minX * scale);
 					const maxXPixel = Math.max(metrics.advanceWidth, maxX * scale);
-					const drawOffsetX = -minXPixel;
-					const width = Math.ceil(maxXPixel - minXPixel);
-					const baseline = Math.ceil(metrics.ascent);
-					const height = Math.ceil(baseline + metrics.descent);
+					const drawOffsetX = -minXPixel + safetyPadding;
+					const width = Math.ceil(maxXPixel - minXPixel) + (safetyPadding * 2);
+					const baseline = Math.ceil(metrics.ascent) + safetyPadding;
+					const height = Math.ceil(baseline + metrics.descent + safetyPadding);
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 					const canvas = this.offscreenCanvases[index];
 					canvas.width = Math.max(canvas.width, width);
@@ -1033,7 +1033,7 @@
 							const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
 							const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
 							const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
-							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, height: hasInk ? (data.maxY - data.minY + 1) : 0 };
+							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
 						} catch (error) { return { error: error.message }; }
 					});
 					this.draw();
@@ -1134,7 +1134,7 @@
 				updateResult(number, index) {
 					const analysis = this.analyses[index];
 					const error = this.loadErrors[index] || (analysis && analysis.error);
-					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : '';
+					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
 					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
 					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
@@ -1150,7 +1150,7 @@
 						return;
 					}
 
-					elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.height)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+					elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
 				}
 			}
 			new DensityTool();
