@@ -1033,7 +1033,7 @@
 							const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
 							const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
 							const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
-							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, height: yMax - yMin };
+							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, height: hasInk ? (data.maxY - data.minY + 1) : 0 };
 						} catch (error) { return { error: error.message }; }
 					});
 					this.draw();
