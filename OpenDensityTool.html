@@ -598,14 +598,11 @@
 				setup() {
 					this.fetchUnicodeBlocks();
 
-					const debounce = (callback, delay) => {
-						let timer;
-						return (...args) => {
-							clearTimeout(timer);
-							timer = setTimeout(() => callback(...args), delay);
-						};
+					let debounceTimer;
+					const debouncedUpdate = () => {
+						clearTimeout(debounceTimer);
+						debounceTimer = setTimeout(() => this.update(), 300);
 					};
-					const debouncedUpdate = debounce(() => this.update(), 300);
 					const throttledUpdate = () => {
 						if (this.rafId) return;
 						this.rafId = requestAnimationFrame(() => {
