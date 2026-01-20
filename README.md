@@ -66,6 +66,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - **Ink Bounds**:
   - **Max Y**: The highest point of the ink relative to the baseline (positive is up).
   - **Min Y**: The lowest point of the ink relative to the baseline (negative is down).
+  - **Height**: The total vertical extent of the ink (Max Y - Min Y).
 - **Metrics**:
   - **Ascent**: The font's nominal ascent.
   - **Descent**: The font's nominal descent.
