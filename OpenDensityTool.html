@@ -625,36 +625,21 @@
 						elements[id].onchange = () => this.update();
 					});
 
-					elements.export.onclick = () => {
-						const originalText = elements.export.textContent;
-						elements.export.textContent = 'Exporting...';
-						setTimeout(() => {
-							const link = document.createElement('a');
-							link.href = elements.canvas.toDataURL();
-							const names = this.fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
-							const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-							link.download = `density_${namePart}.png`;
-							link.click();
-							elements.export.textContent = 'Saved!';
-							setTimeout(() => elements.export.textContent = originalText, 2000);
-						}, 50);
-					};
+					elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
+						await new Promise(r => setTimeout(r, 50));
+						const link = document.createElement('a');
+						link.href = elements.canvas.toDataURL();
+						const names = this.fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
+						const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+						link.download = `density_${namePart}.png`;
+						link.click();
+					}, 'Saved!', 'Exporting...');
 
-					elements.copyImage.onclick = async () => {
-						const originalText = elements.copyImage.textContent;
-						elements.copyImage.textContent = 'Copying...';
-						try {
-							const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
-							if (!blob) throw new Error('Blob creation failed');
-							await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-							elements.copyImage.textContent = 'Copied!';
-						} catch (err) {
-							console.error(err);
-							elements.copyImage.textContent = 'Error';
-						} finally {
-							setTimeout(() => elements.copyImage.textContent = originalText, 2000);
-						}
-					};
+					elements.copyImage.onclick = () => this.handleButtonState(elements.copyImage, async () => {
+						const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
+						if (!blob) throw new Error('Blob creation failed');
+						await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+					}, 'Copied!', 'Copying...');
 
 					elements.theme.onchange = event => this.theme(event.target.value);
 
@@ -684,14 +669,9 @@
 					window.onresize = updateScale;
 
 					document.querySelectorAll('.copyButton').forEach(button => {
-						const originalText = button.textContent;
-						button.onclick = () => {
-							const text = document.getElementById(button.dataset.target).innerText;
-							navigator.clipboard.writeText(text)
-								.then(() => button.textContent = 'Copied!')
-								.catch(() => button.textContent = 'Error')
-								.finally(() => setTimeout(() => button.textContent = originalText, 2000));
-						};
+						button.onclick = () => this.handleButtonState(button, () => {
+							return navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText);
+						});
 					});
 
 					[1, 2].forEach((number, index) => {
@@ -804,6 +784,20 @@
 						});
 					};
 					elements.canvas.onmouseleave = () => elements.tooltip.hidden = true;
+				}
+
+				async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
+					const originalText = button.textContent;
+					if (processingText) button.textContent = processingText;
+					try {
+						await actionFn();
+						button.textContent = successText;
+					} catch (error) {
+						console.error(error);
+						button.textContent = 'Error';
+					} finally {
+						setTimeout(() => button.textContent = originalText, 2000);
+					}
 				}
 
 				theme(themeName) {
