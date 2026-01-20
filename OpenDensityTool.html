@@ -1004,7 +1004,21 @@
 					context.fillRect(0, 0, width, height);
 					context.globalCompositeOperation = 'source-over';
 
-					const data = { ...this.analyzePixels(context, width, height), ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+					const analysisData = this.analyzePixels(context, width, height);
+
+					const graphPath = new Path2D();
+					const graphScale = this.graphWidth / analysisData.maxDensity;
+					let currentGraphWidth = 0, startGraphY = -1;
+					for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
+						const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
+						if (barWidth !== currentGraphWidth) {
+							if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
+							currentGraphWidth = barWidth; startGraphY = rowY;
+						}
+					}
+					if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
+
+					const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderingCache[index] = { inputs, data };
 					return data;
 				}
@@ -1173,18 +1187,10 @@
 							const lightAlpha = minVal / 255;
 
 							const draw = (ctx, imageSource) => {
-								ctx.beginPath();
-								const scale = this.graphWidth / analysis.maxDensity;
-								let currentWidth = 0, startY = -1;
-								for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
-									const barWidth = analysis.densityByRow[rowY] ? analysis.densityByRow[rowY] * scale : 0;
-									if (barWidth !== currentWidth) {
-										if (currentWidth > 0) ctx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
-										currentWidth = barWidth; startY = rowY;
-									}
-								}
-								if (currentWidth > 0) ctx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
-								ctx.fill();
+								ctx.save();
+								ctx.translate(0, y);
+								ctx.fill(analysis.graphPath);
+								ctx.restore();
 
 								const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 								ctx.drawImage(imageSource, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
@@ -1306,18 +1312,10 @@
 
 							// Draw density graph
 							compositeCtx.fillStyle = colorHex;
-							compositeCtx.beginPath();
-							const scale = this.graphWidth / analysis.maxDensity;
-							let currentWidth = 0, startY = -1;
-							for (let rowY = 0; rowY < analysis.densityByRow.length; rowY++) {
-								const barWidth = analysis.densityByRow[rowY] ? analysis.densityByRow[rowY] * scale : 0;
-								if (barWidth !== currentWidth) {
-									if (currentWidth > 0) compositeCtx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, rowY - startY);
-									currentWidth = barWidth; startY = rowY;
-								}
-							}
-							if (currentWidth > 0) compositeCtx.rect(this.graphWidth - currentWidth, startY + y, currentWidth, analysis.densityByRow.length - startY);
-							compositeCtx.fill();
+							compositeCtx.save();
+							compositeCtx.translate(0, y);
+							compositeCtx.fill(analysis.graphPath);
+							compositeCtx.restore();
 
 							// Draw glyphs
 							const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
