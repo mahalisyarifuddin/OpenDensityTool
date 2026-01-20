@@ -789,8 +789,17 @@
 
 							elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
 							elements.tooltip.hidden = false;
-							elements.tooltip.style.left = `${clientX + 15}px`;
-							elements.tooltip.style.top = `${clientY + 15}px`;
+
+							const tooltipRect = elements.tooltip.getBoundingClientRect();
+							const offset = 15;
+							let left = clientX + offset;
+							let top = clientY + offset;
+
+							if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
+							if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
+
+							elements.tooltip.style.left = `${Math.max(0, left)}px`;
+							elements.tooltip.style.top = `${Math.max(0, top)}px`;
 							this.tooltipRaf = null;
 						});
 					};
