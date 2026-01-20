@@ -1005,30 +1005,28 @@
 					let maxDensity = 0;
 
 					for (let y = 0; y < height; y++) {
-						const rowOffset = y * width;
-						let firstX = -1, x = 0;
+						const rowStart = y * width;
+						const rowEnd = rowStart + width;
+						let index = rowStart;
 
 						// Optimization: Scan for start
-						for (; x < width; x++) {
-							if ((pixelDataInt32[rowOffset + x] >>> ALPHA_SHIFT) & 1) {
-								firstX = x;
-								break;
-							}
+						while (index < rowEnd && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) {
+							index++;
 						}
-						if (firstX === -1) continue;
+						if (index === rowEnd) continue;
+						const firstX = index - rowStart;
 
 						// Optimization: Scan for end
-						let lastX = width - 1;
-						for (; lastX >= firstX; lastX--) {
-							if ((pixelDataInt32[rowOffset + lastX] >>> ALPHA_SHIFT) & 1) {
-								break;
-							}
+						let endIndex = rowEnd - 1;
+						while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) {
+							endIndex--;
 						}
+						const lastX = endIndex - rowStart;
 
 						// Optimization: Count middle
 						let rowInk = 0;
-						for (let ix = firstX; ix <= lastX; ix++) {
-							if ((pixelDataInt32[rowOffset + ix] >>> ALPHA_SHIFT) & 1) {
+						for (; index <= endIndex; index++) {
+							if ((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1) {
 								rowInk++;
 							}
 						}
