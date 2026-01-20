@@ -857,7 +857,7 @@
 				getRenderData(index) {
 					const number = index + 1;
 					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
-					if (!inputs.font || !inputs.content || !inputs.fontSize) return null;
+					if (!inputs.font || !inputs.fontSize) return null;
 					const cached = this.renderingCache[index];
 					if (cached) {
 						const keys = Object.keys(inputs);
@@ -920,7 +920,6 @@
 						return result;
 					})();
 
-					if (runs.every(r => r.run.glyphs.length === 0)) return null;
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 					runs.forEach(({ run }) => {
 						run.glyphs.forEach((glyph, i) => {
@@ -1135,7 +1134,7 @@
 				updateResult(number, index) {
 					const analysis = this.analyses[index];
 					const error = this.loadErrors[index] || (analysis && analysis.error);
-					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Enter text.' : '';
+					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : '';
 					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
 					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
