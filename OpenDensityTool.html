@@ -1126,7 +1126,7 @@
 							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas']
 								.forEach(k => this[k] = document.createElement('canvas'));
 						}
-						[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas].forEach(c => {
+						[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas, this.tempCanvas].forEach(c => {
 							if (c.width !== dimensions.width || c.height !== dimensions.height) { c.width = dimensions.width; c.height = dimensions.height; }
 						});
 
@@ -1149,10 +1149,6 @@
 
 						if (isDark) {
 							const prepareTint = (fillStyle, sourceCanvas) => {
-								if (this.tempCanvas.width < analysis.width || this.tempCanvas.height < analysis.height) {
-									this.tempCanvas.width = Math.max(this.tempCanvas.width, analysis.width);
-									this.tempCanvas.height = Math.max(this.tempCanvas.height, analysis.height);
-								}
 								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
 								tempCtx.globalCompositeOperation = 'source-over';
 								tempCtx.drawImage(sourceCanvas || analysis.canvas, 0, 0);
