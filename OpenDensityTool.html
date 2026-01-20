@@ -266,6 +266,7 @@
 				transform-origin: top left;
 				display: block;
 				flex-shrink: 0;
+				background: var(--surface);
 			}
 			.results {
 				display: grid;
@@ -816,8 +817,30 @@
 					this.draw();
 				}
 
+				parseColor(color) {
+					if (!color) return { r: 0, g: 0, b: 0, a: 0 };
+					if (color.startsWith('#')) {
+						const hex = color.length === 4 ? color.slice(1).split('').map(c => c + c).join('') : color.slice(1);
+						const r = parseInt(hex.slice(0, 2), 16);
+						const g = parseInt(hex.slice(2, 4), 16);
+						const b = parseInt(hex.slice(4, 6), 16);
+						return { r, g, b, a: 1 };
+					}
+					const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+					if (match) {
+						return {
+							r: parseInt(match[1], 10),
+							g: parseInt(match[2], 10),
+							b: parseInt(match[3], 10),
+							a: match[4] !== undefined ? parseFloat(match[4]) : 1
+						};
+					}
+					return { r: 0, g: 0, b: 0, a: 0 };
+				}
+
 				updateThemeColor() {
-					this.surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
+					this.themeSurfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
+					this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor;
 				}
 
 				fetchUnicodeBlocks() {
@@ -1053,21 +1076,20 @@
 					this.lastDimensions = dimensions;
 					this.context.canvas.width = dimensions.width;
 					this.context.canvas.height = dimensions.height;
-					this.context.fillStyle = this.surfaceColor;
+
+					const themeColor = this.parseColor(this.themeSurfaceColor);
+					const canvasColor = this.parseColor(this.canvasBackgroundColor);
+
+					this.context.fillStyle = this.canvasBackgroundColor;
 					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
 
-					// Determine theme brightness
-					let surfaceR = 255, surfaceG = 255, surfaceB = 255;
-					if (this.surfaceColor.startsWith('#')) {
-						const hex = this.surfaceColor.length === 4 ? this.surfaceColor.slice(1).split('').map(c => c+c).join('') : this.surfaceColor.slice(1);
-						surfaceR = parseInt(hex.slice(0, 2), 16);
-						surfaceG = parseInt(hex.slice(2, 4), 16);
-						surfaceB = parseInt(hex.slice(4, 6), 16);
-					} else if (this.surfaceColor.startsWith('rgb')) {
-						const rgb = this.surfaceColor.match(/\d+/g);
-						if (rgb) [surfaceR, surfaceG, surfaceB] = rgb.map(Number);
-					}
-					const isDark = (surfaceR * 0.299 + surfaceG * 0.587 + surfaceB * 0.114) < 128;
+					// Determine theme brightness using effective color
+					const alpha = canvasColor.a;
+					const effectiveR = canvasColor.r * alpha + themeColor.r * (1 - alpha);
+					const effectiveG = canvasColor.g * alpha + themeColor.g * (1 - alpha);
+					const effectiveB = canvasColor.b * alpha + themeColor.b * (1 - alpha);
+
+					const isDark = (effectiveR * 0.299 + effectiveG * 0.587 + effectiveB * 0.114) < 128;
 
 					const compositeCanvas = this.compositeCanvas;
 					compositeCanvas.width = dimensions.width;
