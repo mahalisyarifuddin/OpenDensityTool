@@ -610,17 +610,13 @@
 							this.rafId = null;
 						});
 					};
-					const updateScale = () => {
-						if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
-						this.resizeRaf = requestAnimationFrame(() => {
-							this.updateScale();
-							this.resizeRaf = null;
-						});
-					};
 
 					const sampleOptions = Object.entries(TEXT_SAMPLES).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 
-					elements.zoom.onchange = updateScale;
+					elements.zoom.onchange = window.onresize = () => {
+						if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
+						this.resizeRaf = requestAnimationFrame(() => { this.updateScale(); this.resizeRaf = null; });
+					};
 					['render', 'density', 'guides'].forEach(id => {
 						elements[id].onchange = () => this.update();
 					});
@@ -656,17 +652,13 @@
 					};
 
 					elements.resetConfig.onclick = () => {
-						[1, 2].forEach(n => {
-							['text', 'size', 'spacing', 'shift', 'color'].forEach(key => {
-								const el = elements[`${key}${n}`];
-								el.value = el.defaultValue;
-								if (key !== 'text' && key !== 'color') elements[`${key}Range${n}`].value = el.value;
-							});
-						});
+						[1, 2].forEach(n => ['text', 'size', 'spacing', 'shift', 'color'].forEach(k => {
+							const e = elements[k + n], r = elements[k + 'Range' + n];
+							e.value = e.defaultValue;
+							if (r) r.value = e.value;
+						}));
 						this.update();
 					};
-
-					window.onresize = updateScale;
 
 					document.querySelectorAll('.copyButton').forEach(button => {
 						button.onclick = () => this.handleButtonState(button, () => {
@@ -702,16 +694,11 @@
 						elements[`text${number}`].oninput = debouncedUpdate;
 						elements[`color${number}`].oninput = throttledUpdate;
 
-						const bindInput = (key, updateFn) => {
-							const numInput = elements[`${key}${number}`];
-							const rangeInput = elements[`${key}Range${number}`];
-							numInput.oninput = () => { rangeInput.value = numInput.value; updateFn(); };
-							rangeInput.oninput = () => { numInput.value = rangeInput.value; updateFn(); };
-						};
-
-						bindInput('size', debouncedUpdate);
-						bindInput('spacing', debouncedUpdate);
-						bindInput('shift', throttledUpdate);
+						[['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => {
+							const n = elements[k + number], r = elements[k + 'Range' + number];
+							n.oninput = () => { r.value = n.value; fn(); };
+							r.oninput = () => { n.value = r.value; fn(); };
+						});
 
 						group.ondragover = event => {
 							event.preventDefault();
