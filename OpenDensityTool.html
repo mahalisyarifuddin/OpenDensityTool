@@ -1122,17 +1122,12 @@
 
 					let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
 					if (isDark) {
-						if (!this.maskCanvas) {
-							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas']
-								.forEach(k => this[k] = document.createElement('canvas'));
-						}
-						[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas, this.tempCanvas].forEach(c => {
-							if (c.width !== dimensions.width || c.height !== dimensions.height) { c.width = dimensions.width; c.height = dimensions.height; }
-						});
-
 						[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
-							[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas, this.tempCanvas]
-							.map(c => c.getContext('2d'));
+							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
+								const c = this[k] || (this[k] = document.createElement('canvas'));
+								if (c.width !== dimensions.width || c.height !== dimensions.height) { c.width = dimensions.width; c.height = dimensions.height; }
+								return c.getContext('2d');
+							});
 
 						[maskCtx, invInkCtx].forEach(ctx => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
 						lightCtx.clearRect(0, 0, dimensions.width, dimensions.height);
