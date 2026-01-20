@@ -1126,54 +1126,34 @@
 					compositeCanvas.height = dimensions.height;
 					const compositeCtx = compositeCanvas.getContext('2d');
 
+					let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
 					if (isDark) {
 						if (!this.maskCanvas) {
-							this.maskCanvas = document.createElement('canvas');
-							this.invInkCanvas = document.createElement('canvas');
-							this.emissiveInkCanvas = document.createElement('canvas');
-							this.invMaskCanvas = document.createElement('canvas');
-							this.diffCanvas = document.createElement('canvas');
-							this.lightCanvas = document.createElement('canvas');
-							this.tempCanvas = document.createElement('canvas');
+							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas']
+								.forEach(k => this[k] = document.createElement('canvas'));
 						}
 						[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas].forEach(c => {
-							if (c.width !== dimensions.width || c.height !== dimensions.height) {
-								c.width = dimensions.width;
-								c.height = dimensions.height;
-							}
+							if (c.width !== dimensions.width || c.height !== dimensions.height) { c.width = dimensions.width; c.height = dimensions.height; }
 						});
 
-						const maskCtx = this.maskCanvas.getContext('2d');
-						const invInkCtx = this.invInkCanvas.getContext('2d');
-						const emissiveCtx = this.emissiveInkCanvas.getContext('2d');
-						const invMaskCtx = this.invMaskCanvas.getContext('2d');
-						const diffCtx = this.diffCanvas.getContext('2d');
-						const lightCtx = this.lightCanvas.getContext('2d');
-						const tempCtx = this.tempCanvas.getContext('2d');
+						[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
+							[this.maskCanvas, this.invInkCanvas, this.emissiveInkCanvas, this.invMaskCanvas, this.diffCanvas, this.lightCanvas, this.tempCanvas]
+							.map(c => c.getContext('2d'));
 
-						// Clear canvases
-						maskCtx.globalCompositeOperation = 'source-over';
-						maskCtx.fillStyle = '#000000';
-						maskCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-
-						invInkCtx.globalCompositeOperation = 'source-over';
-						invInkCtx.fillStyle = '#000000';
-						invInkCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-
+						[maskCtx, invInkCtx].forEach(ctx => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
 						lightCtx.clearRect(0, 0, dimensions.width, dimensions.height);
+					}
 
-						let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-						this.analyses.forEach((analysis, index) => {
-							if (!analysis || analysis.error || !this.isFontVisible(index)) return;
-							const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-							const colorHex = elements[`color${index + 1}`].value;
-							const { r, g, b } = this.parseColor(colorHex);
+					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
+					this.analyses.forEach((analysis, index) => {
+						if (!analysis || analysis.error || !this.isFontVisible(index)) return;
+						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+						const colorHex = elements[`color${index + 1}`].value;
+						const { r, g, b } = this.parseColor(colorHex);
+						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
+						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 
-							const minVal = Math.min(r, g, b);
-							const inkAlpha = (255 - minVal) / 255;
-							const lightAlpha = minVal / 255;
-							const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
-
+						if (isDark) {
 							const prepareTint = (fillStyle, sourceCanvas) => {
 								if (this.tempCanvas.width < analysis.width || this.tempCanvas.height < analysis.height) {
 									this.tempCanvas.width = Math.max(this.tempCanvas.width, analysis.width);
@@ -1189,111 +1169,45 @@
 							};
 
 							if (inkAlpha > 0) {
-								// Accumulate Alpha on Mask (Lighter)
-								// Optimized: Use cached whiteCanvas directly to avoid tinting step
 								const whiteImg = analysis.whiteCanvas || prepareTint('#ffffff');
-								maskCtx.save();
-								maskCtx.globalCompositeOperation = 'lighter';
-								maskCtx.globalAlpha = inkAlpha;
-								maskCtx.fillStyle = '#ffffff';
-								drawLayer(maskCtx, analysis, whiteImg, drawX, y);
-								maskCtx.restore();
+								maskCtx.save(); maskCtx.globalCompositeOperation = 'lighter'; maskCtx.globalAlpha = inkAlpha; maskCtx.fillStyle = '#ffffff';
+								drawLayer(maskCtx, analysis, whiteImg, drawX, y); maskCtx.restore();
 
-								// Accumulate InvColor on InvInk (Screen)
 								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-								// Optimized: Use whiteCanvas as source for tinting to avoid clearing color first
 								const invImg = prepareTint(invColor, analysis.whiteCanvas);
-								invInkCtx.save();
-								invInkCtx.globalCompositeOperation = 'screen';
-								invInkCtx.globalAlpha = inkAlpha;
-								invInkCtx.fillStyle = invColor;
-								drawLayer(invInkCtx, analysis, invImg, drawX, y);
-								invInkCtx.restore();
+								invInkCtx.save(); invInkCtx.globalCompositeOperation = 'screen'; invInkCtx.globalAlpha = inkAlpha; invInkCtx.fillStyle = invColor;
+								drawLayer(invInkCtx, analysis, invImg, drawX, y); invInkCtx.restore();
 							}
 
+							const lightAlpha = Math.min(r, g, b) / 255;
 							if (lightAlpha > 0) {
-								lightCtx.save();
-								lightCtx.globalCompositeOperation = 'screen';
-								lightCtx.globalAlpha = lightAlpha;
-								lightCtx.fillStyle = colorHex;
-								drawLayer(lightCtx, analysis, analysis.canvas, drawX, y);
-								lightCtx.restore();
+								lightCtx.save(); lightCtx.globalCompositeOperation = 'screen'; lightCtx.globalAlpha = lightAlpha; lightCtx.fillStyle = colorHex;
+								drawLayer(lightCtx, analysis, analysis.canvas, drawX, y); lightCtx.restore();
 							}
+						} else {
+							compositeCtx.save(); compositeCtx.globalAlpha = inkAlpha; compositeCtx.globalCompositeOperation = 'multiply'; compositeCtx.fillStyle = colorHex;
+							drawLayer(compositeCtx, analysis, analysis.canvas, drawX, y); compositeCtx.restore();
+						}
+						if (sideMode) currentTranslateX += analysis.width;
+					});
 
-							if (sideMode) currentTranslateX += analysis.width;
-						});
+					if (isDark) {
+						diffCtx.globalCompositeOperation = 'source-over'; diffCtx.fillStyle = '#000000'; diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						diffCtx.drawImage(this.maskCanvas, 0, 0); diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.invInkCanvas, 0, 0);
 
-						// Create Emissive Ink (Difference)
-						// Result = Mask - InvInk = C * alpha (premultiplied)
-						// Use diffCanvas to perform difference, then lighter to recover opacity
-						diffCtx.globalCompositeOperation = 'source-over';
-						diffCtx.fillStyle = '#000000';
-						diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-						diffCtx.drawImage(this.maskCanvas, 0, 0);
-						diffCtx.globalCompositeOperation = 'difference';
-						diffCtx.drawImage(this.invInkCanvas, 0, 0);
+						emissiveCtx.globalCompositeOperation = 'source-over'; emissiveCtx.fillStyle = '#000000'; emissiveCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						emissiveCtx.globalCompositeOperation = 'lighter'; emissiveCtx.drawImage(this.diffCanvas, 0, 0);
 
-						emissiveCtx.globalCompositeOperation = 'source-over';
-						emissiveCtx.fillStyle = '#000000';
-						emissiveCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-						emissiveCtx.globalCompositeOperation = 'lighter';
-						emissiveCtx.drawImage(this.diffCanvas, 0, 0);
+						diffCtx.globalCompositeOperation = 'source-over'; diffCtx.fillStyle = '#ffffff'; diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.maskCanvas, 0, 0);
 
-						// Create Inverse Mask
-						// Result = White - Mask = 1 - alpha
-						diffCtx.globalCompositeOperation = 'source-over';
-						diffCtx.fillStyle = '#ffffff';
-						diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-						diffCtx.globalCompositeOperation = 'difference';
-						diffCtx.drawImage(this.maskCanvas, 0, 0);
+						invMaskCtx.globalCompositeOperation = 'source-over'; invMaskCtx.fillStyle = '#000000'; invMaskCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(this.diffCanvas, 0, 0);
 
-						invMaskCtx.globalCompositeOperation = 'source-over';
-						invMaskCtx.fillStyle = '#000000';
-						invMaskCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-						invMaskCtx.globalCompositeOperation = 'lighter';
-						invMaskCtx.drawImage(this.diffCanvas, 0, 0);
-
-						// Composite onto Main Context
-						// 1. Carve out background: Bg * (1 - alpha)
-						this.context.save();
-						this.context.globalCompositeOperation = 'multiply';
-						this.context.drawImage(this.invMaskCanvas, 0, 0);
-						this.context.restore();
-
-						// 2. Add Emissive Ink: + C * alpha
-						this.context.save();
-						this.context.globalCompositeOperation = 'lighter';
-						this.context.drawImage(this.emissiveInkCanvas, 0, 0);
-						this.context.restore();
-
-						// 3. Add Lights
-						this.context.save();
-						this.context.globalCompositeOperation = 'screen';
-						this.context.drawImage(this.lightCanvas, 0, 0);
-						this.context.restore();
-
+						this.context.save(); this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0); this.context.restore();
+						this.context.save(); this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0); this.context.restore();
+						this.context.save(); this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0); this.context.restore();
 					} else {
-						// Light Mode (Standard Multiply)
-						let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-						this.analyses.forEach((analysis, index) => {
-							if (!analysis || analysis.error || !this.isFontVisible(index)) return;
-							const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-							const colorHex = elements[`color${index + 1}`].value;
-							const { r, g, b } = this.parseColor(colorHex);
-							const densityAlpha = (255 - Math.min(r, g, b)) / 255;
-
-							compositeCtx.save();
-							compositeCtx.globalAlpha = densityAlpha;
-							compositeCtx.globalCompositeOperation = 'multiply';
-
-							// Draw density graph
-							compositeCtx.fillStyle = colorHex;
-							const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
-							drawLayer(compositeCtx, analysis, analysis.canvas, drawX, y);
-							compositeCtx.restore();
-
-							if (sideMode) currentTranslateX += analysis.width;
-						});
 						this.context.drawImage(compositeCanvas, 0, 0);
 					}
 					const guides = elements.guides.value;
