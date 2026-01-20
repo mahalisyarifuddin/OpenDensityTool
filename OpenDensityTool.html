@@ -691,14 +691,12 @@
 							this.update();
 						};
 
-						elements[`text${number}`].oninput = debouncedUpdate;
-						elements[`color${number}`].oninput = throttledUpdate;
-
-						[['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => {
-							const n = elements[k + number], r = elements[k + 'Range' + number];
-							n.oninput = () => { r.value = n.value; fn(); };
-							r.oninput = () => { n.value = r.value; fn(); };
-						});
+						const bind = (k, fn) => {
+							const e = elements[k + number], r = elements[k + 'Range' + number];
+							e.oninput = r ? () => { r.value = e.value; fn(); } : fn;
+							if (r) r.oninput = () => { e.value = r.value; fn(); };
+						};
+						[['text', debouncedUpdate], ['color', throttledUpdate], ['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => bind(k, fn));
 
 						group.ondragover = event => {
 							event.preventDefault();
