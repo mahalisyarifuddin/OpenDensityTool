@@ -1026,9 +1026,8 @@
 						// Optimization: Count middle
 						let rowInk = 0;
 						for (; index <= endIndex; index++) {
-							if ((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1) {
-								rowInk++;
-							}
+							// Branchless optimization
+							rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
 						}
 
 						densityByRow[y] = rowInk;
