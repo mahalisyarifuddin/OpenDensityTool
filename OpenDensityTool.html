@@ -1134,7 +1134,7 @@
 				updateResult(number, index) {
 					const analysis = this.analyses[index];
 					const error = this.loadErrors[index] || (analysis && analysis.error);
-					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : '';
+					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
 					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
 					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
