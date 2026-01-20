@@ -877,11 +877,8 @@
 					if (!this.lastBlock || code < this.lastBlock[0] || code > this.lastBlock[1]) {
 						this.lastBlock = this.unicodeBlocks.find(b => code >= b[0] && code <= b[1]);
 					}
-					return this.lastBlock ? this.getScriptName(code, this.lastBlock) : 'Other';
-				}
-
-				getScriptName(code, block) {
-					const name = block[2];
+					if (!this.lastBlock) return 'Other';
+					const name = this.lastBlock[2];
 					if (name === "Basic Latin") return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
 					return name.includes("Latin") ? 'Latin' : COMMON_SCRIPT_NAMES.has(name) ? 'Common' : name;
 				}
