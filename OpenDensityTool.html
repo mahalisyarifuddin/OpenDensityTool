@@ -890,7 +890,6 @@
 					context.fillRect(0, 0, width, height);
 					context.globalCompositeOperation = 'source-over';
 
-					// Optimization: Only scan rows that are expected to contain ink based on glyph bounds
 					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
 					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
 					const analysisData = this.analyzePixels(context, width, height, scanYStart, scanYEnd);
@@ -925,24 +924,20 @@
 						const rowEnd = rowStart + width;
 						let index = rowStart;
 
-						// Optimization: Scan for start
 						while (index < rowEnd && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) {
 							index++;
 						}
 						if (index === rowEnd) continue;
 						const firstX = index - rowStart;
 
-						// Optimization: Scan for end
 						let endIndex = rowEnd - 1;
 						while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) {
 							endIndex--;
 						}
 						const lastX = endIndex - rowStart;
 
-						// Optimization: Count middle
 						let rowInk = 0;
 						for (; index <= endIndex; index++) {
-							// Branchless optimization
 							rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
 						}
 
@@ -1014,7 +1009,6 @@
 					this.context.fillStyle = this.canvasBackgroundColor;
 					this.context.fillRect(0, 0, width, height);
 
-					// Determine theme brightness using effective color
 					const alpha = canvasColor.a;
 					const effectiveR = canvasColor.r * alpha + themeColor.r * (1 - alpha);
 					const effectiveG = canvasColor.g * alpha + themeColor.g * (1 - alpha);
@@ -1081,7 +1075,8 @@
 							if (lightAlpha > 0) {
 								compose(lightCtx, 'screen', lightAlpha, colorHex, analysis.canvas);
 							}
-						} else {
+						}
+						if (!isDark) {
 							compose(compositeCtx, 'multiply', inkAlpha, colorHex, analysis.canvas);
 						}
 						if (sideMode) currentTranslateX += analysis.width;
@@ -1103,7 +1098,8 @@
 						this.context.save(); this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0); this.context.restore();
 						this.context.save(); this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0); this.context.restore();
 						this.context.save(); this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0); this.context.restore();
-					} else {
+					}
+					if (!isDark) {
 						this.context.drawImage(compositeCanvas, 0, 0);
 					}
 					const guides = elements.guides.value;
