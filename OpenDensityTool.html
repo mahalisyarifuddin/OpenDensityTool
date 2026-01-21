@@ -1129,6 +1129,10 @@
 						const { r, g, b } = this.parseColor(colorHex);
 						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
+						const compose = (ctx, op, alpha, style, img) => {
+							ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
+							drawLayer(ctx, analysis, img, drawX, y); ctx.restore();
+						};
 
 						if (isDark) {
 							const prepareTint = (fillStyle, sourceCanvas) => {
@@ -1143,23 +1147,19 @@
 
 							if (inkAlpha > 0) {
 								const whiteImg = analysis.whiteCanvas || prepareTint('#ffffff');
-								maskCtx.save(); maskCtx.globalCompositeOperation = 'lighter'; maskCtx.globalAlpha = inkAlpha; maskCtx.fillStyle = '#ffffff';
-								drawLayer(maskCtx, analysis, whiteImg, drawX, y); maskCtx.restore();
+								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', whiteImg);
 
 								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
 								const invImg = prepareTint(invColor, analysis.whiteCanvas);
-								invInkCtx.save(); invInkCtx.globalCompositeOperation = 'screen'; invInkCtx.globalAlpha = inkAlpha; invInkCtx.fillStyle = invColor;
-								drawLayer(invInkCtx, analysis, invImg, drawX, y); invInkCtx.restore();
+								compose(invInkCtx, 'screen', inkAlpha, invColor, invImg);
 							}
 
 							const lightAlpha = Math.min(r, g, b) / 255;
 							if (lightAlpha > 0) {
-								lightCtx.save(); lightCtx.globalCompositeOperation = 'screen'; lightCtx.globalAlpha = lightAlpha; lightCtx.fillStyle = colorHex;
-								drawLayer(lightCtx, analysis, analysis.canvas, drawX, y); lightCtx.restore();
+								compose(lightCtx, 'screen', lightAlpha, colorHex, analysis.canvas);
 							}
 						} else {
-							compositeCtx.save(); compositeCtx.globalAlpha = inkAlpha; compositeCtx.globalCompositeOperation = 'multiply'; compositeCtx.fillStyle = colorHex;
-							drawLayer(compositeCtx, analysis, analysis.canvas, drawX, y); compositeCtx.restore();
+							compose(compositeCtx, 'multiply', inkAlpha, colorHex, analysis.canvas);
 						}
 						if (sideMode) currentTranslateX += analysis.width;
 					});
