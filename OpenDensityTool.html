@@ -561,7 +561,6 @@
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
-			const COMMON_SCRIPT_NAMES = new Set('General Punctuation|Superscripts and Subscripts|Currency Symbols|Combining Diacritical Marks for Symbols|Letterlike Symbols|Number Forms|Arrows|Mathematical Operators|Miscellaneous Technical|Control Pictures|Optical Character Recognition|Enclosed Alphanumerics|Box Drawing|Block Elements|Geometric Shapes|Miscellaneous Symbols|Dingbats|Miscellaneous Mathematical Symbols-A|Supplemental Arrows-A|Braille Patterns|Supplemental Arrows-B|Miscellaneous Mathematical Symbols-B|Supplemental Mathematical Operators|Miscellaneous Symbols and Arrows|Supplemental Punctuation|CJK Symbols and Punctuation|Halfwidth and Fullwidth Forms'.split('|'));
 			const TEXT_SAMPLES = {
 				"Pangram (En)": "The quick brown fox jumps over the lazy dog",
 				"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
@@ -587,7 +586,6 @@
 					this.graphWidth = 150;
 					this.graphPadding = 20;
 					this.context = elements.canvas.getContext('2d');
-					this.unicodeBlocks = [];
 					this.surfaceColor = '#ffffff';
 					this.analyses = [];
 					this.setup();
@@ -596,8 +594,6 @@
 				}
 
 				setup() {
-					this.fetchUnicodeBlocks();
-
 					let debounceTimer;
 					const debouncedUpdate = () => {
 						clearTimeout(debounceTimer);
@@ -809,16 +805,6 @@
 					this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor;
 				}
 
-				fetchUnicodeBlocks() {
-					fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.unicode.org/Public/latest/ucd/Blocks.txt'))
-						.then(response => { if (!response.ok) throw new Error(); return response.text(); })
-						.then(text => {
-							const ranges = Array.from(text.matchAll(/^([0-9A-F]+)\.\.([0-9A-F]+);\s*(.+)$/gm), m => [parseInt(m[1], 16), parseInt(m[2], 16), m[3]]);
-							ranges.length > 0 && (this.unicodeBlocks = ranges, this.layoutCache = [null, null], this.lastBlock = null, this.update());
-						})
-						.catch(error => console.warn('Block fetch failed', error));
-				}
-
 				async loadFont(file, index) {
 					const currentSequence = ++this.loadSequence[index];
 					this.loadErrors[index] = this.fonts[index] = null;
@@ -862,31 +848,6 @@
 					return this.generateRenderData(index, inputs);
 				}
 
-				getScript(char) {
-					const code = char.codePointAt(0);
-					if (!this.lastBlock || code < this.lastBlock[0] || code > this.lastBlock[1]) {
-						this.lastBlock = this.unicodeBlocks.find(b => code >= b[0] && code <= b[1]);
-					}
-					if (!this.lastBlock) return 'Other';
-					const name = this.lastBlock[2];
-					if (name === "Basic Latin") return /[a-zA-Z]/.test(char) ? 'Latin' : 'Common';
-					return name.includes("Latin") ? 'Latin' : COMMON_SCRIPT_NAMES.has(name) ? 'Common' : name;
-				}
-
-				getRuns(content, font) {
-					const segments = [];
-					let current = { text: '', script: null };
-					for (const char of content) {
-						const script = this.getScript(char);
-						if (!current.script) { current = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
-						if (script === 'Common' || script === current.script) { current.text += char; continue; }
-						segments.push(current);
-						current = { text: char, script };
-					}
-					current.text && segments.push(current);
-					return segments.map(s => ({ run: font.layout(s.text), text: s.text }));
-				}
-
 				generateRenderData(index, inputs) {
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
@@ -901,24 +862,22 @@
 
 					const cachedLayout = this.layoutCache[index];
 					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
-					if (!hit) this.layoutCache[index] = { content, font, runs: this.getRuns(content, font) };
-					const runs = this.layoutCache[index].runs;
+					if (!hit) this.layoutCache[index] = { content, font, run: font.layout(content) };
+					const run = this.layoutCache[index].run;
 
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-					runs.forEach(({ run }) => {
-						run.glyphs.forEach((glyph, i) => {
-							const position = run.positions[i];
-							const boundingBox = glyph.bbox;
-							if (boundingBox) {
-								const x = currentX + position.xOffset;
-								const y = position.yOffset;
-								minX = Math.min(minX, x + boundingBox.minX);
-								maxX = Math.max(maxX, x + boundingBox.maxX);
-								minY = Math.min(minY, y + boundingBox.minY);
-								maxY = Math.max(maxY, y + boundingBox.maxY);
-							}
-							currentX += (position.xAdvance * advanceScale) + tracking;
-						});
+					run.glyphs.forEach((glyph, i) => {
+						const position = run.positions[i];
+						const boundingBox = glyph.bbox;
+						if (boundingBox) {
+							const x = currentX + position.xOffset;
+							const y = position.yOffset;
+							minX = Math.min(minX, x + boundingBox.minX);
+							maxX = Math.max(maxX, x + boundingBox.maxX);
+							minY = Math.min(minY, y + boundingBox.minY);
+							maxY = Math.max(maxY, y + boundingBox.maxY);
+						}
+						currentX += (position.xAdvance * advanceScale) + tracking;
 					});
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
 					const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
@@ -939,16 +898,14 @@
 					whiteContext.scale(1, -1);
 					whiteContext.fillStyle = '#FFFFFF';
 					let drawX = 0;
-					runs.forEach(({ run }) => {
-						run.glyphs.forEach((glyph, i) => {
-							const position = run.positions[i];
-							whiteContext.save();
-							whiteContext.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
-							whiteContext.beginPath();
-							glyph.render(whiteContext, size);
-							whiteContext.restore();
-							drawX += (position.xAdvance * advanceScale) + tracking;
-						});
+					run.glyphs.forEach((glyph, i) => {
+						const position = run.positions[i];
+						whiteContext.save();
+						whiteContext.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
+						whiteContext.beginPath();
+						glyph.render(whiteContext, size);
+						whiteContext.restore();
+						drawX += (position.xAdvance * advanceScale) + tracking;
 					});
 					whiteContext.restore();
 
