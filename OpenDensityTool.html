@@ -552,17 +552,9 @@
 				</div>
 			</section>
 		</main>
-		<script type="importmap">
-			{
-				"imports": {
-					"fontkit": "https://esm.sh/fontkit-next@1.8.3"
-				}
-			}
-		</script>
+		<script type="module" src="js/fontkit-next.js"></script>
 		<script type="module">
-			import * as fontkitModule from 'fontkit';
-
-			const fontkit = fontkitModule.default || fontkitModule;
+			const fontkit = window.fontkit;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
