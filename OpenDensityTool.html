@@ -687,13 +687,10 @@
 							this.update();
 						};
 
-						elements[`text${number}`].oninput = debouncedUpdate;
-						elements[`color${number}`].oninput = throttledUpdate;
-
-						[['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => {
+						[['text', debouncedUpdate], ['color', throttledUpdate], ['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => {
 							const n = elements[k + number], r = elements[k + 'Range' + number];
-							n.oninput = () => { r.value = n.value; fn(); };
-							r.oninput = () => { n.value = r.value; fn(); };
+							n.oninput = () => { if (r) r.value = n.value; fn(); };
+							if (r) r.oninput = () => { n.value = r.value; fn(); };
 						});
 
 						group.ondragover = event => {
