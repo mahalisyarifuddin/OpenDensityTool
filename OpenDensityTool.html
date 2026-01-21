@@ -567,6 +567,7 @@
 				"Numbers": "0123456789",
 				"Alignment": "Haxodp"
 			};
+			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
 			class DensityTool {
@@ -628,7 +629,7 @@
 					};
 
 					elements.resetConfig.onclick = () => {
-						[1, 2].forEach(n => ['text', 'size', 'spacing', 'shift', 'color'].forEach(k => {
+						[1, 2].forEach(n => INPUT_FIELDS.forEach(k => {
 							const e = elements[k + n], r = elements[k + 'Range' + n];
 							e.value = e.defaultValue;
 							if (r) r.value = e.value;
@@ -667,7 +668,8 @@
 							this.update();
 						};
 
-						[['text', debouncedUpdate], ['color', throttledUpdate], ['size', debouncedUpdate], ['spacing', debouncedUpdate], ['shift', throttledUpdate]].forEach(([k, fn]) => {
+						INPUT_FIELDS.forEach(k => {
+							const fn = /color|shift/.test(k) ? throttledUpdate : debouncedUpdate;
 							const n = elements[k + number], r = elements[k + 'Range' + number];
 							n.oninput = () => { if (r) r.value = n.value; fn(); };
 							if (r) r.oninput = () => { n.value = r.value; fn(); };
