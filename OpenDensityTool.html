@@ -560,13 +560,6 @@
 			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
 			const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
-			const TEXT_SAMPLES = {
-				"Pangram (En)": "The quick brown fox jumps over the lazy dog",
-				"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
-				"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
-				"Numbers": "0123456789",
-				"Alignment": "Haxodp"
-			};
 			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
@@ -591,7 +584,13 @@
 				setup() {
 					const debouncedUpdate = debounce(() => this.update(), 300);
 					const throttledUpdate = raf(() => this.update());
-					const sampleOptions = Object.entries(TEXT_SAMPLES).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
+					const sampleOptions = Object.entries({
+						"Pangram (En)": "The quick brown fox jumps over the lazy dog",
+						"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
+						"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+						"Numbers": "0123456789",
+						"Alignment": "Haxodp"
+					}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 
 					elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
 					['render', 'density', 'guides'].forEach(id => {
@@ -914,30 +913,22 @@
 					const { data } = context.getImageData(0, 0, width, height);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1;
-					let maxDensity = 0;
+					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
 
 					for (let y = scanYStart; y < scanYEnd; y++) {
-						const rowStart = y * width;
-						const rowEnd = rowStart + width;
-						let index = rowStart;
+						let index = y * width, endIndex = index + width;
+						const rowStart = index;
 
-						while (index < rowEnd && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) {
-							index++;
-						}
-						if (index === rowEnd) continue;
+						while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
+						if (index === endIndex) continue;
+
 						const firstX = index - rowStart;
-
-						let endIndex = rowEnd - 1;
-						while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) {
-							endIndex--;
-						}
+						endIndex--;
+						while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
 						const lastX = endIndex - rowStart;
 
 						let rowInk = 0;
-						for (; index <= endIndex; index++) {
-							rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-						}
+						for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
 
 						densityByRow[y] = rowInk;
 						if (rowInk > maxDensity) maxDensity = rowInk;
