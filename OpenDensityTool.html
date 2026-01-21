@@ -1209,10 +1209,12 @@
 					container.style.width = container.style.height = container.style.overflow = '';
 					if (elements.zoom.value !== 'fit' || !canvas.width) return;
 					const style = getComputedStyle(container);
-					const scale = Math.min((preview.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / canvas.width, 1);
+					const px = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+					const py = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+					const scale = Math.min((preview.clientWidth - px) / canvas.width, 1);
 					canvas.style.transform = `scale(${scale})`;
-					container.style.width = `${canvas.width * scale + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)}px`;
-					container.style.height = `${canvas.height * scale + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)}px`;
+					container.style.width = `${canvas.width * scale + px}px`;
+					container.style.height = `${canvas.height * scale + py}px`;
 					container.style.overflow = 'hidden';
 				}
 
