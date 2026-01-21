@@ -873,6 +873,20 @@
 					return name.includes("Latin") ? 'Latin' : COMMON_SCRIPT_NAMES.has(name) ? 'Common' : name;
 				}
 
+				getRuns(content, font) {
+					const segments = [];
+					let current = { text: '', script: null };
+					for (const char of content) {
+						const script = this.getScript(char);
+						if (!current.script) { current = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
+						if (script === 'Common' || script === current.script) { current.text += char; continue; }
+						segments.push(current);
+						current = { text: char, script };
+					}
+					current.text && segments.push(current);
+					return segments.map(s => ({ run: font.layout(s.text), text: s.text }));
+				}
+
 				generateRenderData(index, inputs) {
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
@@ -887,21 +901,8 @@
 
 					const cachedLayout = this.layoutCache[index];
 					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
-					const runs = hit ? cachedLayout.runs : (() => {
-						const segments = [];
-						let currentSegment = { text: '', script: null };
-						for (const char of content) {
-							const script = this.getScript(char);
-							if (!currentSegment.script) { currentSegment = { text: char, script: script === 'Common' ? 'Other' : script }; continue; }
-							if (script === 'Common' || script === currentSegment.script) { currentSegment.text += char; continue; }
-							segments.push(currentSegment);
-							currentSegment = { text: char, script };
-						}
-						currentSegment.text && segments.push(currentSegment);
-						const result = segments.map(segment => ({ run: font.layout(segment.text), text: segment.text }));
-						this.layoutCache[index] = { content, font, runs: result };
-						return result;
-					})();
+					if (!hit) this.layoutCache[index] = { content, font, runs: this.getRuns(content, font) };
+					const runs = this.layoutCache[index].runs;
 
 					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 					runs.forEach(({ run }) => {
