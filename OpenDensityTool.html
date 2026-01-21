@@ -572,22 +572,17 @@
 
 			class DensityTool {
 				constructor() {
-					this.fonts = [];
-					this.loadErrors = [];
-					this.visibility = [true, true];
-					this.solo = [false, false];
-					this.loading = [false, false];
-					this.loadSequence = [0, 0];
-					this.renderingCache = [];
-					this.layoutCache = [null, null];
-					this.offscreenCanvases = [document.createElement('canvas'), document.createElement('canvas')];
-					this.whiteCanvases = [document.createElement('canvas'), document.createElement('canvas')];
-					this.compositeCanvas = document.createElement('canvas');
-					this.graphWidth = 150;
-					this.graphPadding = 20;
-					this.context = elements.canvas.getContext('2d');
-					this.surfaceColor = '#ffffff';
-					this.analyses = [];
+					const mkCanvas = () => document.createElement('canvas');
+					Object.assign(this, {
+						fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
+						loading: [false, false], loadSequence: [0, 0], renderingCache: [],
+						layoutCache: [null, null], analyses: [],
+						offscreenCanvases: [mkCanvas(), mkCanvas()],
+						whiteCanvases: [mkCanvas(), mkCanvas()],
+						compositeCanvas: mkCanvas(),
+						graphWidth: 150, graphPadding: 20,
+						context: elements.canvas.getContext('2d'), surfaceColor: '#ffffff'
+					});
 					this.setup();
 					this.theme('auto');
 					this.update();
