@@ -554,8 +554,10 @@
 		</main>
 		<script type="module">
 			import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
-
-			const fontkit = fontkitModule.default || fontkitModule;
+			window.fontkit = fontkitModule.default || fontkitModule;
+		</script>
+		<script type="module">
+			const fontkit = window.fontkit;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
