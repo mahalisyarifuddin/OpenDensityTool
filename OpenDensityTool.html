@@ -558,6 +558,8 @@
 
 			const fontkit = fontkitModule.default || fontkitModule;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
+			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
+			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
 			const TEXT_SAMPLES = {
@@ -593,25 +595,11 @@
 				}
 
 				setup() {
-					let debounceTimer;
-					const debouncedUpdate = () => {
-						clearTimeout(debounceTimer);
-						debounceTimer = setTimeout(() => this.update(), 300);
-					};
-					const throttledUpdate = () => {
-						if (this.rafId) return;
-						this.rafId = requestAnimationFrame(() => {
-							this.update();
-							this.rafId = null;
-						});
-					};
-
+					const debouncedUpdate = debounce(() => this.update(), 300);
+					const throttledUpdate = raf(() => this.update());
 					const sampleOptions = Object.entries(TEXT_SAMPLES).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 
-					elements.zoom.onchange = window.onresize = () => {
-						if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
-						this.resizeRaf = requestAnimationFrame(() => { this.updateScale(); this.resizeRaf = null; });
-					};
+					elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
 					['render', 'density', 'guides'].forEach(id => {
 						elements[id].onchange = () => this.update();
 					});
@@ -725,17 +713,15 @@
 						};
 					});
 
-					elements.canvas.onmousemove = e => {
+					elements.canvas.onmousemove = raf(e => {
 						const { clientX, clientY } = e;
-						if (this.tooltipRaf) cancelAnimationFrame(this.tooltipRaf);
-						this.tooltipRaf = requestAnimationFrame(() => {
-							if (!this.lastDimensions) return;
-							const rect = elements.canvas.getBoundingClientRect();
-							const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
-							const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
-							if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
+						if (!this.lastDimensions) return;
+						const rect = elements.canvas.getBoundingClientRect();
+						const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
+						const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
+						if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
 
-							const content = this.analyses.map((a, i) => {
+						const content = this.analyses.map((a, i) => {
 								if (!a || a.error || !this.isFontVisible(i)) return null;
 								const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
 								const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
@@ -759,9 +745,7 @@
 
 							elements.tooltip.style.left = `${Math.max(0, left)}px`;
 							elements.tooltip.style.top = `${Math.max(0, top)}px`;
-							this.tooltipRaf = null;
-						});
-					};
+					});
 					elements.canvas.onmouseleave = () => elements.tooltip.hidden = true;
 				}
 
