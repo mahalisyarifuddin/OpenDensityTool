@@ -922,13 +922,12 @@
 					});
 					if (minX === Infinity) minX = maxX = minY = maxY = 0;
 					const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
-					const safetyPadding = 0;
 					const minXPixel = Math.min(0, minX * scale);
 					const maxXPixel = Math.max(metrics.advanceWidth, maxX * scale);
-					const drawOffsetX = -minXPixel + safetyPadding;
-					const width = Math.ceil(maxXPixel - minXPixel) + (safetyPadding * 2);
-					const baseline = Math.ceil(metrics.ascent) + safetyPadding;
-					const height = Math.ceil(baseline + metrics.descent + safetyPadding);
+					const drawOffsetX = -minXPixel;
+					const width = Math.ceil(maxXPixel - minXPixel);
+					const baseline = Math.ceil(metrics.ascent);
+					const height = Math.ceil(baseline + metrics.descent);
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 					const whiteCanvas = this.whiteCanvases[index];
 					whiteCanvas.width = Math.max(whiteCanvas.width, width);
