@@ -851,9 +851,7 @@
 					const scale = size / font.unitsPerEm;
 					const unit = elements.spacingUnit.value;
 
-					const tracking = unit === 'percent' ? 0 :
-									 unit === 'em' ? (letterSpacing / 1000) * font.unitsPerEm :
-									 (letterSpacing ? (letterSpacing / size) * font.unitsPerEm : 0);
+					const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
 
 					const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
 
