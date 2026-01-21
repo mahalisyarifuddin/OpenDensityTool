@@ -1004,14 +1004,15 @@
 					const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
 					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 					this.lastDimensions = dimensions;
-					this.context.canvas.width = dimensions.width;
-					this.context.canvas.height = dimensions.height;
+					const { width, height } = dimensions;
+					this.context.canvas.width = width;
+					this.context.canvas.height = height;
 
 					const themeColor = this.parseColor(this.themeSurfaceColor);
 					const canvasColor = this.parseColor(this.canvasBackgroundColor);
 
 					this.context.fillStyle = this.canvasBackgroundColor;
-					this.context.fillRect(0, 0, dimensions.width, dimensions.height);
+					this.context.fillRect(0, 0, width, height);
 
 					// Determine theme brightness using effective color
 					const alpha = canvasColor.a;
@@ -1022,21 +1023,26 @@
 					const isDark = (effectiveR * 0.299 + effectiveG * 0.587 + effectiveB * 0.114) < 128;
 
 					const compositeCanvas = this.compositeCanvas;
-					compositeCanvas.width = dimensions.width;
-					compositeCanvas.height = dimensions.height;
+					compositeCanvas.width = width;
+					compositeCanvas.height = height;
 					const compositeCtx = compositeCanvas.getContext('2d');
+
+					const fill = (ctx, style = '#000000') => {
+						ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = style;
+						ctx.fillRect(0, 0, width, height);
+					};
 
 					let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
 					if (isDark) {
 						[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
 							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
 								const c = this[k] || (this[k] = document.createElement('canvas'));
-								if (c.width !== dimensions.width || c.height !== dimensions.height) { c.width = dimensions.width; c.height = dimensions.height; }
+								if (c.width !== width || c.height !== height) { c.width = width; c.height = height; }
 								return c.getContext('2d');
 							});
 
-						[maskCtx, invInkCtx].forEach(ctx => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
-						lightCtx.clearRect(0, 0, dimensions.width, dimensions.height);
+						[maskCtx, invInkCtx].forEach(ctx => fill(ctx));
+						lightCtx.clearRect(0, 0, width, height);
 					}
 
 					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
@@ -1082,16 +1088,16 @@
 					});
 
 					if (isDark) {
-						diffCtx.globalCompositeOperation = 'source-over'; diffCtx.fillStyle = '#000000'; diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						fill(diffCtx);
 						diffCtx.drawImage(this.maskCanvas, 0, 0); diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.invInkCanvas, 0, 0);
 
-						emissiveCtx.globalCompositeOperation = 'source-over'; emissiveCtx.fillStyle = '#000000'; emissiveCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						fill(emissiveCtx);
 						emissiveCtx.globalCompositeOperation = 'lighter'; emissiveCtx.drawImage(this.diffCanvas, 0, 0);
 
-						diffCtx.globalCompositeOperation = 'source-over'; diffCtx.fillStyle = '#ffffff'; diffCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						fill(diffCtx, '#ffffff');
 						diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.maskCanvas, 0, 0);
 
-						invMaskCtx.globalCompositeOperation = 'source-over'; invMaskCtx.fillStyle = '#000000'; invMaskCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+						fill(invMaskCtx);
 						invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(this.diffCanvas, 0, 0);
 
 						this.context.save(); this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0); this.context.restore();
