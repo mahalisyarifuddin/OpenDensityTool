@@ -557,7 +557,6 @@
 			import { Buffer } from 'https://esm.sh/buffer@6.0.3';
 
 			const fontkit = fontkitModule.default || fontkitModule;
-			window.Buffer = Buffer;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const isLittleEndianArchitecture = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 			const ALPHA_SHIFT = isLittleEndianArchitecture ? 31 : 7;
@@ -812,7 +811,7 @@
 						if (file.size > 30 * 1024 * 1024) throw new Error('File too large (max 30MB)');
 						const buffer = await file.arrayBuffer();
 						if (currentSequence === this.loadSequence[index]) {
-							const font = fontkit.create(window.Buffer.from(buffer));
+							const font = fontkit.create(Buffer.from(buffer));
 							if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}
