@@ -553,7 +553,8 @@
 			</section>
 		</main>
 		<script type="module">
-			import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+			import * as fontkitModule from 'https://esm.sh/fontkit-next@1.8.3';
+			import { Buffer } from 'https://esm.sh/buffer';
 
 			const fontkit = fontkitModule.default || fontkitModule;
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
@@ -790,7 +791,7 @@
 						if (file.size > 30 * 1024 * 1024) throw new Error('File too large (max 30MB)');
 						const buffer = await file.arrayBuffer();
 						if (currentSequence === this.loadSequence[index]) {
-							const font = fontkit.create(new Uint8Array(buffer));
+							const font = fontkit.create(Buffer.from(buffer));
 							if (!font.unitsPerEm) throw new Error('Invalid font');
 							this.fonts[index] = font;
 						}

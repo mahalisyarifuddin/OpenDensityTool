@@ -6,22 +6,33 @@ import os
 def run(playwright):
     browser = playwright.chromium.launch(headless=True)
     page = browser.new_page()
+
+    # Capture console logs
+    page.on("console", lambda msg: print(f"Console: {msg.text}"))
+    page.on("pageerror", lambda err: print(f"PageError: {err}"))
+
     page.goto("http://localhost:8001/OpenDensityTool.html")
 
     # Check if page loaded
     print(page.title())
 
     # Upload font
-    # input[type=file] id="file1"
-    # We need to make sure the file path is absolute
     cwd = os.getcwd()
     font_path = os.path.join(cwd, "roboto-regular-webfont.woff")
 
+    if not os.path.exists(font_path):
+        print(f"Font file not found at {font_path}")
+        return
+
     page.set_input_files("#file1", font_path)
 
-    # Wait for processing. The UI shows a spinner or updates result1.
-    # When loaded, #result1 contains "Density" text.
-    page.wait_for_selector("#result1 .statisticGrid", timeout=5000)
+    # Wait for processing.
+    try:
+        page.wait_for_selector("#result1 .statisticGrid", timeout=5000)
+    except Exception as e:
+        print(f"Error waiting for selector: {e}")
+        # Take a screenshot to see what's happening
+        page.screenshot(path="verification/error_screenshot.png")
 
     # Take screenshot of light mode
     page.screenshot(path="verification/screenshot_light.png")
