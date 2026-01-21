@@ -955,13 +955,9 @@
 					const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
 					const defaultVal = unit === 'percent' ? 100 : 0;
 					[1, 2].forEach(n => {
-						const input = elements[`spacing${n}`];
-						const range = elements[`spacingRange${n}`];
-						const prevLabel = input.parentElement.firstChild;
-						prevLabel.textContent = label;
-						range.setAttribute('aria-label', label);
-						input.value = defaultVal;
-						range.value = defaultVal;
+						elements[`spacingRange${n}`].setAttribute('aria-label', label);
+						elements[`spacing${n}`].parentElement.firstChild.textContent = label;
+						elements[`spacing${n}`].value = elements[`spacingRange${n}`].value = defaultVal;
 					});
 				}
 
