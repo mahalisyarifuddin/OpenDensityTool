@@ -1131,23 +1131,17 @@
 						};
 
 						if (isDark) {
-							const prepareTint = (fillStyle, sourceCanvas) => {
-								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
-								tempCtx.globalCompositeOperation = 'source-over';
-								tempCtx.drawImage(sourceCanvas || analysis.canvas, 0, 0);
-								tempCtx.globalCompositeOperation = 'source-in';
-								tempCtx.fillStyle = fillStyle;
-								tempCtx.fillRect(0, 0, analysis.width, analysis.height);
-								return this.tempCanvas;
-							};
-
 							if (inkAlpha > 0) {
-								const whiteImg = analysis.whiteCanvas || prepareTint('#ffffff');
-								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', whiteImg);
+								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
 
 								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-								const invImg = prepareTint(invColor, analysis.whiteCanvas);
-								compose(invInkCtx, 'screen', inkAlpha, invColor, invImg);
+								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
+								tempCtx.globalCompositeOperation = 'source-over';
+								tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
+								tempCtx.globalCompositeOperation = 'source-in';
+								tempCtx.fillStyle = invColor;
+								tempCtx.fillRect(0, 0, analysis.width, analysis.height);
+								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
 							}
 
 							const lightAlpha = Math.min(r, g, b) / 255;
