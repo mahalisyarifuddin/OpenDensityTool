@@ -869,7 +869,7 @@
 					}
 					if (!this.lastBlock) return 'Other';
 					const name = this.lastBlock[2];
-					if (name === "Basic Latin") return (code <= 0x40 || (code >= 0x5B && code <= 0x60) || code >= 0x7B) ? 'Common' : 'Latin';
+					if (name === "Basic Latin") return /[a-zA-Z]/.test(char) ? 'Latin' : 'Common';
 					return name.includes("Latin") ? 'Latin' : COMMON_SCRIPT_NAMES.has(name) ? 'Common' : name;
 				}
 
