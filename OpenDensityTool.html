@@ -1094,14 +1094,6 @@
 
 					const isDark = (effectiveR * 0.299 + effectiveG * 0.587 + effectiveB * 0.114) < 128;
 
-					const drawLayer = (ctx, analysis, image, x, y) => {
-						ctx.save();
-						ctx.translate(0, y);
-						ctx.fill(analysis.graphPath);
-						ctx.restore();
-						ctx.drawImage(image, 0, 0, analysis.width, analysis.height, x - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
-					};
-
 					const compositeCanvas = this.compositeCanvas;
 					compositeCanvas.width = dimensions.width;
 					compositeCanvas.height = dimensions.height;
@@ -1130,7 +1122,12 @@
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						const compose = (ctx, op, alpha, style, img) => {
 							ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
-							drawLayer(ctx, analysis, img, drawX, y); ctx.restore();
+							ctx.save();
+							ctx.translate(0, y);
+							ctx.fill(analysis.graphPath);
+							ctx.restore();
+							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+							ctx.restore();
 						};
 
 						if (isDark) {
