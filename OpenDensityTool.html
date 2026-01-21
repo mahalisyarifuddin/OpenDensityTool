@@ -831,19 +831,16 @@
 					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
 					if (!inputs.font || !inputs.fontSize) return null;
 					const cached = this.renderingCache[index];
-					if (cached) {
-						const keys = Object.keys(inputs);
-						if (keys.every(key => cached.inputs[key] === inputs[key])) return cached.data;
-						if (keys.every(key => key === 'color' || cached.inputs[key] === inputs[key]) && cached.data) {
+					if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
+						if (cached.inputs.color !== inputs.color) {
 							const context = cached.data.canvas.getContext('2d');
-							context.save();
 							context.globalCompositeOperation = 'source-in';
 							context.fillStyle = inputs.color;
 							context.fillRect(0, 0, cached.data.width, cached.data.height);
-							context.restore();
+							context.globalCompositeOperation = 'source-over';
 							cached.inputs.color = inputs.color;
-							return cached.data;
 						}
+						return cached.data;
 					}
 					return this.generateRenderData(index, inputs);
 				}
