@@ -1079,9 +1079,10 @@
 						fill(invMaskCtx);
 						invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(this.diffCanvas, 0, 0);
 
-						this.context.save(); this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0); this.context.restore();
-						this.context.save(); this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0); this.context.restore();
-						this.context.save(); this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0); this.context.restore();
+						this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0);
+						this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0);
+						this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0);
+						this.context.globalCompositeOperation = 'source-over';
 					}
 					if (!isDark) {
 						this.context.drawImage(compositeCanvas, 0, 0);
