@@ -559,6 +559,7 @@
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
+			const paint = (ctx, color, w, h) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; };
 			const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
 			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
@@ -813,11 +814,7 @@
 					const cached = this.renderingCache[index];
 					if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
 						if (cached.inputs.color !== inputs.color) {
-							const context = cached.data.canvas.getContext('2d');
-							context.globalCompositeOperation = 'source-in';
-							context.fillStyle = inputs.color;
-							context.fillRect(0, 0, cached.data.width, cached.data.height);
-							context.globalCompositeOperation = 'source-over';
+							paint(cached.data.canvas.getContext('2d'), inputs.color, cached.data.width, cached.data.height);
 							cached.inputs.color = inputs.color;
 						}
 						return cached.data;
@@ -888,10 +885,7 @@
 					const context = canvas.getContext('2d', { willReadFrequently: true });
 					context.clearRect(0, 0, width, height);
 					context.drawImage(whiteCanvas, 0, 0);
-					context.globalCompositeOperation = 'source-in';
-					context.fillStyle = color;
-					context.fillRect(0, 0, width, height);
-					context.globalCompositeOperation = 'source-over';
+					paint(context, color, width, height);
 
 					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
 					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
@@ -1056,9 +1050,7 @@
 								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
 								tempCtx.globalCompositeOperation = 'source-over';
 								tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
-								tempCtx.globalCompositeOperation = 'source-in';
-								tempCtx.fillStyle = invColor;
-								tempCtx.fillRect(0, 0, analysis.width, analysis.height);
+								paint(tempCtx, invColor, analysis.width, analysis.height);
 								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
 							}
 
