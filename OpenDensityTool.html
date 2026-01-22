@@ -1035,11 +1035,9 @@
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						const compose = (ctx, op, alpha, style, img) => {
 							ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
-							ctx.save();
 							ctx.translate(0, y);
 							ctx.fill(analysis.graphPath);
-							ctx.restore();
-							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), y, analysis.width, analysis.height);
+							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
 							ctx.restore();
 						};
 
