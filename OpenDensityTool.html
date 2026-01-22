@@ -822,6 +822,12 @@
 					return this.generateRenderData(index, inputs);
 				}
 
+				prepareCanvas(c, w, h) {
+					c.width = Math.max(c.width, w);
+					c.height = Math.max(c.height, h);
+					return c.getContext('2d', { willReadFrequently: true });
+				}
+
 				generateRenderData(index, inputs) {
 					const { font, content, fontSize, letterSpacing, color } = inputs;
 					const size = Math.min(Math.max(fontSize, 1), 2000);
@@ -858,11 +864,9 @@
 					const baseline = Math.ceil(metrics.ascent);
 					const height = Math.ceil(baseline + metrics.descent);
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+
 					const whiteCanvas = this.whiteCanvases[index];
-					whiteCanvas.width = Math.max(whiteCanvas.width, width);
-					whiteCanvas.height = Math.max(whiteCanvas.height, height);
-					const whiteContext = whiteCanvas.getContext('2d', { willReadFrequently: true });
-					whiteContext.clearRect(0, 0, width, height);
+					const whiteContext = this.prepareCanvas(whiteCanvas, width, height);
 					whiteContext.save();
 					whiteContext.translate(drawOffsetX, baseline);
 					whiteContext.scale(1, -1);
@@ -880,10 +884,7 @@
 					whiteContext.restore();
 
 					const canvas = this.offscreenCanvases[index];
-					canvas.width = Math.max(canvas.width, width);
-					canvas.height = Math.max(canvas.height, height);
-					const context = canvas.getContext('2d', { willReadFrequently: true });
-					context.clearRect(0, 0, width, height);
+					const context = this.prepareCanvas(canvas, width, height);
 					context.drawImage(whiteCanvas, 0, 0);
 					paint(context, color, width, height);
 
