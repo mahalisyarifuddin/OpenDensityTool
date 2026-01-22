@@ -645,16 +645,14 @@
 
 					[1, 2].forEach((number, index) => {
 						const select = elements[`samples${number}`];
-						if (select) {
-							select.innerHTML += sampleOptions;
-							select.onchange = () => {
-								if (select.value) {
-									elements[`text${number}`].value = select.value;
-									select.value = "";
-									debouncedUpdate();
-								}
-							};
-						}
+						select.innerHTML += sampleOptions;
+						select.onchange = () => {
+							if (select.value) {
+								elements[`text${number}`].value = select.value;
+								select.value = "";
+								debouncedUpdate();
+							}
+						};
 
 						const fileInput = elements[`file${number}`];
 						const group = fileInput.closest('.group');
@@ -675,37 +673,20 @@
 							if (r) r.oninput = () => { n.value = r.value; fn(); };
 						});
 
-						group.ondragover = event => {
-							event.preventDefault();
-							group.classList.add('dragActive');
+						group.ondragover = e => { e.preventDefault(); group.classList.add('dragActive'); };
+						group.ondragleave = e => { if (!e.relatedTarget || !group.contains(e.relatedTarget)) group.classList.remove('dragActive'); };
+						group.ondrop = e => {
+							e.preventDefault(); group.classList.remove('dragActive');
+							if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; this.loadFont(e.dataTransfer.files[0], index); }
 						};
 
-						group.ondragleave = event => {
-							if (!event.relatedTarget || !group.contains(event.relatedTarget)) {
-								group.classList.remove('dragActive');
-							}
-						};
-
-						group.ondrop = event => {
-							event.preventDefault();
-							group.classList.remove('dragActive');
-							const droppedFile = event.dataTransfer.files[0];
-							if (droppedFile) {
-								fileInput.files = event.dataTransfer.files;
-								this.loadFont(droppedFile, index);
-							}
-						};
-
-						elements[`mute${number}`].onclick = () => {
-							this.visibility[index] = !this.visibility[index];
-							elements[`mute${number}`].setAttribute('aria-pressed', !this.visibility[index]);
+						const toggle = (k, p, inv) => elements[k + number].onclick = () => {
+							const v = this[p][index] = !this[p][index];
+							elements[k + number].setAttribute('aria-pressed', inv ? !v : v);
 							this.draw();
 						};
-						elements[`solo${number}`].onclick = () => {
-							this.solo[index] = !this.solo[index];
-							elements[`solo${number}`].setAttribute('aria-pressed', this.solo[index]);
-							this.draw();
-						};
+						toggle('mute', 'visibility', true);
+						toggle('solo', 'solo');
 					});
 
 					elements.canvas.onmousemove = raf(e => {
@@ -787,23 +768,22 @@
 				}
 
 				async loadFont(file, index) {
-					const currentSequence = ++this.loadSequence[index];
+					const seq = ++this.loadSequence[index];
 					this.loadErrors[index] = this.fonts[index] = null;
 					this.loading[index] = true;
 					this.update();
 					try {
 						if (!file) return;
-						if (file.size > 30 * 1024 * 1024) throw new Error('File too large (max 30MB)');
+						if (file.size > 3e7) throw new Error('File too large (max 30MB)');
 						const buffer = await file.arrayBuffer();
-						if (currentSequence === this.loadSequence[index]) {
-							const font = fontkit.create(new Uint8Array(buffer));
-							if (!font.unitsPerEm) throw new Error('Invalid font');
-							this.fonts[index] = font;
-						}
-					} catch (error) {
-						currentSequence === this.loadSequence[index] && (this.loadErrors[index] = error.message);
+						if (seq !== this.loadSequence[index]) return;
+						const font = fontkit.create(new Uint8Array(buffer));
+						if (!font.unitsPerEm) throw new Error('Invalid font');
+						this.fonts[index] = font;
+					} catch (e) {
+						if (seq === this.loadSequence[index]) this.loadErrors[index] = e.message;
 					} finally {
-						currentSequence === this.loadSequence[index] && (this.loading[index] = false, this.update());
+						if (seq === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
 					}
 				}
 
