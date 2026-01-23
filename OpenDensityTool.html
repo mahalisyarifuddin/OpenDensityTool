@@ -966,15 +966,16 @@
 				}
 
 				analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height) {
-					if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-					const { data } = context.getImageData(0, 0, width, height);
+					const sliceHeight = scanYEnd - scanYStart;
+					if (width === 0 || height === 0 || sliceHeight <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
+					const { data } = context.getImageData(0, scanYStart, width, sliceHeight);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
 					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
 					const isInk = i => (pixelDataInt32[i] >>> ALPHA_SHIFT) & 1;
 
 					for (let y = scanYStart; y < scanYEnd; y++) {
-						let index = y * width, endIndex = index + width;
+						let index = (y - scanYStart) * width, endIndex = index + width;
 						const rowStart = index;
 
 						while (index < endIndex && !isInk(index)) index++;
