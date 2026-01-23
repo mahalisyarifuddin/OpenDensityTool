@@ -621,578 +621,567 @@
 			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
-			class DensityTool {
-				constructor() {
-					const mkCanvas = () => document.createElement('canvas');
-					Object.assign(this, {
-						fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
-						loading: [false, false], loadSequence: [0, 0], renderingCache: [],
-						layoutCache: [null, null], analyses: [],
-						offscreenCanvases: [mkCanvas(), mkCanvas()],
-						whiteCanvases: [mkCanvas(), mkCanvas()],
-						compositeCanvas: mkCanvas(),
-						graphWidth: 150, graphPadding: 20,
-						context: elements.canvas.getContext('2d')
+			const mkCanvas = () => document.createElement('canvas');
+			const fonts = [], loadErrors = [], visibility = [true, true], solo = [false, false];
+			const loading = [false, false], loadSequence = [0, 0], renderingCache = [], layoutCache = [null, null];
+			let analyses = [];
+			const offscreenCanvases = [mkCanvas(), mkCanvas()], whiteCanvases = [mkCanvas(), mkCanvas()], compositeCanvas = mkCanvas();
+			const darkCanvases = {}, graphWidth = 150, graphPadding = 20, context = elements.canvas.getContext('2d');
+			let isDark = false, canvasBackgroundColor, lastDimensions;
+
+			function setup() {
+				const debouncedUpdate = debounce(() => update(), 300);
+				const throttledUpdate = raf(() => update());
+				const sampleOptions = Object.entries({
+					"Pangram (En)": "The quick brown fox jumps over the lazy dog",
+					"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
+					"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+					"Numbers": "0123456789",
+					"Alignment": "Haxodp"
+				}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
+
+				elements.zoom.onchange = window.onresize = raf(() => updateScale());
+				['render', 'density', 'guides'].forEach(id => {
+					elements[id].onchange = () => update();
+				});
+
+				elements.export.onclick = () => handleButtonState(elements.export, async () => {
+					await new Promise(r => setTimeout(r, 50));
+					const link = document.createElement('a');
+					link.href = elements.canvas.toDataURL();
+					const names = fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
+					const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+					link.download = `density_${namePart}.png`;
+					link.click();
+				}, 'Saved!', 'Exporting...');
+
+				elements.copyImage.onclick = () => handleButtonState(elements.copyImage, async () => {
+					const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
+					if (!blob) throw new Error('Blob creation failed');
+					await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+				}, 'Copied!', 'Copying...');
+
+				elements.theme.onchange = event => theme(event.target.value);
+
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+					updateThemeColor();
+					elements.theme.value === 'auto' && draw();
+				});
+
+				elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
+				elements.closeSettings.onclick = () => elements.preferencesDialog.close();
+				elements.spacingUnit.onchange = () => {
+					updateSpacingLabels();
+					update();
+				};
+
+				elements.resetConfig.onclick = () => {
+					[1, 2].forEach(n => INPUT_FIELDS.forEach(k => {
+						const e = elements[k + n], r = elements[k + 'Range' + n];
+						e.value = e.defaultValue;
+						if (r) r.value = e.value;
+					}));
+					update();
+				};
+
+				document.querySelectorAll('.copyButton').forEach(button => {
+					button.onclick = () => handleButtonState(button, () => {
+						return navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText);
 					});
-					this.setup();
-					this.theme('auto');
-					this.update();
-				}
+				});
 
-				setup() {
-					const debouncedUpdate = debounce(() => this.update(), 300);
-					const throttledUpdate = raf(() => this.update());
-					const sampleOptions = Object.entries({
-						"Pangram (En)": "The quick brown fox jumps over the lazy dog",
-						"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
-						"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
-						"Numbers": "0123456789",
-						"Alignment": "Haxodp"
-					}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
-
-					elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
-					['render', 'density', 'guides'].forEach(id => {
-						elements[id].onchange = () => this.update();
-					});
-
-					elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
-						await new Promise(r => setTimeout(r, 50));
-						const link = document.createElement('a');
-						link.href = elements.canvas.toDataURL();
-						const names = this.fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
-						const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-						link.download = `density_${namePart}.png`;
-						link.click();
-					}, 'Saved!', 'Exporting...');
-
-					elements.copyImage.onclick = () => this.handleButtonState(elements.copyImage, async () => {
-						const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
-						if (!blob) throw new Error('Blob creation failed');
-						await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-					}, 'Copied!', 'Copying...');
-
-					elements.theme.onchange = event => this.theme(event.target.value);
-
-					window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-						this.updateThemeColor();
-						elements.theme.value === 'auto' && this.draw();
-					});
-
-					elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
-					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
-					elements.spacingUnit.onchange = () => {
-						this.updateSpacingLabels();
-						this.update();
+				[1, 2].forEach((number, index) => {
+					const select = elements[`samples${number}`];
+					select.innerHTML += sampleOptions;
+					select.onchange = () => {
+						if (select.value) {
+							elements[`text${number}`].value = select.value;
+							select.value = "";
+							debouncedUpdate();
+						}
 					};
 
-					elements.resetConfig.onclick = () => {
-						[1, 2].forEach(n => INPUT_FIELDS.forEach(k => {
-							const e = elements[k + n], r = elements[k + 'Range' + n];
-							e.value = e.defaultValue;
-							if (r) r.value = e.value;
-						}));
-						this.update();
+					const fileInput = elements[`file${number}`];
+					const group = fileInput.closest('.group');
+
+					const updateFileName = (file) => {
+						const nameDisplay = elements[`fileName${number}`];
+						nameDisplay.textContent = file ? file.name : '';
+						nameDisplay.title = file ? file.name : '';
 					};
 
-					document.querySelectorAll('.copyButton').forEach(button => {
-						button.onclick = () => this.handleButtonState(button, () => {
-							return navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText);
-						});
-					});
+					elements[`uploadBtn${number}`].onclick = () => fileInput.click();
 
-					[1, 2].forEach((number, index) => {
-						const select = elements[`samples${number}`];
-						select.innerHTML += sampleOptions;
-						select.onchange = () => {
-							if (select.value) {
-								elements[`text${number}`].value = select.value;
-								select.value = "";
-								debouncedUpdate();
-							}
-						};
-
-						const fileInput = elements[`file${number}`];
-						const group = fileInput.closest('.group');
-
-						const updateFileName = (file) => {
-							const nameDisplay = elements[`fileName${number}`];
-							nameDisplay.textContent = file ? file.name : '';
-							nameDisplay.title = file ? file.name : '';
-						};
-
-						elements[`uploadBtn${number}`].onclick = () => fileInput.click();
-
-						fileInput.onchange = event => {
-							const file = event.target.files[0];
-							updateFileName(file);
-							this.loadFont(file, index);
-						};
-
-						elements[`clear${number}`].onclick = () => {
-							this.fonts[index] = null;
-							this.loadErrors[index] = null;
-							fileInput.value = '';
-							updateFileName(null);
-							this.update();
-						};
-
-						INPUT_FIELDS.forEach(k => {
-							const fn = /color|shift/.test(k) ? throttledUpdate : debouncedUpdate;
-							const n = elements[k + number], r = elements[k + 'Range' + number];
-							n.oninput = () => { if (r) r.value = n.value; fn(); };
-							if (r) r.oninput = () => { n.value = r.value; fn(); };
-						});
-
-						group.ondragover = e => { e.preventDefault(); group.classList.add('dragActive'); };
-						group.ondragleave = e => { if (!e.relatedTarget || !group.contains(e.relatedTarget)) group.classList.remove('dragActive'); };
-						group.ondrop = e => {
-							e.preventDefault(); group.classList.remove('dragActive');
-							if (e.dataTransfer.files[0]) {
-								fileInput.files = e.dataTransfer.files;
-								updateFileName(e.dataTransfer.files[0]);
-								this.loadFont(e.dataTransfer.files[0], index);
-							}
-						};
-
-						const toggle = (k, p, inv) => elements[k + number].onclick = () => {
-							const v = this[p][index] = !this[p][index];
-							elements[k + number].setAttribute('aria-pressed', inv ? !v : v);
-							this.draw();
-						};
-						toggle('mute', 'visibility', true);
-						toggle('solo', 'solo');
-					});
-
-					elements.canvas.onmousemove = raf(e => {
-						const { clientX, clientY } = e;
-						if (!this.lastDimensions) return;
-						const rect = elements.canvas.getBoundingClientRect();
-						const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
-						const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
-						if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
-
-						const content = this.analyses.map((a, i) => {
-								if (!a || a.error || !this.isFontVisible(i)) return null;
-								const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
-								const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
-								const name = this.fonts[i]?.fullName || `Font ${i + 1}`;
-								const percentage = Math.round((val / a.maxDensity) * 100);
-								return val ? `${name}: ${val}px (${percentage}%)` : null;
-							}).filter(Boolean).join('\n');
-
-							if (!content) return elements.tooltip.hidden = true;
-
-							elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
-							elements.tooltip.hidden = false;
-
-							const tooltipRect = elements.tooltip.getBoundingClientRect();
-							const offset = 15;
-							let left = clientX + offset;
-							let top = clientY + offset;
-
-							if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
-							if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
-
-							elements.tooltip.style.left = `${Math.max(0, left)}px`;
-							elements.tooltip.style.top = `${Math.max(0, top)}px`;
-					});
-					elements.canvas.onmouseleave = () => elements.tooltip.hidden = true;
-
-					document.addEventListener('keydown', e => {
-						if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
-						if (e.code === 'Digit1') { e.preventDefault(); e.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
-						if (e.code === 'Digit2') { e.preventDefault(); e.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
-					});
-				}
-
-				async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
-					const originalText = button.textContent;
-					if (processingText) button.textContent = processingText;
-					try {
-						await actionFn();
-						button.textContent = successText;
-					} catch (error) {
-						console.error(error);
-						button.textContent = 'Error';
-					} finally {
-						setTimeout(() => button.textContent = originalText, 2000);
-					}
-				}
-
-				theme(themeName) {
-					document.documentElement.className = themeName === 'auto' ? '' : themeName;
-					elements.theme.value = themeName;
-					this.updateThemeColor();
-					this.draw();
-				}
-
-				parseColor(c) {
-					if (!c) return { r: 0, g: 0, b: 0, a: 0 };
-					if (c[0] === '#') {
-						const i = parseInt((c.length < 5 ? c.replace(/[^#]/g, '$&$&') : c).slice(1, 7), 16);
-						return { r: i >> 16 & 255, g: i >> 8 & 255, b: i & 255, a: 1 };
-					}
-					const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) || []).map(Number);
-					return { r, g, b, a };
-				}
-
-				updateThemeColor() {
-					const s = this.parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
-					const c = this.parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
-					const mix = k => c[k] * c.a + s[k] * (1 - c.a);
-					this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
-				}
-
-				async loadFont(file, index) {
-					const seq = ++this.loadSequence[index];
-					this.loadErrors[index] = this.fonts[index] = null;
-					this.loading[index] = true;
-					this.update();
-					try {
-						if (!file) return;
-						if (file.size > 3e7) throw new Error('File too large (max 30MB)');
-						const buffer = await file.arrayBuffer();
-						if (seq !== this.loadSequence[index]) return;
-						const font = fontkit.create(new Uint8Array(buffer));
-						if (!font.unitsPerEm) throw new Error('Invalid font');
-						this.fonts[index] = font;
-					} catch (e) {
-						if (seq === this.loadSequence[index]) this.loadErrors[index] = e.message;
-					} finally {
-						if (seq === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
-					}
-				}
-
-				getRenderData(index) {
-					const number = index + 1;
-					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
-					if (!inputs.font || !inputs.fontSize) return null;
-					const cached = this.renderingCache[index];
-					if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
-						if (cached.inputs.color !== inputs.color) {
-							paint(cached.data.canvas.getContext('2d'), inputs.color, cached.data.width, cached.data.height);
-							cached.inputs.color = inputs.color;
-						}
-						return cached.data;
-					}
-					return this.generateRenderData(index, inputs);
-				}
-
-				prepareCanvas(c, w, h) {
-					c.width = Math.max(c.width, w);
-					c.height = Math.max(c.height, h);
-					return c.getContext('2d', { willReadFrequently: true });
-				}
-
-				generateRenderData(index, inputs) {
-					const { font, content, fontSize, letterSpacing, color } = inputs;
-					const size = Math.min(Math.max(fontSize, 1), 2000);
-					const scale = size / font.unitsPerEm;
-					const unit = elements.spacingUnit.value;
-
-					const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
-
-					const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
-
-					const cachedLayout = this.layoutCache[index];
-					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
-					if (!hit) this.layoutCache[index] = { content, font, run: font.layout(content) };
-					const run = this.layoutCache[index].run;
-
-					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const position = run.positions[i];
-						const boundingBox = glyph.bbox;
-						if (boundingBox) {
-							const x = currentX + position.xOffset;
-							const y = position.yOffset;
-							minX = Math.min(minX, x + boundingBox.minX);
-							maxX = Math.max(maxX, x + boundingBox.maxX);
-							minY = Math.min(minY, y + boundingBox.minY);
-							maxY = Math.max(maxY, y + boundingBox.maxY);
-						}
-						currentX += (position.xAdvance * advanceScale) + tracking;
-					});
-					if (minX === Infinity) minX = maxX = minY = maxY = 0;
-					const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
-					const drawOffsetX = -Math.min(0, minX * scale);
-					const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
-					const baseline = Math.ceil(metrics.ascent);
-					const height = Math.ceil(baseline + metrics.descent);
-					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
-
-					const whiteCanvas = this.whiteCanvases[index];
-					const whiteContext = this.prepareCanvas(whiteCanvas, width, height);
-					whiteContext.save();
-					whiteContext.translate(drawOffsetX, baseline);
-					whiteContext.scale(1, -1);
-					whiteContext.fillStyle = '#FFFFFF';
-					let drawX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const position = run.positions[i];
-						whiteContext.save();
-						whiteContext.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
-						whiteContext.beginPath();
-						glyph.render(whiteContext, size);
-						whiteContext.restore();
-						drawX += (position.xAdvance * advanceScale) + tracking;
-					});
-					whiteContext.restore();
-
-					const canvas = this.offscreenCanvases[index];
-					const context = this.prepareCanvas(canvas, width, height);
-					context.drawImage(whiteCanvas, 0, 0);
-					paint(context, color, width, height);
-
-					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
-					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
-					const analysisData = this.analyzePixels(context, width, height, scanYStart, scanYEnd);
-
-					const graphPath = new Path2D();
-					const graphScale = this.graphWidth / analysisData.maxDensity;
-					let currentGraphWidth = 0, startGraphY = -1;
-					for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
-						const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
-						if (barWidth !== currentGraphWidth) {
-							if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
-							currentGraphWidth = barWidth; startGraphY = rowY;
-						}
-					}
-					if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
-
-					const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
-					this.renderingCache[index] = { inputs, data };
-					return data;
-				}
-
-				analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height) {
-					if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-					const { data } = context.getImageData(0, 0, width, height);
-					const pixelDataInt32 = new Uint32Array(data.buffer);
-					const densityByRow = new Float32Array(height);
-					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
-					const isInk = i => (pixelDataInt32[i] >>> ALPHA_SHIFT) & 1;
-
-					for (let y = scanYStart; y < scanYEnd; y++) {
-						let index = y * width, endIndex = index + width;
-						const rowStart = index;
-
-						while (index < endIndex && !isInk(index)) index++;
-						if (index === endIndex) continue;
-
-						const firstX = index - rowStart;
-						endIndex--;
-						while (endIndex > index && !isInk(endIndex)) endIndex--;
-						const lastX = endIndex - rowStart;
-
-						let rowInk = 0;
-						for (; index <= endIndex; index++) rowInk += isInk(index);
-
-						densityByRow[y] = rowInk;
-						if (rowInk > maxDensity) maxDensity = rowInk;
-						inkPixels += rowInk;
-						if (minX > firstX) minX = firstX;
-						if (maxX < lastX) maxX = lastX;
-						if (minY > y) minY = y;
-						maxY = y;
-					}
-					return { densityByRow, inkPixels, minX, maxX, minY, maxY, maxDensity: Math.max(1, maxDensity) };
-				}
-
-				updateSpacingLabels() {
-					const unit = elements.spacingUnit.value;
-					const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
-					const defaultVal = unit === 'percent' ? 100 : 0;
-					[1, 2].forEach(n => {
-						elements[`spacingRange${n}`].setAttribute('aria-label', label);
-						elements[`spacing${n}`].parentElement.firstChild.textContent = label;
-						elements[`spacing${n}`].value = elements[`spacingRange${n}`].value = defaultVal;
-					});
-				}
-
-				isFontVisible(index) {
-					return this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
-				}
-
-				update() {
-					this.analyses = [1, 2].map((number, index) => {
-						elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
-						try {
-							const data = this.getRenderData(index);
-							if (!data) return null;
-							const hasInk = data.maxY >= data.minY;
-							const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-							const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
-							const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
-							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
-						} catch (error) { return { error: error.message }; }
-					});
-					this.draw();
-					[1, 2].forEach((number, index) => this.updateResult(number, index));
-				}
-
-				draw() {
-					const validAnalyses = this.analyses.filter((analysis, index) => analysis && !analysis.error && this.isFontVisible(index));
-					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
-					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
-					const max = callback => Math.max(0, ...validAnalyses.map(callback));
-					const maxAscent = max(item => item.baseline + item.baselineShift);
-					const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
-					const maxOffsetX = max(item => item.drawOffsetX);
-					const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
-					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
-					this.lastDimensions = dimensions;
-					const { width, height } = dimensions;
-					this.context.canvas.width = width;
-					this.context.canvas.height = height;
-
-					this.context.fillStyle = this.canvasBackgroundColor;
-					this.context.fillRect(0, 0, width, height);
-
-					const isDark = this.isDark;
-
-					const compositeCanvas = this.compositeCanvas;
-					compositeCanvas.width = width;
-					compositeCanvas.height = height;
-					const compositeCtx = compositeCanvas.getContext('2d');
-
-					const fill = (ctx, style = '#000000') => {
-						ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = style;
-						ctx.fillRect(0, 0, width, height);
+					fileInput.onchange = event => {
+						const file = event.target.files[0];
+						updateFileName(file);
+						loadFont(file, index);
 					};
 
-					let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
-					if (isDark) {
-						[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
-							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
-								const c = this[k] || (this[k] = document.createElement('canvas'));
-								if (c.width !== width || c.height !== height) { c.width = width; c.height = height; }
-								return c.getContext('2d');
-							});
+					elements[`clear${number}`].onclick = () => {
+						fonts[index] = null;
+						loadErrors[index] = null;
+						fileInput.value = '';
+						updateFileName(null);
+						update();
+					};
 
-						[maskCtx, invInkCtx].forEach(ctx => fill(ctx));
-						lightCtx.clearRect(0, 0, width, height);
-					}
-
-					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-					this.analyses.forEach((analysis, index) => {
-						if (!analysis || analysis.error || !this.isFontVisible(index)) return;
-						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const colorHex = elements[`color${index + 1}`].value;
-						const { r, g, b } = this.parseColor(colorHex);
-						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
-						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
-						const compose = (ctx, op, alpha, style, img) => {
-							ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
-							ctx.translate(0, y);
-							ctx.fill(analysis.graphPath);
-							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
-							ctx.restore();
-						};
-
-						if (isDark) {
-							if (inkAlpha > 0) {
-								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
-
-								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
-								tempCtx.globalCompositeOperation = 'source-over';
-								tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
-								paint(tempCtx, invColor, analysis.width, analysis.height);
-								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
-							}
-
-							const lightAlpha = Math.min(r, g, b) / 255;
-							if (lightAlpha > 0) {
-								compose(lightCtx, 'screen', lightAlpha, colorHex, analysis.canvas);
-							}
-						}
-						if (!isDark) {
-							compose(compositeCtx, 'multiply', inkAlpha, colorHex, analysis.canvas);
-						}
-						if (sideMode) currentTranslateX += analysis.width;
+					INPUT_FIELDS.forEach(k => {
+						const fn = /color|shift/.test(k) ? throttledUpdate : debouncedUpdate;
+						const n = elements[k + number], r = elements[k + 'Range' + number];
+						n.oninput = () => { if (r) r.value = n.value; fn(); };
+						if (r) r.oninput = () => { n.value = r.value; fn(); };
 					});
 
-					if (isDark) {
-						fill(diffCtx);
-						diffCtx.drawImage(this.maskCanvas, 0, 0); diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.invInkCanvas, 0, 0);
+					group.ondragover = e => { e.preventDefault(); group.classList.add('dragActive'); };
+					group.ondragleave = e => { if (!e.relatedTarget || !group.contains(e.relatedTarget)) group.classList.remove('dragActive'); };
+					group.ondrop = e => {
+						e.preventDefault(); group.classList.remove('dragActive');
+						if (e.dataTransfer.files[0]) {
+							fileInput.files = e.dataTransfer.files;
+							updateFileName(e.dataTransfer.files[0]);
+							loadFont(e.dataTransfer.files[0], index);
+						}
+					};
 
-						fill(emissiveCtx);
-						emissiveCtx.globalCompositeOperation = 'lighter'; emissiveCtx.drawImage(this.diffCanvas, 0, 0);
+					const toggle = (k, arr, inv) => elements[k + number].onclick = () => {
+						const v = arr[index] = !arr[index];
+						elements[k + number].setAttribute('aria-pressed', inv ? !v : v);
+						draw();
+					};
+					toggle('mute', visibility, true);
+					toggle('solo', solo);
+				});
 
-						fill(diffCtx, '#ffffff');
-						diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.maskCanvas, 0, 0);
+				elements.canvas.onmousemove = raf(e => {
+					const { clientX, clientY } = e;
+					if (!lastDimensions) return;
+					const rect = elements.canvas.getBoundingClientRect();
+					const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
+					const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
+					if (x > graphWidth || x < 0) return elements.tooltip.hidden = true;
 
-						fill(invMaskCtx);
-						invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(this.diffCanvas, 0, 0);
+					const content = analyses.map((a, i) => {
+							if (!a || a.error || !isFontVisible(i)) return null;
+							const rowY = Math.floor(y - (lastDimensions.baseline - a.baseline - a.baselineShift));
+							const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
+							const name = fonts[i]?.fullName || `Font ${i + 1}`;
+							const percentage = Math.round((val / a.maxDensity) * 100);
+							return val ? `${name}: ${val}px (${percentage}%)` : null;
+						}).filter(Boolean).join('\n');
 
-						this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'source-over';
-					}
-					if (!isDark) {
-						this.context.drawImage(compositeCanvas, 0, 0);
-					}
-					const guides = elements.guides.value;
-					if (['baseline', 'metrics'].includes(guides)) {
-						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-						this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
-					}
-					if (guides === 'metrics') {
-						validAnalyses.forEach((analysis, index) => {
-							const y = dimensions.baseline - analysis.baselineShift;
-							this.context.fillStyle = elements[`color${index + 1}`].value;
-							this.context.globalAlpha = 0.5;
-							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), this.context.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), this.context.canvas.width, 1);
-							this.context.globalAlpha = 0.3;
-							this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), this.context.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), this.context.canvas.width, 1);
-							this.context.globalAlpha = 1.0;
-						});
-					}
-					this.updateScale();
-				}
+						if (!content) return elements.tooltip.hidden = true;
 
-				updateScale() {
-					const { canvas, container, preview } = elements;
-					canvas.style.transform = 'none';
-					container.style.width = container.style.height = container.style.overflow = '';
-					if (elements.zoom.value !== 'fit' || !canvas.width) return;
-					const style = getComputedStyle(container);
-					const px = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-					const py = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-					const scale = Math.min((preview.clientWidth - px) / canvas.width, 1);
-					canvas.style.transform = `scale(${scale})`;
-					container.style.width = `${canvas.width * scale + px}px`;
-					container.style.height = `${canvas.height * scale + py}px`;
-					container.style.overflow = 'hidden';
-				}
+						elements.tooltip.innerText = `Y: ${Math.round(lastDimensions.baseline - y)}\n${content}`;
+						elements.tooltip.hidden = false;
 
-				updateResult(number, index) {
-					const analysis = this.analyses[index];
-					const error = this.loadErrors[index] || (analysis && analysis.error);
-					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
-					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
-					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
-					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
-					elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
-					elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
+						const tooltipRect = elements.tooltip.getBoundingClientRect();
+						const offset = 15;
+						let left = clientX + offset;
+						let top = clientY + offset;
 
-					if (this.loading[index]) {
-						elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-						return;
-					}
-					if (message) {
-						elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
-						return;
-					}
+						if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
+						if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
 
-					elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+						elements.tooltip.style.left = `${Math.max(0, left)}px`;
+						elements.tooltip.style.top = `${Math.max(0, top)}px`;
+				});
+				elements.canvas.onmouseleave = () => elements.tooltip.hidden = true;
+
+				document.addEventListener('keydown', e => {
+					if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+					if (e.code === 'Digit1') { e.preventDefault(); e.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
+					if (e.code === 'Digit2') { e.preventDefault(); e.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
+				});
+			}
+
+			async function handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
+				const originalText = button.textContent;
+				if (processingText) button.textContent = processingText;
+				try {
+					await actionFn();
+					button.textContent = successText;
+				} catch (error) {
+					console.error(error);
+					button.textContent = 'Error';
+				} finally {
+					setTimeout(() => button.textContent = originalText, 2000);
 				}
 			}
-			new DensityTool();
+
+			function theme(themeName) {
+				document.documentElement.className = themeName === 'auto' ? '' : themeName;
+				elements.theme.value = themeName;
+				updateThemeColor();
+				draw();
+			}
+
+			function parseColor(c) {
+				if (!c) return { r: 0, g: 0, b: 0, a: 0 };
+				if (c[0] === '#') {
+					const i = parseInt((c.length < 5 ? c.replace(/[^#]/g, '$&$&') : c).slice(1, 7), 16);
+					return { r: i >> 16 & 255, g: i >> 8 & 255, b: i & 255, a: 1 };
+				}
+				const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) || []).map(Number);
+				return { r, g, b, a };
+			}
+
+			function updateThemeColor() {
+				const s = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
+				const c = parseColor(canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
+				const mix = k => c[k] * c.a + s[k] * (1 - c.a);
+				isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
+			}
+
+			async function loadFont(file, index) {
+				const seq = ++loadSequence[index];
+				loadErrors[index] = fonts[index] = null;
+				loading[index] = true;
+				update();
+				try {
+					if (!file) return;
+					if (file.size > 3e7) throw new Error('File too large (max 30MB)');
+					const buffer = await file.arrayBuffer();
+					if (seq !== loadSequence[index]) return;
+					const font = fontkit.create(new Uint8Array(buffer));
+					if (!font.unitsPerEm) throw new Error('Invalid font');
+					fonts[index] = font;
+				} catch (e) {
+					if (seq === loadSequence[index]) loadErrors[index] = e.message;
+				} finally {
+					if (seq === loadSequence[index]) { loading[index] = false; update(); }
+				}
+			}
+
+			function getRenderData(index) {
+				const number = index + 1;
+				const inputs = { font: fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
+				if (!inputs.font || !inputs.fontSize) return null;
+				const cached = renderingCache[index];
+				if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
+					if (cached.inputs.color !== inputs.color) {
+						paint(cached.data.canvas.getContext('2d'), inputs.color, cached.data.width, cached.data.height);
+						cached.inputs.color = inputs.color;
+					}
+					return cached.data;
+				}
+				return generateRenderData(index, inputs);
+			}
+
+			function prepareCanvas(c, w, h) {
+				c.width = Math.max(c.width, w);
+				c.height = Math.max(c.height, h);
+				return c.getContext('2d', { willReadFrequently: true });
+			}
+
+			function generateRenderData(index, inputs) {
+				const { font, content, fontSize, letterSpacing, color } = inputs;
+				const size = Math.min(Math.max(fontSize, 1), 2000);
+				const scale = size / font.unitsPerEm;
+				const unit = elements.spacingUnit.value;
+
+				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
+
+				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
+
+				const cachedLayout = layoutCache[index];
+				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
+				if (!hit) layoutCache[index] = { content, font, run: font.layout(content) };
+				const run = layoutCache[index].run;
+
+				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
+				run.glyphs.forEach((glyph, i) => {
+					const position = run.positions[i];
+					const boundingBox = glyph.bbox;
+					if (boundingBox) {
+						const x = currentX + position.xOffset;
+						const y = position.yOffset;
+						minX = Math.min(minX, x + boundingBox.minX);
+						maxX = Math.max(maxX, x + boundingBox.maxX);
+						minY = Math.min(minY, y + boundingBox.minY);
+						maxY = Math.max(maxY, y + boundingBox.maxY);
+					}
+					currentX += (position.xAdvance * advanceScale) + tracking;
+				});
+				if (minX === Infinity) minX = maxX = minY = maxY = 0;
+				const metrics = { ascent: Math.max(maxY * scale, (font.ascent || 0) * scale), descent: Math.max(-minY * scale, Math.abs(font.descent || 0) * scale), fontAscent: (font.ascent || 0) * scale, fontDescent: Math.abs(font.descent || 0) * scale, fontCapHeight: (font.capHeight || 0) * scale, fontXHeight: (font.xHeight || 0) * scale, advanceWidth: Math.ceil(currentX * scale) };
+				const drawOffsetX = -Math.min(0, minX * scale);
+				const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
+				const baseline = Math.ceil(metrics.ascent);
+				const height = Math.ceil(baseline + metrics.descent);
+				if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+
+				const whiteCanvas = whiteCanvases[index];
+				const whiteContext = prepareCanvas(whiteCanvas, width, height);
+				whiteContext.save();
+				whiteContext.translate(drawOffsetX, baseline);
+				whiteContext.scale(1, -1);
+				whiteContext.fillStyle = '#FFFFFF';
+				let drawX = 0;
+				run.glyphs.forEach((glyph, i) => {
+					const position = run.positions[i];
+					whiteContext.save();
+					whiteContext.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
+					whiteContext.beginPath();
+					glyph.render(whiteContext, size);
+					whiteContext.restore();
+					drawX += (position.xAdvance * advanceScale) + tracking;
+				});
+				whiteContext.restore();
+
+				const canvas = offscreenCanvases[index];
+				const context = prepareCanvas(canvas, width, height);
+				context.drawImage(whiteCanvas, 0, 0);
+				paint(context, color, width, height);
+
+				const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
+				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
+				const analysisData = analyzePixels(context, width, height, scanYStart, scanYEnd);
+
+				const graphPath = new Path2D();
+				const graphScale = graphWidth / analysisData.maxDensity;
+				let currentGraphWidth = 0, startGraphY = -1;
+				for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
+					const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
+					if (barWidth !== currentGraphWidth) {
+						if (currentGraphWidth > 0) graphPath.rect(graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
+						currentGraphWidth = barWidth; startGraphY = rowY;
+					}
+				}
+				if (currentGraphWidth > 0) graphPath.rect(graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
+
+				const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+				renderingCache[index] = { inputs, data };
+				return data;
+			}
+
+			function analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height) {
+				if (width === 0 || height === 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
+				const { data } = context.getImageData(0, 0, width, height);
+				const pixelDataInt32 = new Uint32Array(data.buffer);
+				const densityByRow = new Float32Array(height);
+				let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
+				const isInk = i => (pixelDataInt32[i] >>> ALPHA_SHIFT) & 1;
+
+				for (let y = scanYStart; y < scanYEnd; y++) {
+					let index = y * width, endIndex = index + width;
+					const rowStart = index;
+
+					while (index < endIndex && !isInk(index)) index++;
+					if (index === endIndex) continue;
+
+					const firstX = index - rowStart;
+					endIndex--;
+					while (endIndex > index && !isInk(endIndex)) endIndex--;
+					const lastX = endIndex - rowStart;
+
+					let rowInk = 0;
+					for (; index <= endIndex; index++) rowInk += isInk(index);
+
+					densityByRow[y] = rowInk;
+					if (rowInk > maxDensity) maxDensity = rowInk;
+					inkPixels += rowInk;
+					if (minX > firstX) minX = firstX;
+					if (maxX < lastX) maxX = lastX;
+					if (minY > y) minY = y;
+					maxY = y;
+				}
+				return { densityByRow, inkPixels, minX, maxX, minY, maxY, maxDensity: Math.max(1, maxDensity) };
+			}
+
+			function updateSpacingLabels() {
+				const unit = elements.spacingUnit.value;
+				const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
+				const defaultVal = unit === 'percent' ? 100 : 0;
+				[1, 2].forEach(n => {
+					elements[`spacingRange${n}`].setAttribute('aria-label', label);
+					elements[`spacing${n}`].parentElement.firstChild.textContent = label;
+					elements[`spacing${n}`].value = elements[`spacingRange${n}`].value = defaultVal;
+				});
+			}
+
+			function isFontVisible(index) {
+				return solo.some(s => s) ? solo[index] : visibility[index];
+			}
+
+			function update() {
+				analyses = [1, 2].map((number, index) => {
+					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
+					try {
+						const data = getRenderData(index);
+						if (!data) return null;
+						const hasInk = data.maxY >= data.minY;
+						const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+						const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
+						const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
+						return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
+					} catch (error) { return { error: error.message }; }
+				});
+				draw();
+				[1, 2].forEach((number, index) => updateResult(number, index));
+			}
+
+			function draw() {
+				const validAnalyses = analyses.filter((analysis, index) => analysis && !analysis.error && isFontVisible(index));
+				if (!validAnalyses.length) { context.canvas.height = 150; updateScale(); return; }
+				const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
+				const max = callback => Math.max(0, ...validAnalyses.map(callback));
+				const maxAscent = max(item => item.baseline + item.baselineShift);
+				const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
+				const maxOffsetX = max(item => item.drawOffsetX);
+				const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
+				const dimensions = { width: Math.ceil(graphWidth + graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
+				lastDimensions = dimensions;
+				const { width, height } = dimensions;
+				context.canvas.width = width;
+				context.canvas.height = height;
+
+				context.fillStyle = canvasBackgroundColor;
+				context.fillRect(0, 0, width, height);
+
+				compositeCanvas.width = width;
+				compositeCanvas.height = height;
+				const compositeCtx = compositeCanvas.getContext('2d');
+
+				const fill = (ctx, style = '#000000') => {
+					ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = style;
+					ctx.fillRect(0, 0, width, height);
+				};
+
+				let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
+				if (isDark) {
+					[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
+						['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
+							const c = darkCanvases[k] || (darkCanvases[k] = document.createElement('canvas'));
+							if (c.width !== width || c.height !== height) { c.width = width; c.height = height; }
+							return c.getContext('2d');
+						});
+
+					[maskCtx, invInkCtx].forEach(ctx => fill(ctx));
+					lightCtx.clearRect(0, 0, width, height);
+				}
+
+				let currentTranslateX = graphWidth + graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
+				analyses.forEach((analysis, index) => {
+					if (!analysis || analysis.error || !isFontVisible(index)) return;
+					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+					const colorHex = elements[`color${index + 1}`].value;
+					const { r, g, b } = parseColor(colorHex);
+					const inkAlpha = (255 - Math.min(r, g, b)) / 255;
+					const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
+					const compose = (ctx, op, alpha, style, img) => {
+						ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
+						ctx.translate(0, y);
+						ctx.fill(analysis.graphPath);
+						ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
+						ctx.restore();
+					};
+
+					if (isDark) {
+						if (inkAlpha > 0) {
+							compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
+
+							const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
+							tempCtx.clearRect(0, 0, analysis.width, analysis.height);
+							tempCtx.globalCompositeOperation = 'source-over';
+							tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
+							paint(tempCtx, invColor, analysis.width, analysis.height);
+							compose(invInkCtx, 'screen', inkAlpha, invColor, tempCtx);
+						}
+
+						const lightAlpha = Math.min(r, g, b) / 255;
+						if (lightAlpha > 0) {
+							compose(lightCtx, 'screen', lightAlpha, colorHex, analysis.canvas);
+						}
+					}
+					if (!isDark) {
+						compose(compositeCtx, 'multiply', inkAlpha, colorHex, analysis.canvas);
+					}
+					if (sideMode) currentTranslateX += analysis.width;
+				});
+
+				if (isDark) {
+					fill(diffCtx);
+					diffCtx.drawImage(darkCanvases.maskCanvas, 0, 0); diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(darkCanvases.invInkCanvas, 0, 0);
+
+					fill(emissiveCtx);
+					emissiveCtx.globalCompositeOperation = 'lighter'; emissiveCtx.drawImage(darkCanvases.diffCanvas, 0, 0);
+
+					fill(diffCtx, '#ffffff');
+					diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(darkCanvases.maskCanvas, 0, 0);
+
+					fill(invMaskCtx);
+					invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(darkCanvases.diffCanvas, 0, 0);
+
+					context.globalCompositeOperation = 'multiply'; context.drawImage(darkCanvases.invMaskCanvas, 0, 0);
+					context.globalCompositeOperation = 'lighter'; context.drawImage(darkCanvases.emissiveInkCanvas, 0, 0);
+					context.globalCompositeOperation = 'screen'; context.drawImage(darkCanvases.lightCanvas, 0, 0);
+					context.globalCompositeOperation = 'source-over';
+				}
+				if (!isDark) {
+					context.drawImage(compositeCanvas, 0, 0);
+				}
+				const guides = elements.guides.value;
+				if (['baseline', 'metrics'].includes(guides)) {
+					context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+					context.fillRect(0, dimensions.baseline, context.canvas.width, 1);
+				}
+				if (guides === 'metrics') {
+					validAnalyses.forEach((analysis, index) => {
+						const y = dimensions.baseline - analysis.baselineShift;
+						context.fillStyle = elements[`color${index + 1}`].value;
+						context.globalAlpha = 0.5;
+						context.fillRect(0, Math.floor(y - analysis.fontAscent), context.canvas.width, 1);
+						context.fillRect(0, Math.floor(y + analysis.fontDescent), context.canvas.width, 1);
+						context.globalAlpha = 0.3;
+						context.fillRect(0, Math.floor(y - analysis.fontCapHeight), context.canvas.width, 1);
+						context.fillRect(0, Math.floor(y - analysis.fontXHeight), context.canvas.width, 1);
+						context.globalAlpha = 1.0;
+					});
+				}
+				updateScale();
+			}
+
+			function updateScale() {
+				const { canvas, container, preview } = elements;
+				canvas.style.transform = 'none';
+				container.style.width = container.style.height = container.style.overflow = '';
+				if (elements.zoom.value !== 'fit' || !canvas.width) return;
+				const style = getComputedStyle(container);
+				const px = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+				const py = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+				const scale = Math.min((preview.clientWidth - px) / canvas.width, 1);
+				canvas.style.transform = `scale(${scale})`;
+				container.style.width = `${canvas.width * scale + px}px`;
+				container.style.height = `${canvas.height * scale + py}px`;
+				container.style.overflow = 'hidden';
+			}
+
+			function updateResult(number, index) {
+				const analysis = analyses[index];
+				const error = loadErrors[index] || (analysis && analysis.error);
+				const message = error ? `Error: ${error}` : !fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
+				const name = fonts[index] ? (fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
+				elements[`name${number}`].textContent = elements[`name${number}`].title = name;
+				elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
+				elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
+				elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
+
+				if (loading[index]) {
+					elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
+					return;
+				}
+				if (message) {
+					elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
+					return;
+				}
+
+				elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+			}
+
+			setup();
+			theme('auto');
+			update();
 		</script>
 	</body>
 </html>

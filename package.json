@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Typography, quantified.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahalisyarifuddin/OpenDensityTool.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mahalisyarifuddin/OpenDensityTool/issues"
+  },
+  "homepage": "https://github.com/mahalisyarifuddin/OpenDensityTool#readme",
+  "dependencies": {
+    "fontkit": "^2.0.4"
+  }
+}
