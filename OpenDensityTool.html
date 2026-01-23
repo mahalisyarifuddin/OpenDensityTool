@@ -837,8 +837,10 @@
 				}
 
 				updateThemeColor() {
-					this.themeSurfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff';
-					this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor;
+					const s = this.parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
+					const c = this.parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
+					const mix = k => c[k] * c.a + s[k] * (1 - c.a);
+					this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
 				}
 
 				async loadFont(file, index) {
@@ -1044,18 +1046,10 @@
 					this.context.canvas.width = width;
 					this.context.canvas.height = height;
 
-					const themeColor = this.parseColor(this.themeSurfaceColor);
-					const canvasColor = this.parseColor(this.canvasBackgroundColor);
-
 					this.context.fillStyle = this.canvasBackgroundColor;
 					this.context.fillRect(0, 0, width, height);
 
-					const alpha = canvasColor.a;
-					const effectiveR = canvasColor.r * alpha + themeColor.r * (1 - alpha);
-					const effectiveG = canvasColor.g * alpha + themeColor.g * (1 - alpha);
-					const effectiveB = canvasColor.b * alpha + themeColor.b * (1 - alpha);
-
-					const isDark = (effectiveR * 0.299 + effectiveG * 0.587 + effectiveB * 0.114) < 128;
+					const isDark = this.isDark;
 
 					const compositeCanvas = this.compositeCanvas;
 					compositeCanvas.width = width;
