@@ -1162,12 +1162,9 @@
 						validAnalyses.forEach((analysis, index) => {
 							const y = dimensions.baseline - analysis.baselineShift;
 							this.context.fillStyle = elements[`color${index + 1}`].value;
-							this.context.globalAlpha = 0.5;
-							this.context.fillRect(0, Math.floor(y - analysis.fontAscent), this.context.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y + analysis.fontDescent), this.context.canvas.width, 1);
-							this.context.globalAlpha = 0.3;
-							this.context.fillRect(0, Math.floor(y - analysis.fontCapHeight), this.context.canvas.width, 1);
-							this.context.fillRect(0, Math.floor(y - analysis.fontXHeight), this.context.canvas.width, 1);
+							const line = (d, a) => { this.context.globalAlpha = a; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
+							line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
+							line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
 							this.context.globalAlpha = 1.0;
 						});
 					}
