@@ -930,11 +930,13 @@
 					let drawX = 0;
 					run.glyphs.forEach((glyph, i) => {
 						const position = run.positions[i];
-						whiteContext.save();
-						whiteContext.translate((drawX + position.xOffset) * scale, position.yOffset * scale);
+						// Optimization: Use translate/un-translate instead of save/restore to improve performance
+						const tx = (drawX + position.xOffset) * scale;
+						const ty = position.yOffset * scale;
+						whiteContext.translate(tx, ty);
 						whiteContext.beginPath();
 						glyph.render(whiteContext, size);
-						whiteContext.restore();
+						whiteContext.translate(-tx, -ty);
 						drawX += (position.xAdvance * advanceScale) + tracking;
 					});
 					whiteContext.restore();
