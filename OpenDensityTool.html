@@ -948,7 +948,9 @@
 
 					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
 					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
-					const analysisData = this.analyzePixels(context, width, height, scanYStart, scanYEnd);
+					const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
+					const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
+					const analysisData = this.analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
 
 					const graphPath = new Path2D();
 					const graphScale = this.graphWidth / analysisData.maxDensity;
@@ -967,16 +969,18 @@
 					return data;
 				}
 
-				analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height) {
+				analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) {
 					const sliceHeight = scanYEnd - scanYStart;
-					if (width === 0 || height === 0 || sliceHeight <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-					const { data } = context.getImageData(0, scanYStart, width, sliceHeight);
+					const sliceWidth = scanXEnd - scanXStart;
+					if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
+					// Optimization: Fetch only the relevant ink area to reduce memory transfer and iteration count
+					const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
 					const pixelDataInt32 = new Uint32Array(data.buffer);
 					const densityByRow = new Float32Array(height);
-					let inkPixels = 0, minX = width, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
+					let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
 					// Optimization: Inline isInk check ((pixelDataInt32[i] >>> ALPHA_SHIFT) & 1) to avoid function call overhead in hot loop (~50% faster)
 					for (let y = scanYStart; y < scanYEnd; y++) {
-						let index = (y - scanYStart) * width, endIndex = index + width;
+						let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
 						const rowStart = index;
 
 						while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
@@ -998,7 +1002,7 @@
 						if (minY > y) minY = y;
 						maxY = y;
 					}
-					return { densityByRow, inkPixels, minX, maxX, minY, maxY, maxDensity: Math.max(1, maxDensity) };
+					return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
 				}
 
 				updateSpacingLabels() {
@@ -1085,11 +1089,12 @@
 						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						const compose = (ctx, op, alpha, style, img) => {
-							ctx.save(); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
+							ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
 							ctx.translate(0, y);
 							ctx.fill(analysis.graphPath);
 							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
-							ctx.restore();
+							ctx.translate(0, -y);
+							ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 						};
 
 						if (isDark) {
