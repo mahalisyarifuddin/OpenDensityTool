@@ -1177,8 +1177,8 @@
 					container.style.width = container.style.height = container.style.overflow = '';
 					if (elements.zoom.value !== 'fit' || !canvas.width) return;
 					const style = getComputedStyle(container);
-					const px = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-					const py = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+					const px = parseFloat(style.paddingLeft) * 2;
+					const py = parseFloat(style.paddingTop) * 2;
 					const scale = Math.min((preview.clientWidth - px) / canvas.width, 1);
 					canvas.style.transform = `scale(${scale})`;
 					container.style.width = `${canvas.width * scale + px}px`;
