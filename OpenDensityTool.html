@@ -714,23 +714,14 @@
 						const fileInput = elements[`file${number}`];
 						const group = fileInput.closest('.group');
 
-						const updateFileName = (file) => {
-							const nameDisplay = elements[`fileName${number}`];
-							nameDisplay.textContent = file ? file.name : '';
-							nameDisplay.title = file ? file.name : '';
-						};
+						const updateFileName = f => elements[`fileName${number}`].textContent = elements[`fileName${number}`].title = f ? f.name : '';
+						const handleFile = f => { updateFileName(f); this.loadFont(f, index); };
 
 						elements[`uploadBtn${number}`].onclick = () => fileInput.click();
-
-						fileInput.onchange = event => {
-							const file = event.target.files[0];
-							updateFileName(file);
-							this.loadFont(file, index);
-						};
+						fileInput.onchange = e => handleFile(e.target.files[0]);
 
 						elements[`clear${number}`].onclick = () => {
-							this.fonts[index] = null;
-							this.loadErrors[index] = null;
+							this.fonts[index] = this.loadErrors[index] = null;
 							fileInput.value = '';
 							updateFileName(null);
 							this.update();
@@ -749,8 +740,7 @@
 							e.preventDefault(); group.classList.remove('dragActive');
 							if (e.dataTransfer.files[0]) {
 								fileInput.files = e.dataTransfer.files;
-								updateFileName(e.dataTransfer.files[0]);
-								this.loadFont(e.dataTransfer.files[0], index);
+								handleFile(e.dataTransfer.files[0]);
 							}
 						};
 
