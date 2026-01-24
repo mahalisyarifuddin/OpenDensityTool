@@ -621,6 +621,70 @@
 			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
 
+			const parseColor = (c) => {
+				if (!c) return { r: 0, g: 0, b: 0, a: 0 };
+				if (c[0] === '#') {
+					const i = parseInt((c.length < 5 ? c.replace(/[^#]/g, '$&$&') : c).slice(1, 7), 16);
+					return { r: i >> 16 & 255, g: i >> 8 & 255, b: i & 255, a: 1 };
+				}
+				const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) || []).map(Number);
+				return { r, g, b, a };
+			};
+
+			const prepareCanvas = (c, w, h) => {
+				c.width = Math.max(c.width, w);
+				c.height = Math.max(c.height, h);
+				return c.getContext('2d', { willReadFrequently: true });
+			};
+
+			const analyzePixels = (context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) => {
+				const sliceHeight = scanYEnd - scanYStart;
+				const sliceWidth = scanXEnd - scanXStart;
+				if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
+				// Optimization: Fetch only the relevant ink area to reduce memory transfer and iteration count
+				const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
+				const pixelDataInt32 = new Uint32Array(data.buffer);
+				const densityByRow = new Float32Array(height);
+				let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
+				// Optimization: Inline isInk check ((pixelDataInt32[i] >>> ALPHA_SHIFT) & 1) to avoid function call overhead in hot loop (~50% faster)
+				for (let y = scanYStart; y < scanYEnd; y++) {
+					let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
+					const rowStart = index;
+
+					while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
+					if (index === endIndex) continue;
+
+					const firstX = index - rowStart;
+					endIndex--;
+					while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
+					const lastX = endIndex - rowStart;
+
+					let rowInk = 0;
+					const limit = endIndex - 7;
+					// Optimization: Unroll loop 8x to reduce iteration overhead (~10% faster)
+					for (; index <= limit; index += 8) {
+						rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
+						rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
+					}
+					for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+
+					densityByRow[y] = rowInk;
+					if (rowInk > maxDensity) maxDensity = rowInk;
+					inkPixels += rowInk;
+					if (minX > firstX) minX = firstX;
+					if (maxX < lastX) maxX = lastX;
+					if (minY > y) minY = y;
+					maxY = y;
+				}
+				return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
+			};
+
 			class DensityTool {
 				constructor() {
 					const mkCanvas = () => document.createElement('canvas');
@@ -816,19 +880,9 @@
 					this.draw();
 				}
 
-				parseColor(c) {
-					if (!c) return { r: 0, g: 0, b: 0, a: 0 };
-					if (c[0] === '#') {
-						const i = parseInt((c.length < 5 ? c.replace(/[^#]/g, '$&$&') : c).slice(1, 7), 16);
-						return { r: i >> 16 & 255, g: i >> 8 & 255, b: i & 255, a: 1 };
-					}
-					const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) || []).map(Number);
-					return { r, g, b, a };
-				}
-
 				updateThemeColor() {
-					const s = this.parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
-					const c = this.parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
+					const s = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
+					const c = parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
 					const mix = k => c[k] * c.a + s[k] * (1 - c.a);
 					this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
 				}
@@ -866,12 +920,6 @@
 						return cached.data;
 					}
 					return this.generateRenderData(index, inputs);
-				}
-
-				prepareCanvas(c, w, h) {
-					c.width = Math.max(c.width, w);
-					c.height = Math.max(c.height, h);
-					return c.getContext('2d', { willReadFrequently: true });
 				}
 
 				generateRenderData(index, inputs) {
@@ -913,7 +961,7 @@
 					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 
 					const whiteCanvas = this.whiteCanvases[index];
-					const whiteContext = this.prepareCanvas(whiteCanvas, width, height);
+					const whiteContext = prepareCanvas(whiteCanvas, width, height);
 					whiteContext.save();
 					whiteContext.translate(drawOffsetX, baseline);
 					whiteContext.scale(1, -1);
@@ -933,7 +981,7 @@
 					whiteContext.restore();
 
 					const canvas = this.offscreenCanvases[index];
-					const context = this.prepareCanvas(canvas, width, height);
+					const context = prepareCanvas(canvas, width, height);
 					context.drawImage(whiteCanvas, 0, 0);
 					paint(context, color);
 
@@ -941,7 +989,7 @@
 					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
 					const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
 					const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
-					const analysisData = this.analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
+					const analysisData = analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
 
 					const graphPath = new Path2D();
 					const graphScale = this.graphWidth / analysisData.maxDensity;
@@ -958,54 +1006,6 @@
 					const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
 					this.renderingCache[index] = { inputs, data };
 					return data;
-				}
-
-				analyzePixels(context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) {
-					const sliceHeight = scanYEnd - scanYStart;
-					const sliceWidth = scanXEnd - scanXStart;
-					if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-					// Optimization: Fetch only the relevant ink area to reduce memory transfer and iteration count
-					const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
-					const pixelDataInt32 = new Uint32Array(data.buffer);
-					const densityByRow = new Float32Array(height);
-					let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
-					// Optimization: Inline isInk check ((pixelDataInt32[i] >>> ALPHA_SHIFT) & 1) to avoid function call overhead in hot loop (~50% faster)
-					for (let y = scanYStart; y < scanYEnd; y++) {
-						let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
-						const rowStart = index;
-
-						while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
-						if (index === endIndex) continue;
-
-						const firstX = index - rowStart;
-						endIndex--;
-						while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
-						const lastX = endIndex - rowStart;
-
-						let rowInk = 0;
-						const limit = endIndex - 7;
-						// Optimization: Unroll loop 8x to reduce iteration overhead (~10% faster)
-						for (; index <= limit; index += 8) {
-							rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
-							rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
-						}
-						for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-
-						densityByRow[y] = rowInk;
-						if (rowInk > maxDensity) maxDensity = rowInk;
-						inkPixels += rowInk;
-						if (minX > firstX) minX = firstX;
-						if (maxX < lastX) maxX = lastX;
-						if (minY > y) minY = y;
-						maxY = y;
-					}
-					return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
 				}
 
 				updateSpacingLabels() {
@@ -1088,7 +1088,7 @@
 						if (!analysis || analysis.error || !this.isFontVisible(index)) return;
 						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
 						const colorHex = elements[`color${index + 1}`].value;
-						const { r, g, b } = this.parseColor(colorHex);
+						const { r, g, b } = parseColor(colorHex);
 						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
 						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
 						const compose = (ctx, op, alpha, style, img) => {
