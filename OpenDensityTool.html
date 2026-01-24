@@ -616,7 +616,7 @@
 			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
-			const paint = (ctx, color, w, h) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; };
+			const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
 			const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
 			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
@@ -870,7 +870,7 @@
 					const cached = this.renderingCache[index];
 					if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
 						if (cached.inputs.color !== inputs.color) {
-							paint(cached.data.canvas.getContext('2d'), inputs.color, cached.data.width, cached.data.height);
+							paint(cached.data.canvas.getContext('2d'), inputs.color);
 							cached.inputs.color = inputs.color;
 						}
 						return cached.data;
@@ -944,7 +944,7 @@
 					const canvas = this.offscreenCanvases[index];
 					const context = this.prepareCanvas(canvas, width, height);
 					context.drawImage(whiteCanvas, 0, 0);
-					paint(context, color, width, height);
+					paint(context, color);
 
 					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
 					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
@@ -1117,7 +1117,7 @@
 								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
 								tempCtx.globalCompositeOperation = 'source-over';
 								tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
-								paint(tempCtx, invColor, analysis.width, analysis.height);
+								paint(tempCtx, invColor);
 								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
 							}
 
