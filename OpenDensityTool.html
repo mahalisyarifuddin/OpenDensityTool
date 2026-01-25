@@ -473,7 +473,7 @@
 		</dialog>
 		<main>
 			<section>
-				<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></h2>
+				<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <div><button id="swapFonts" class="actionButton" style="width:auto;margin:0;font-weight:normal;margin-right:8px">Swap</button><button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></div></h2>
 				<div class="group">
 					<div class="header">
 						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
@@ -758,6 +758,8 @@
 						this.update();
 					};
 
+					elements.swapFonts.onclick = () => this.swap();
+
 					document.querySelectorAll('.copyButton').forEach(button => {
 						button.onclick = () => this.handleButtonState(button, () => {
 							return navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText);
@@ -871,6 +873,25 @@
 					} finally {
 						setTimeout(() => button.textContent = originalText, 2000);
 					}
+				}
+
+				swap() {
+					['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache'].forEach(key => {
+						[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
+					});
+					INPUT_FIELDS.forEach(k => {
+						const e1 = elements[k + '1'], e2 = elements[k + '2'];
+						const v1 = e1.value, v2 = e2.value;
+						e1.value = v2; e2.value = v1;
+						const r1 = elements[k + 'Range1'], r2 = elements[k + 'Range2'];
+						if (r1 && r2) { r1.value = v2; r2.value = v1; }
+					});
+					const n1 = elements.fileName1, n2 = elements.fileName2;
+					const t1 = n1.textContent, t2 = n2.textContent;
+					n1.textContent = n1.title = t2;
+					n2.textContent = n2.title = t1;
+					elements.file1.value = elements.file2.value = '';
+					this.update();
 				}
 
 				theme(themeName) {
