@@ -1062,125 +1062,115 @@
 				}
 
 				draw() {
-					const validAnalyses = this.analyses.filter((analysis, index) => analysis && !analysis.error && this.isFontVisible(index));
-					if (!validAnalyses.length) { this.context.canvas.height = 150; this.updateScale(); return; }
-					const sideMode = elements.render.value === 'side' && validAnalyses.length > 1;
-					const max = callback => Math.max(0, ...validAnalyses.map(callback));
-					const maxAscent = max(item => item.baseline + item.baselineShift);
-					const maxDescent = max(item => item.height - item.baseline - item.baselineShift);
-					const maxOffsetX = max(item => item.drawOffsetX);
-					const totalWidth = sideMode ? validAnalyses.reduce((total, item) => total + item.width, 0) : maxOffsetX + max(item => item.width - item.drawOffsetX);
-					const dimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
-					this.lastDimensions = dimensions;
-					const { width, height } = dimensions;
-					this.context.canvas.width = width;
-					this.context.canvas.height = height;
+					const validItems = this.analyses.map((a, i) => ({ a, i })).filter(({ a, i }) => a && !a.error && this.isFontVisible(i));
+					if (!validItems.length) { this.context.canvas.height = 150; this.updateScale(); return; }
 
+					const sideMode = elements.render.value === 'side' && validItems.length > 1;
+					const max = fn => Math.max(0, ...validItems.map(({ a }) => fn(a)));
+					const maxAscent = max(i => i.baseline + i.baselineShift);
+					const maxDescent = max(i => i.height - i.baseline - i.baselineShift);
+					const maxOffsetX = max(i => i.drawOffsetX);
+					const totalWidth = sideMode ? validItems.reduce((t, { a }) => t + a.width, 0) : maxOffsetX + max(i => i.width - i.drawOffsetX);
+					const dim = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
+
+					this.context.canvas.width = dim.width;
+					this.context.canvas.height = dim.height;
 					this.context.fillStyle = this.canvasBackgroundColor;
-					this.context.fillRect(0, 0, width, height);
+					this.context.fillRect(0, 0, dim.width, dim.height);
 
-					const isDark = this.isDark;
-
-					const compositeCanvas = this.compositeCanvas;
-					compositeCanvas.width = width;
-					compositeCanvas.height = height;
-					const compositeCtx = compositeCanvas.getContext('2d');
-
-					const fill = (ctx, style = '#000000') => {
-						ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = style;
-						ctx.fillRect(0, 0, width, height);
-					};
-
-					let maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx;
-					if (isDark) {
-						[maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx, tempCtx] =
-							['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
-								const c = this[k] || (this[k] = document.createElement('canvas'));
-								if (c.width !== width || c.height !== height) { c.width = width; c.height = height; }
-								return c.getContext('2d');
-							});
-
-						[maskCtx, invInkCtx].forEach(ctx => fill(ctx));
-						lightCtx.clearRect(0, 0, width, height);
+					const contexts = this.isDark ? this.updateAuxiliaryCanvases(dim.width, dim.height) : null;
+					if (this.isDark) {
+						[contexts[0], contexts[1]].forEach(ctx => { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dim.width, dim.height); }); // mask, invInk
+						contexts[5].clearRect(0, 0, dim.width, dim.height); // light
+					} else {
+						this.compositeCanvas.width = dim.width; this.compositeCanvas.height = dim.height;
 					}
 
-					let currentTranslateX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-					this.analyses.forEach((analysis, index) => {
-						if (!analysis || analysis.error || !this.isFontVisible(index)) return;
-						const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-						const colorHex = elements[`color${index + 1}`].value;
-						const { r, g, b } = parseColor(colorHex);
+					this.composeLayers(validItems, dim, contexts, sideMode);
+
+					if (this.isDark) {
+						const [maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx] = contexts;
+						const fill = (ctx, c = '#000000') => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = c; ctx.fillRect(0, 0, dim.width, dim.height); };
+						const draw = (ctx, src, op) => { ctx.globalCompositeOperation = op || 'source-over'; ctx.drawImage(src, 0, 0); };
+
+						fill(diffCtx); draw(diffCtx, this.maskCanvas); draw(diffCtx, this.invInkCanvas, 'difference');
+						fill(emissiveCtx); draw(emissiveCtx, this.diffCanvas, 'lighter');
+						fill(diffCtx, '#ffffff'); draw(diffCtx, this.maskCanvas, 'difference');
+						fill(invMaskCtx); draw(invMaskCtx, this.diffCanvas, 'lighter');
+
+						draw(this.context, this.invMaskCanvas, 'multiply');
+						draw(this.context, this.emissiveInkCanvas, 'lighter');
+						draw(this.context, this.lightCanvas, 'screen');
+						this.context.globalCompositeOperation = 'source-over';
+					} else {
+						this.context.drawImage(this.compositeCanvas, 0, 0);
+					}
+					this.drawGuides(dim, validItems);
+					this.updateScale();
+				}
+
+				updateAuxiliaryCanvases(w, h) {
+					return ['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
+						const c = this[k] || (this[k] = document.createElement('canvas'));
+						if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+						return c.getContext('2d');
+					});
+				}
+
+				composeLayers(validItems, dim, contexts, sideMode) {
+					let currentX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dim.maxDrawOffsetX);
+					const [maskCtx, invInkCtx, , , , lightCtx, tempCtx] = contexts || [];
+					const compositeCtx = !this.isDark ? this.compositeCanvas.getContext('2d') : null;
+
+					validItems.forEach(({ a, i }) => {
+						const y = dim.baseline - a.baseline - a.baselineShift;
+						const color = elements[`color${i + 1}`].value;
+						const { r, g, b } = parseColor(color);
 						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
-						const drawX = sideMode ? currentTranslateX + (analysis.drawOffsetX || 0) : currentTranslateX;
+						const drawX = sideMode ? currentX + (a.drawOffsetX || 0) : currentX;
 						const compose = (ctx, op, alpha, style, img) => {
 							ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
 							ctx.translate(0, y);
-							ctx.fill(analysis.graphPath);
-							ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
+							ctx.fill(a.graphPath);
+							ctx.drawImage(img, 0, 0, a.width, a.height, drawX - (a.drawOffsetX || 0), 0, a.width, a.height);
 							ctx.translate(0, -y);
 							ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 						};
 
-						if (isDark) {
+						if (this.isDark) {
 							if (inkAlpha > 0) {
-								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
-
+								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', a.whiteCanvas);
 								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-								tempCtx.clearRect(0, 0, analysis.width, analysis.height);
-								tempCtx.globalCompositeOperation = 'source-over';
-								tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
+								tempCtx.clearRect(0, 0, a.width, a.height);
+								tempCtx.drawImage(a.whiteCanvas, 0, 0);
 								paint(tempCtx, invColor);
 								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
 							}
-
 							const lightAlpha = Math.min(r, g, b) / 255;
-							if (lightAlpha > 0) {
-								compose(lightCtx, 'screen', lightAlpha, colorHex, analysis.canvas);
-							}
+							if (lightAlpha > 0) compose(lightCtx, 'screen', lightAlpha, color, a.canvas);
+						} else {
+							compose(compositeCtx, 'multiply', inkAlpha, color, a.canvas);
 						}
-						if (!isDark) {
-							compose(compositeCtx, 'multiply', inkAlpha, colorHex, analysis.canvas);
-						}
-						if (sideMode) currentTranslateX += analysis.width;
+						if (sideMode) currentX += a.width;
 					});
+				}
 
-					if (isDark) {
-						fill(diffCtx);
-						diffCtx.drawImage(this.maskCanvas, 0, 0); diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.invInkCanvas, 0, 0);
-
-						fill(emissiveCtx);
-						emissiveCtx.globalCompositeOperation = 'lighter'; emissiveCtx.drawImage(this.diffCanvas, 0, 0);
-
-						fill(diffCtx, '#ffffff');
-						diffCtx.globalCompositeOperation = 'difference'; diffCtx.drawImage(this.maskCanvas, 0, 0);
-
-						fill(invMaskCtx);
-						invMaskCtx.globalCompositeOperation = 'lighter'; invMaskCtx.drawImage(this.diffCanvas, 0, 0);
-
-						this.context.globalCompositeOperation = 'multiply'; this.context.drawImage(this.invMaskCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'lighter'; this.context.drawImage(this.emissiveInkCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'screen'; this.context.drawImage(this.lightCanvas, 0, 0);
-						this.context.globalCompositeOperation = 'source-over';
-					}
-					if (!isDark) {
-						this.context.drawImage(compositeCanvas, 0, 0);
-					}
+				drawGuides(dim, validItems) {
 					const guides = elements.guides.value;
 					if (['baseline', 'metrics'].includes(guides)) {
 						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-						this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
+						this.context.fillRect(0, dim.baseline, this.context.canvas.width, 1);
 					}
 					if (guides === 'metrics') {
-						validAnalyses.forEach((analysis, index) => {
-							const y = dimensions.baseline - analysis.baselineShift;
-							this.context.fillStyle = elements[`color${index + 1}`].value;
-							const line = (d, a) => { this.context.globalAlpha = a; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
-							line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
-							line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
+						validItems.forEach(({ a, i }) => {
+							const y = dim.baseline - a.baselineShift;
+							this.context.fillStyle = elements[`color${i + 1}`].value;
+							const line = (d, alpha) => { this.context.globalAlpha = alpha; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
+							line(-a.fontAscent, 0.5); line(a.fontDescent, 0.5);
+							line(-a.fontCapHeight, 0.3); line(-a.fontXHeight, 0.3);
 							this.context.globalAlpha = 1.0;
 						});
 					}
-					this.updateScale();
 				}
 
 				updateScale() {
