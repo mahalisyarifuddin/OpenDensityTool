@@ -1,43 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width,initial-scale=1">
-		<title>Typographic Density Tool</title>
-		<style>
-			:root {
-				--primary: #005dac;
-				--on-primary: #ffffff;
-				--hover: #00539a;
-				--background: #f9f9ff;
-				--surface: #ffffff;
-				--text: #181c21;
-				--border: #c1c6d4;
-				--muted: #f2f3fc;
-				--success: #0b6b1d;
-				--on-success: #ffffff;
-				--danger: #ba1a1a;
-				--on-danger: #ffffff;
-				--highlight-bg: #d4e3ff;
-			}
-			@media (prefers-color-scheme: dark) {
-				:root:not(.light) {
-					--primary: #a5c8ff;
-					--on-primary: #00315f;
-					--hover: #72adff;
-					--background: #101319;
-					--surface: #0b0e14;
-					--text: #e0e2ea;
-					--border: #414752;
-					--muted: #181c21;
-					--success: #82db7e;
-					--on-success: #00390a;
-					--danger: #ffb4ab;
-					--on-danger: #93000a;
-					--highlight-bg: #001c3a;
-				}
-			}
-			:root.dark {
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Typographic Density Tool</title>
+	<style>
+		:root {
+			--primary: #005dac;
+			--on-primary: #ffffff;
+			--hover: #00539a;
+			--background: #f9f9ff;
+			--surface: #ffffff;
+			--text: #181c21;
+			--border: #c1c6d4;
+			--muted: #f2f3fc;
+			--success: #0b6b1d;
+			--on-success: #ffffff;
+			--danger: #ba1a1a;
+			--on-danger: #ffffff;
+			--highlight-bg: #d4e3ff;
+		}
+		@media (prefers-color-scheme: dark) {
+			:root:not(.light) {
 				--primary: #a5c8ff;
 				--on-primary: #00315f;
 				--hover: #72adff;
@@ -52,1187 +36,1115 @@
 				--on-danger: #93000a;
 				--highlight-bg: #001c3a;
 			}
-			* {
-				box-sizing: border-box;
-				margin: 0;
-				padding: 0;
+		}
+		:root.dark {
+			--primary: #a5c8ff;
+			--on-primary: #00315f;
+			--hover: #72adff;
+			--background: #101319;
+			--surface: #0b0e14;
+			--text: #e0e2ea;
+			--border: #414752;
+			--muted: #181c21;
+			--success: #82db7e;
+			--on-success: #00390a;
+			--danger: #ffb4ab;
+			--on-danger: #93000a;
+			--highlight-bg: #001c3a;
+		}
+		* { 
+			box-sizing: border-box; 
+			margin: 0; 
+			padding: 0; 
+		}
+		*:focus-visible { 
+			outline: 2px solid var(--primary); 
+			outline-offset: 2px; 
+		}
+		body {
+			background: var(--background);
+			color: var(--text);
+			font-family: sans-serif;
+			line-height: 1.25;
+			padding: 1.5rem;
+			min-height: 100vh;
+		}
+		header { 
+			display: flex; 
+			justify-content: space-between; 
+			align-items: center; 
+			margin-bottom: 2rem; 
+			max-width: 1600px; 
+			margin-left: auto; 
+			margin-right: auto; 
+		}
+		h1 { 
+			margin: .5rem 0; 
+			font-size: 2rem; 
+			font-weight: 600; 
+		}
+		main { 
+			display: grid; 
+			grid-template-columns: 330px 1fr; 
+			gap: 1.5rem; 
+			max-width: 1600px; 
+			margin: 0 auto; 
+		}
+		section { 
+			background: var(--surface); 
+			border: 1px solid var(--border); 
+			border-radius: 8px; 
+			padding: 1.5rem; 
+			min-width: 0; 
+		}
+		h2 { 
+			margin: .5rem 0 1rem; 
+			border-bottom: 1px solid var(--border); 
+			padding-bottom: .75rem; 
+			font-size: 1.2rem; 
+			font-weight: 600; 
+		}
+		.group { 
+			background: var(--background); 
+			border: 1px solid var(--border); 
+			padding: 1rem; 
+			border-radius: 6px; 
+			margin-bottom: 1rem; 
+			position: relative; 
+		}
+		.group.dragActive { 
+			border-color: var(--primary); 
+			background: var(--surface); 
+		}
+		.group.dragActive::after { 
+			content: "Drop Font File"; 
+			position: absolute; 
+			inset: 0; 
+			background: var(--surface); 
+			color: var(--primary); 
+			display: flex; 
+			align-items: center; 
+			justify-content: center; 
+			font-size: 1.5rem; 
+			font-weight: 700; 
+			border-radius: 6px; 
+			z-index: 10; 
+		}
+		.header { 
+			display: flex; 
+			align-items: center; 
+			margin-bottom: .75rem; 
+			font-weight: 700; 
+		}
+		.header span { 
+			white-space: nowrap; 
+			overflow: hidden; 
+			text-overflow: ellipsis; 
+			min-width: 0; 
+		}
+		input[type=color] { 
+			width: 24px; 
+			height: 24px; 
+			border: none; 
+			background: none; 
+			padding: 0; 
+			margin-right: .5em; 
+			cursor: pointer; 
+			flex-shrink: 0; 
+		}
+		input[type=range] { 
+			width: 100%; 
+			margin-top: 6px; 
+			cursor: grab; 
+			accent-color: var(--primary); 
+		}
+		input[type=range]:active { 
+			cursor: grabbing; 
+		}
+		label { 
+			display: block; 
+			margin-bottom: .5rem; 
+			font-weight: 500; 
+			font-size: .9rem; 
+		}
+		input:not([type=color]):not([type=range]), textarea, select, button {
+			width: 100%;
+			padding: .5rem .75rem;
+			border: 1px solid var(--border);
+			border-radius: 4px;
+			background: var(--surface);
+			color: var(--text);
+			margin-top: 4px;
+			font-family: inherit;
+			font-size: .95rem;
+		}
+		textarea { 
+			resize: vertical; 
+			min-height: 80px; 
+			font-family: monospace; 
+			font-size: .8rem; 
+		}
+		.row { 
+			display: flex; 
+			gap: 1rem; 
+		}
+		.controls { 
+			display: flex; 
+			gap: .75rem; 
+			align-items: center; 
+			margin-bottom: 1rem; 
+		}
+		.controlsSelection { 
+			display: flex; 
+			flex-wrap: wrap; 
+			gap: .75rem; 
+			flex: 1; 
+		}
+		.controls select, button { 
+			width: auto; 
+			margin-top: 0; 
+			flex-shrink: 0; 
+		}
+		button { 
+			background: var(--primary); 
+			color: var(--on-primary); 
+			border: 0; 
+			padding: .5rem 1rem; 
+			cursor: pointer; 
+		}
+		button:hover { 
+			background: var(--hover); 
+		}
+		dialog {
+			background: var(--surface);
+			color: var(--text);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 1.5rem;
+			max-width: 400px;
+			width: 100%;
+			margin: auto;
+			position: fixed;
+		}
+		dialog::backdrop { 
+			background: rgba(0, 0, 0, 0.5); 
+		}
+		.dialog-header { 
+			display: flex; 
+			justify-content: space-between; 
+			align-items: center; 
+			margin-bottom: 1.5rem; 
+		}
+		.dialog-header h3 { 
+			font-size: 1.25rem; 
+			font-weight: 600; 
+		}
+		.close-button { 
+			background: transparent; 
+			color: var(--text); 
+			padding: .25rem; 
+			font-size: 1.5rem; 
+			line-height: 1; 
+		}
+		.close-button:hover { 
+			background: var(--background); 
+			color: var(--text); 
+		}
+		#preview { 
+			background: var(--surface); 
+			border: 1px solid var(--border); 
+			border-radius: 6px; 
+			overflow: auto; 
+			margin-bottom: 1.5rem; 
+		}
+		#container { 
+			padding: 1rem; 
+			display: flex; 
+			align-items: flex-start; 
+			position: relative; 
+		}
+		#cursorGuide { 
+			position: absolute; 
+			left: 0; 
+			right: 0; 
+			height: 1px; 
+			background-color: var(--danger); 
+			pointer-events: none; 
+			z-index: 10; 
+			opacity: 0.5; 
+		}
+		canvas { 
+			transform-origin: top left; 
+			display: block; 
+			flex-shrink: 0; 
+			background: var(--surface); 
+		}
+		.results { 
+			display: grid; 
+			grid-template-columns: 1fr 1fr; 
+			gap: 1rem; 
+		}
+		.card { 
+			background: var(--background); 
+			border: 1px solid var(--border); 
+			padding: 1rem; 
+			border-radius: 6px; 
+			min-width: 0; 
+		}
+		.output { 
+			font-family: monospace; 
+			font-size: .8rem; 
+			line-height: 1.5; 
+			margin-top: .5rem; 
+		}
+		.statisticGrid { 
+			display: grid; 
+			gap: .5rem; 
+		}
+		.statisticRow { 
+			display: flex; 
+			justify-content: 
+			space-between; 
+			align-items: center; 
+		}
+		.statisticGroup { 
+			margin-top: .5rem; 
+			border-top: 1px solid var(--border); 
+			padding-top: .5rem; 
+		}
+		.statisticTitle { 
+			font-weight: 600; 
+			margin-bottom: .25rem; 
+			color: var(--text); 
+		}
+		.statisticLabel { 
+			color: var(--text); 
+			opacity: .8; 
+		}
+		.statisticValue { 
+			font-weight: 600; 
+		}
+		.indicator { 
+			width: 14px; 
+			height: 14px; 
+			border-radius: 3px; 
+			display: inline-block; 
+			margin-right: .5em; 
+			flex-shrink: 0; 
+		}
+		.actionButton { 
+			margin-left: auto; 
+			background: transparent; 
+			color: var(--primary); 
+			border: 1px solid transparent; 
+			padding: .25rem .5rem; 
+			font-size: .8rem; 
+			border-radius: 4px; 
+		}
+		.actionButton:hover { 
+			background: var(--background); 
+			border-color: var(--muted); 
+			color: var(--hover); 
+		}
+		.actionButton[aria-pressed="true"] { 
+			background: var(--primary); 
+			color: var(--on-primary); 
+		}
+		.actionButton[aria-pressed="true"]:hover { 
+			background: var(--hover); 
+			color: var(--on-primary); 
+		}
+		.spinner { 
+			width: 24px; 
+			height: 24px; 
+			border: 3px solid var(--border); 
+			border-top-color: var(--primary); 
+			border-radius: 50%; 
+			animation: spin 1s linear infinite; 
+			margin: 1rem auto; 
+		}
+		@keyframes spin { 
+			to { 
+				transform: rotate(360deg); 
+			} 
+		}
+		[hidden] { 
+			display: none !important; 
+		}
+		.sr-only { 
+			position: absolute; 
+			width: 1px; 
+			height: 1px; 
+			padding: 0; 
+			margin: -1px; 
+			overflow: hidden; 
+			clip: rect(0, 0, 0, 0); 
+			white-space: nowrap; 
+			border: 0; 
+		}
+		.file-upload-btn {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: var(--surface);
+			color: var(--text);
+			border: 1px solid var(--border);
+			padding: .5rem .75rem;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: .95rem;
+			margin-top: 4px;
+			transition: border-color 0.2s, background-color 0.2s;
+		}
+		.file-upload-btn:hover { 
+			background: var(--muted); 
+			border-color: var(--primary); 
+		}
+		.file-upload-btn:focus-visible { 
+			outline: 2px solid var(--primary); 
+			outline-offset: 2px; 
+		}
+		.file-icon { 
+			font-size: 1.2em; 
+		}
+		.file-name-display { 
+			margin-top: 4px; 
+			font-size: 0.85rem; 
+			color: var(--text); 
+			opacity: 0.8; 
+			min-height: 1.2em; 
+			white-space: nowrap; 
+			overflow: hidden; 
+			text-overflow: ellipsis; 
+		}
+		@media (max-width: 900px) {
+			main { 
+				grid-template-columns: 1fr; 
 			}
-			*:focus-visible {
-				outline: 2px solid var(--primary);
-				outline-offset: 2px;
+			.results { 
+				grid-template-columns: 1fr; 
 			}
-			body {
-				background: var(--background);
-				color: var(--text);
-				font-family: sans-serif;
-				line-height: 1.25;
-				padding: 1.5rem;
-				min-height: 100vh;
-			}
-			header {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				margin-bottom: 2rem;
-				max-width: 1600px;
-				margin-left: auto;
-				margin-right: auto;
-			}
-			h1 {
-				margin: .5rem 0;
-				font-size: 2rem;
-				font-weight: 600;
-			}
-			main {
-				display: grid;
-				grid-template-columns: 330px 1fr;
-				gap: 1.5rem;
-				max-width: 1600px;
-				margin: 0 auto;
-			}
-			section {
-				background: var(--surface);
-				border: 1px solid var(--border);
-				border-radius: 8px;
-				padding: 1.5rem;
-				min-width: 0;
-			}
-			h2 {
-				margin: .5rem 0 1rem;
-				border-bottom: 1px solid var(--border);
-				padding-bottom: .75rem;
-				font-size: 1.2rem;
-				font-weight: 600;
-			}
-			.group {
-				background: var(--background);
-				border: 1px solid var(--border);
-				padding: 1rem;
-				border-radius: 6px;
-				margin-bottom: 1rem;
-				position: relative;
-			}
-			.group.dragActive {
-				border-color: var(--primary);
-				background: var(--surface);
-			}
-			.group.dragActive::after {
-				content: "Drop Font File";
-				position: absolute;
-				inset: 0;
-				background: var(--surface);
-				color: var(--primary);
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				font-size: 1.5rem;
-				font-weight: 700;
-				border-radius: 6px;
-				z-index: 10;
-			}
-			.header {
-				display: flex;
-				align-items: center;
-				margin-bottom: .75rem;
-				font-weight: 700;
-			}
-			.header span {
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				min-width: 0;
-			}
-			input[type=color] {
-				width: 24px;
-				height: 24px;
-				border: none;
-				background: none;
-				padding: 0;
-				margin-right: .5em;
-				cursor: pointer;
-				flex-shrink: 0;
-			}
-			input[type=range] {
-				width: 100%;
-				margin-top: 6px;
-				cursor: grab;
-				accent-color: var(--primary);
-			}
-			input[type=range]:active {
-				cursor: grabbing;
-			}
-			label {
-				display: block;
-				margin-bottom: .5rem;
-				font-weight: 500;
-				font-size: .9rem;
-			}
-			input:not([type=color]):not([type=range]), textarea, select, button {
-				width: 100%;
-				padding: .5rem .75rem;
-				border: 1px solid var(--border);
-				border-radius: 4px;
-				background: var(--surface);
-				color: var(--text);
-				margin-top: 4px;
-				font-family: inherit;
-				font-size: .95rem;
-			}
-			textarea {
-				resize: vertical;
-				min-height: 80px;
-				font-family: monospace;
-				font-size: .8rem;
-			}
-			.row {
-				display: flex;
-				gap: 1rem;
-			}
-			.controls {
-				display: flex;
-				gap: .75rem;
-				align-items: center;
-				margin-bottom: 1rem;
-			}
-			.controlsSelection {
-				display: flex;
-				flex-wrap: wrap;
-				gap: .75rem;
-				flex: 1;
-			}
-			.controls select, button {
-				width: auto;
-				margin-top: 0;
-				flex-shrink: 0;
-			}
-			button {
-				background: var(--primary);
-				color: var(--on-primary);
-				border: 0;
-				padding: .5rem 1rem;
-				cursor: pointer;
-			}
-			button:hover {
-				background: var(--hover);
-			}
-			dialog {
-				background: var(--surface);
-				color: var(--text);
-				border: 1px solid var(--border);
-				border-radius: 8px;
-				padding: 1.5rem;
-				max-width: 400px;
-				width: 100%;
-				margin: auto;
-				position: fixed;
-			}
-			dialog::backdrop {
-				background: rgba(0, 0, 0, 0.5);
-			}
-			.dialog-header {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				margin-bottom: 1.5rem;
-			}
-			.dialog-header h3 {
-				font-size: 1.25rem;
-				font-weight: 600;
-			}
-			.close-button {
-				background: transparent;
-				color: var(--text);
-				padding: .25rem;
-				font-size: 1.5rem;
-				line-height: 1;
-			}
-			.close-button:hover {
-				background: var(--background);
-				color: var(--text);
-			}
-			#preview {
-				background: var(--surface);
-				border: 1px solid var(--border);
-				border-radius: 6px;
-				overflow: auto;
-				margin-bottom: 1.5rem;
-			}
-			#container {
-				padding: 1rem;
-				display: flex;
-				align-items: flex-start;
-				position: relative;
-			}
-			#cursorGuide {
-				position: absolute;
-				left: 0;
-				right: 0;
-				height: 1px;
-				background-color: var(--danger);
-				pointer-events: none;
-				z-index: 10;
-				opacity: 0.5;
-			}
-			canvas {
-				transform-origin: top left;
-				display: block;
-				flex-shrink: 0;
-				background: var(--surface);
-			}
-			.results {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-				gap: 1rem;
-			}
-			.card {
-				background: var(--background);
-				border: 1px solid var(--border);
-				padding: 1rem;
-				border-radius: 6px;
-				min-width: 0;
-			}
-			.output {
-				font-family: monospace;
-				font-size: .8rem;
-				line-height: 1.5;
-				margin-top: .5rem;
-			}
-			.statisticGrid {
-				display: grid;
-				gap: .5rem;
-			}
-			.statisticRow {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-			}
-			.statisticGroup {
-				margin-top: .5rem;
-				border-top: 1px solid var(--border);
-				padding-top: .5rem;
-			}
-			.statisticTitle {
-				font-weight: 600;
-				margin-bottom: .25rem;
-				color: var(--text);
-			}
-			.statisticLabel {
-				color: var(--text);
-				opacity: .8;
-			}
-			.statisticValue {
-				font-weight: 600;
-			}
-			.indicator {
-				width: 14px;
-				height: 14px;
-				border-radius: 3px;
-				display: inline-block;
-				margin-right: .5em;
-				flex-shrink: 0;
-			}
-			.actionButton {
-				margin-left: auto;
-				background: transparent;
-				color: var(--primary);
-				border: 1px solid transparent;
-				padding: .25rem .5rem;
-				font-size: .8rem;
-				border-radius: 4px;
-			}
-			.actionButton:hover {
-				background: var(--background);
-				border-color: var(--muted);
-				color: var(--hover);
-			}
-			.actionButton[aria-pressed="true"] {
-				background: var(--primary);
-				color: var(--on-primary);
-			}
-			.actionButton[aria-pressed="true"]:hover {
-				background: var(--hover);
-				color: var(--on-primary);
-			}
-			.spinner {
-				width: 24px;
-				height: 24px;
-				border: 3px solid var(--border);
-				border-top-color: var(--primary);
-				border-radius: 50%;
-				animation: spin 1s linear infinite;
-				margin: 1rem auto;
-			}
-			@keyframes spin {
-				to {
-					transform: rotate(360deg);
-				}
-			}
-			[hidden] {
-				display: none !important;
-			}
-			.sr-only {
-				position: absolute;
-				width: 1px;
-				height: 1px;
-				padding: 0;
-				margin: -1px;
-				overflow: hidden;
-				clip: rect(0, 0, 0, 0);
-				white-space: nowrap;
-				border: 0;
-			}
-			.file-upload-btn {
-				width: 100%;
-				text-align: center;
-				justify-content: center;
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				background: var(--surface);
-				color: var(--text);
-				border: 1px solid var(--border);
-				padding: .5rem .75rem;
-				border-radius: 4px;
-				cursor: pointer;
-				font-size: .95rem;
-				margin-top: 4px;
-				transition: border-color 0.2s, background-color 0.2s;
-			}
-			.file-upload-btn:hover {
-				background: var(--muted);
-				border-color: var(--primary);
-			}
-			.file-upload-btn:focus-visible {
-				outline: 2px solid var(--primary);
-				outline-offset: 2px;
-			}
-			.file-icon {
-				font-size: 1.2em;
-			}
-			.file-name-display {
-				margin-top: 4px;
-				font-size: 0.85rem;
-				color: var(--text);
-				opacity: 0.8;
-				min-height: 1.2em;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-			@media (max-width: 900px) {
-				main {
-					grid-template-columns: 1fr;
-				}
-				.results {
-					grid-template-columns: 1fr;
-				}
-			}
-			.row label {
-				display: flex;
-				flex-direction: column;
-				gap: 4px;
-				flex: 1;
-				min-width: 0;
-			}
-			.row label input:not([type=range]) {
-				margin-top: auto;
-			}
-			#tooltip {
-				position: fixed;
-				background: rgba(0, 0, 0, 0.85);
-				color: #fff;
-				padding: 8px 12px;
-				border-radius: 6px;
-				font-size: 13px;
-				pointer-events: none;
-				z-index: 1000;
-				white-space: pre;
-				font-family: monospace;
-				box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-			}
-		</style>
-	</head>
-	<body>
-		<div id="tooltip" hidden></div>
-		<header>
-			<h1>Typographic Density Tool</h1>
-			<button id="openSettings" style="width:auto" aria-label="Open Settings">Settings</button>
-		</header>
-		<dialog id="preferencesDialog">
-			<div class="dialog-header">
-				<h3>Preferences</h3>
-				<button id="closeSettings" class="close-button" aria-label="Close Settings">&times;</button>
+		}
+		.row label { 
+			display: flex; 
+			flex-direction: column; 
+			gap: 4px; 
+			flex: 1; 
+			min-width: 0; 
+		}
+		.row label input:not([type=range]) { 
+			margin-top: auto; 
+		}
+		#tooltip { 
+			position: fixed; 
+			background: rgba(0, 0, 0, 0.85); 
+			color: #fff; 
+			padding: 8px 12px; 
+			border-radius: 6px; 
+			font-size: 13px; 
+			pointer-events: none; 
+			z-index: 1000; 
+			white-space: pre; 
+			font-family: monospace; 
+			box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+		}
+	</style>
+</head>
+<body>
+	<div id="tooltip" hidden></div>
+	<header>
+		<h1>Typographic Density Tool</h1>
+		<button id="openSettings" style="width:auto" aria-label="Open Settings">Settings</button>
+	</header>
+	<dialog id="preferencesDialog">
+		<div class="dialog-header">
+			<h3>Preferences</h3>
+			<button id="closeSettings" class="close-button" aria-label="Close Settings">&times;</button>
+		</div>
+		<div class="group">
+			<label>Theme<select id="theme" style="margin-top:4px"><option value="auto">Auto Theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+			<label>Letter Spacing Unit<select id="spacingUnit" style="margin-top:4px"><option value="em" selected>Per mille (‰ em)</option><option value="px">Pixels (px)</option><option value="percent">Tracking (%)</option></select></label>
+		</div>
+	</dialog>
+	<main>
+		<section>
+			<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <div><button id="swapFonts" class="actionButton" style="width:auto;margin:0;font-weight:normal;margin-right:8px">Swap</button><button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></div></h2>
+			<div class="group">
+				<div class="header">
+					<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
+					<span id="name1">Font 1</span>
+					<div class="controls" style="margin:0 0 0 auto;gap:4px">
+						<button id="mute1" class="actionButton" aria-label="Toggle visibility Font 1" title="Toggle Visibility (1)" aria-pressed="false">M</button>
+						<button id="solo1" class="actionButton" aria-label="Solo Font 1" title="Solo (Shift+1)" aria-pressed="false">S</button>
+					</div>
+				</div>
+				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+					<label for="file1" style="margin-bottom:0">Font File</label>
+					<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
+				</div>
+				<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
+				<button type="button" id="uploadBtn1" class="file-upload-btn"><span class="file-icon">📁</span> Choose Font File...</button>
+				<div id="fileName1" class="file-name-display"></div>
+				<div style="margin-bottom:.5rem">
+					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+						<label for="text1" style="margin-bottom:0">Text</label>
+						<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples"><option value="">Samples...</option></select>
+					</div>
+					<textarea id="text1" maxlength="1000">Idealogy</textarea>
+				</div>
+				<label>Size (px)<input type="number" id="size1" value="100" min="8" max="500"><input type="range" id="sizeRange1" value="100" min="6" max="500" aria-label="Size (px)"></label>
+				<div class="row">
+					<label>Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500"><input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
+					<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"><input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
+				</div>
 			</div>
 			<div class="group">
-				<label>
-					Theme
-					<select id="theme" style="margin-top:4px">
-						<option value="auto">Auto Theme</option>
-						<option value="light">Light</option>
-						<option value="dark">Dark</option>
-					</select>
-				</label>
-				<label>
-					Letter Spacing Unit
-					<select id="spacingUnit" style="margin-top:4px">
-						<option value="em" selected>Per mille (‰ em)</option>
-						<option value="px">Pixels (px)</option>
-						<option value="percent">Tracking (%)</option>
-					</select>
-				</label>
+				<div class="header">
+					<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">
+					<span id="name2">Font 2</span>
+					<div class="controls" style="margin:0 0 0 auto;gap:4px">
+						<button id="mute2" class="actionButton" aria-label="Toggle visibility Font 2" title="Toggle Visibility (2)" aria-pressed="false">M</button>
+						<button id="solo2" class="actionButton" aria-label="Solo Font 2" title="Solo (Shift+2)" aria-pressed="false">S</button>
+					</div>
+				</div>
+				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+					<label for="file2" style="margin-bottom:0">Font File</label>
+					<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
+				</div>
+				<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
+				<button type="button" id="uploadBtn2" class="file-upload-btn"><span class="file-icon">📁</span> Choose Font File...</button>
+				<div id="fileName2" class="file-name-display"></div>
+				<div style="margin-bottom:.5rem">
+					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+						<label for="text2" style="margin-bottom:0">Text</label>
+						<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples"><option value="">Samples...</option></select>
+					</div>
+					<textarea id="text2" maxlength="1000">Идеология</textarea>
+				</div>
+				<label>Size (px)<input type="number" id="size2" value="100" min="8" max="500"><input type="range" id="sizeRange2" value="100" min="6" max="500" aria-label="Size (px)"></label>
+				<div class="row">
+					<label>Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500"><input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
+					<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"><input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
+				</div>
 			</div>
-		</dialog>
-		<main>
-			<section>
-				<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <div><button id="swapFonts" class="actionButton" style="width:auto;margin:0;font-weight:normal;margin-right:8px">Swap</button><button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></div></h2>
-				<div class="group">
+		</section>
+		<section>
+			<h2>Visualization</h2>
+			<div class="controls">
+				<div class="controlsSelection">
+					<select id="zoom" aria-label="Zoom level"><option value="fit">Fit to View</option><option value="100">100% Scale</option></select>
+					<select id="render" aria-label="Render mode"><option value="overlay">Overlay</option><option value="side">Side-by-side</option></select>
+					<select id="density" aria-label="Density calculation method"><option value="ink">Ink Box</option><option value="em">Em Box</option></select>
+					<select id="guides" aria-label="Guides"><option value="none">No Guides</option><option value="baseline">Show Baseline</option><option value="metrics">Show Metrics</option></select>
+				</div>
+				<button id="copyImage">Copy Image</button>
+				<button id="export">Export PNG</button>
+			</div>
+			<div id="preview">
+				<div id="container">
+					<canvas id="canvas"></canvas>
+					<div id="cursorGuide" aria-hidden="true" hidden></div>
+				</div>
+			</div>
+			<div class="results">
+				<div class="card">
 					<div class="header">
-						<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
-						<span id="name1">Font 1</span>
-						<div class="controls" style="margin:0 0 0 auto;gap:4px">
-							<button id="mute1" class="actionButton" aria-label="Toggle visibility Font 1" title="Toggle Visibility (1)" aria-pressed="false">M</button>
-							<button id="solo1" class="actionButton" aria-label="Solo Font 1" title="Solo (Shift+1)" aria-pressed="false">S</button>
-						</div>
+						<div id="dot1" class="indicator" aria-hidden="true"></div>
+						<span id="analysisName1">Font 1 Analysis</span>
+						<button class="actionButton copyButton" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
 					</div>
-					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-						<label for="file1" style="margin-bottom:0">Font File</label>
-						<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
-					</div>
-					<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
-					<button type="button" id="uploadBtn1" class="file-upload-btn">
-						<span class="file-icon">📁</span> Choose Font File...
-					</button>
-					<div id="fileName1" class="file-name-display"></div>
-					<div style="margin-bottom:.5rem">
-						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-							<label for="text1" style="margin-bottom:0">Text</label>
-							<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples">
-								<option value="">Samples...</option>
-							</select>
-						</div>
-						<textarea id="text1" maxlength="1000">Idealogy</textarea>
-					</div>
-					<label>
-						Size (px)<input type="number" id="size1" value="100" min="8" max="500">
-						<input type="range" id="sizeRange1" value="100" min="6" max="500" aria-label="Size (px)">
-					</label>
-					<div class="row">
-						<label>
-							Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500">
-							<input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)">
-						</label>
-						<label>
-							Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200">
-							<input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift">
-						</label>
-					</div>
+					<div id="result1" class="output" aria-live="polite"></div>
 				</div>
-				<div class="group">
+				<div class="card">
 					<div class="header">
-						<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">
-						<span id="name2">Font 2</span>
-						<div class="controls" style="margin:0 0 0 auto;gap:4px">
-							<button id="mute2" class="actionButton" aria-label="Toggle visibility Font 2" title="Toggle Visibility (2)" aria-pressed="false">M</button>
-							<button id="solo2" class="actionButton" aria-label="Solo Font 2" title="Solo (Shift+2)" aria-pressed="false">S</button>
-						</div>
+						<div id="dot2" class="indicator" aria-hidden="true"></div>
+						<span id="analysisName2">Font 2 Analysis</span>
+						<button class="actionButton copyButton" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
 					</div>
-					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-						<label for="file2" style="margin-bottom:0">Font File</label>
-						<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
-					</div>
-					<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
-					<button type="button" id="uploadBtn2" class="file-upload-btn">
-						<span class="file-icon">📁</span> Choose Font File...
-					</button>
-					<div id="fileName2" class="file-name-display"></div>
-					<div style="margin-bottom:.5rem">
-						<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-							<label for="text2" style="margin-bottom:0">Text</label>
-							<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples">
-								<option value="">Samples...</option>
-							</select>
-						</div>
-						<textarea id="text2" maxlength="1000">Идеология</textarea>
-					</div>
-					<label>
-						Size (px)<input type="number" id="size2" value="100" min="8" max="500">
-						<input type="range" id="sizeRange2" value="100" min="6" max="500" aria-label="Size (px)">
-					</label>
-					<div class="row">
-						<label>
-							Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500">
-							<input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)">
-						</label>
-						<label>
-							Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200">
-							<input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift">
-						</label>
-					</div>
+					<div id="result2" class="output" aria-live="polite"></div>
 				</div>
-			</section>
-			<section>
-				<h2>Visualization</h2>
-				<div class="controls">
-					<div class="controlsSelection">
-						<select id="zoom" aria-label="Zoom level">
-							<option value="fit">Fit to View</option>
-							<option value="100">100% Scale</option>
-						</select>
-						<select id="render" aria-label="Render mode">
-							<option value="overlay">Overlay</option>
-							<option value="side">Side-by-side</option>
-						</select>
-						<select id="density" aria-label="Density calculation method">
-							<option value="ink">Ink Box</option>
-							<option value="em">Em Box</option>
-						</select>
-						<select id="guides" aria-label="Guides">
-							<option value="none">No Guides</option>
-							<option value="baseline">Show Baseline</option>
-							<option value="metrics">Show Metrics</option>
-						</select>
-					</div>
-					<button id="copyImage">Copy Image</button>
-					<button id="export">Export PNG</button>
-				</div>
-				<div id="preview">
-					<div id="container">
-						<canvas id="canvas"></canvas>
-						<div id="cursorGuide" aria-hidden="true" hidden></div>
-					</div>
-				</div>
-				<div class="results">
-					<div class="card">
-						<div class="header">
-							<div id="dot1" class="indicator" aria-hidden="true"></div>
-							<span id="analysisName1">Font 1 Analysis</span>
-							<button class="actionButton copyButton" data-target="result1" aria-label="Copy Font 1 analysis">Copy</button>
-						</div>
-						<div id="result1" class="output" aria-live="polite"></div>
-					</div>
-					<div class="card">
-						<div class="header">
-							<div id="dot2" class="indicator" aria-hidden="true"></div>
-							<span id="analysisName2">Font 2 Analysis</span>
-							<button class="actionButton copyButton" data-target="result2" aria-label="Copy Font 2 analysis">Copy</button>
-						</div>
-						<div id="result2" class="output" aria-live="polite"></div>
-					</div>
-				</div>
-			</section>
-		</main>
-		<script type="module">
-			import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+			</div>
+		</section>
+	</main>
+	<script type="module">
+		import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
 
-			const fontkit = fontkitModule.default || fontkitModule;
-			const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
-			const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
-			const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
-			const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
-			const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
-			const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
-			const row = (l, v) => `<div class="statisticRow"><span class="statisticLabel">${l}</span><span class="statisticValue">${v}</span></div>`;
+		const fontkit = fontkitModule.default || fontkitModule;
+		const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
+		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
+		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
+		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
+		const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
+		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
+		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
 
-			const parseColor = (c) => {
-				if (!c) return { r: 0, g: 0, b: 0, a: 0 };
-				if (c[0] === '#') {
-					const i = parseInt((c.length < 5 ? c.replace(/[^#]/g, '$&$&') : c).slice(1, 7), 16);
-					return { r: i >> 16 & 255, g: i >> 8 & 255, b: i & 255, a: 1 };
+		const parseColor = (color) => {
+			if (!color) return { r: 0, g: 0, b: 0, a: 0 };
+			if (color[0] === '#') {
+				const int = parseInt((color.length < 5 ? color.replace(/[^#]/g, '$&$&') : color).slice(1, 7), 16);
+				return { r: int >> 16 & 255, g: int >> 8 & 255, b: int & 255, a: 1 };
+			}
+			const [r = 0, g = 0, b = 0, a = 1] = (color.match(/[\d.]+/g) || []).map(Number);
+			return { r, g, b, a };
+		};
+
+		const prepareCanvas = (canvas, width, height) => {
+			canvas.width = Math.max(canvas.width, width);
+			canvas.height = Math.max(canvas.height, height);
+			return canvas.getContext('2d', { willReadFrequently: true });
+		};
+
+		const analyzePixels = (context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) => {
+			const sliceHeight = scanYEnd - scanYStart;
+			const sliceWidth = scanXEnd - scanXStart;
+			if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
+			const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
+			const pixelDataInt32 = new Uint32Array(data.buffer);
+			const densityByRow = new Float32Array(height);
+			let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
+			for (let y = scanYStart; y < scanYEnd; y++) {
+				let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
+				const rowStart = index;
+				while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
+				if (index === endIndex) continue;
+				const firstX = index - rowStart;
+				endIndex--;
+				while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
+				const lastX = endIndex - rowStart;
+				let rowInk = 0;
+				const limit = endIndex - 7;
+				for (; index <= limit; index += 8) {
+					rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
+					rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
 				}
-				const [r = 0, g = 0, b = 0, a = 1] = (c.match(/[\d.]+/g) || []).map(Number);
-				return { r, g, b, a };
-			};
+				for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+				densityByRow[y] = rowInk;
+				if (rowInk > maxDensity) maxDensity = rowInk;
+				inkPixels += rowInk;
+				if (minX > firstX) minX = firstX;
+				if (maxX < lastX) maxX = lastX;
+				if (minY > y) minY = y;
+				maxY = y;
+			}
+			return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
+		};
 
-			const prepareCanvas = (c, w, h) => {
-				c.width = Math.max(c.width, w);
-				c.height = Math.max(c.height, h);
-				return c.getContext('2d', { willReadFrequently: true });
-			};
+		class DensityTool {
+			constructor() {
+				const makeCanvas = () => document.createElement('canvas');
+				Object.assign(this, {
+					fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
+					loading: [false, false], loadSequence: [0, 0], renderingCache: [],
+					layoutCache: [null, null], analyses: [],
+					offscreenCanvases: [makeCanvas(), makeCanvas()],
+					whiteCanvases: [makeCanvas(), makeCanvas()],
+					compositeCanvas: makeCanvas(),
+					graphWidth: 150, graphPadding: 20,
+					context: elements.canvas.getContext('2d')
+				});
+				this.setup();
+				this.theme('auto');
+				this.update();
+			}
 
-			const analyzePixels = (context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) => {
-				const sliceHeight = scanYEnd - scanYStart;
-				const sliceWidth = scanXEnd - scanXStart;
-				if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-				// Optimization: Fetch only the relevant ink area to reduce memory transfer and iteration count
-				const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
-				const pixelDataInt32 = new Uint32Array(data.buffer);
-				const densityByRow = new Float32Array(height);
-				let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
-				// Optimization: Inline isInk check ((pixelDataInt32[i] >>> ALPHA_SHIFT) & 1) to avoid function call overhead in hot loop (~50% faster)
-				for (let y = scanYStart; y < scanYEnd; y++) {
-					let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
-					const rowStart = index;
+			setup() {
+				const debouncedUpdate = debounce(() => this.update(), 300);
+				const throttledUpdate = raf(() => this.update());
+				const sampleOptions = Object.entries({
+					"Pangram (En)": "The quick brown fox jumps over the lazy dog",
+					"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
+					"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+					"Numbers": "0123456789",
+					"Alignment": "Haxodp"
+				}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 
-					while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
-					if (index === endIndex) continue;
+				elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
+				['render', 'density', 'guides'].forEach(id => { elements[id].onchange = () => this.update(); });
 
-					const firstX = index - rowStart;
-					endIndex--;
-					while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
-					const lastX = endIndex - rowStart;
+				elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
+					await new Promise(r => setTimeout(r, 50));
+					const link = document.createElement('a');
+					link.href = elements.canvas.toDataURL();
+					const names = this.fonts.map((font, index) => font ? font.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
+					const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+					link.download = `density_${namePart}.png`;
+					link.click();
+				}, 'Saved!', 'Exporting...');
 
-					let rowInk = 0;
-					const limit = endIndex - 7;
-					// Optimization: Unroll loop 8x to reduce iteration overhead (~10% faster)
-					for (; index <= limit; index += 8) {
-						rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
-						rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
-					}
-					for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+				elements.copyImage.onclick = () => this.handleButtonState(elements.copyImage, async () => {
+					const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
+					if (!blob) throw new Error('Blob creation failed');
+					await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+				}, 'Copied!', 'Copying...');
 
-					densityByRow[y] = rowInk;
-					if (rowInk > maxDensity) maxDensity = rowInk;
-					inkPixels += rowInk;
-					if (minX > firstX) minX = firstX;
-					if (maxX < lastX) maxX = lastX;
-					if (minY > y) minY = y;
-					maxY = y;
-				}
-				return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
-			};
-
-			class DensityTool {
-				constructor() {
-					const mkCanvas = () => document.createElement('canvas');
-					Object.assign(this, {
-						fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
-						loading: [false, false], loadSequence: [0, 0], renderingCache: [],
-						layoutCache: [null, null], analyses: [],
-						offscreenCanvases: [mkCanvas(), mkCanvas()],
-						whiteCanvases: [mkCanvas(), mkCanvas()],
-						compositeCanvas: mkCanvas(),
-						graphWidth: 150, graphPadding: 20,
-						context: elements.canvas.getContext('2d')
-					});
-					this.setup();
-					this.theme('auto');
-					this.update();
-				}
-
-				setup() {
-					const debouncedUpdate = debounce(() => this.update(), 300);
-					const throttledUpdate = raf(() => this.update());
-					const sampleOptions = Object.entries({
-						"Pangram (En)": "The quick brown fox jumps over the lazy dog",
-						"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
-						"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
-						"Numbers": "0123456789",
-						"Alignment": "Haxodp"
-					}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
-
-					elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
-					['render', 'density', 'guides'].forEach(id => {
-						elements[id].onchange = () => this.update();
-					});
-
-					elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
-						await new Promise(r => setTimeout(r, 50));
-						const link = document.createElement('a');
-						link.href = elements.canvas.toDataURL();
-						const names = this.fonts.map((f, i) => f ? f.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
-						const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-						link.download = `density_${namePart}.png`;
-						link.click();
-					}, 'Saved!', 'Exporting...');
-
-					elements.copyImage.onclick = () => this.handleButtonState(elements.copyImage, async () => {
-						const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
-						if (!blob) throw new Error('Blob creation failed');
-						await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-					}, 'Copied!', 'Copying...');
-
-					elements.theme.onchange = event => this.theme(event.target.value);
-
-					window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-						this.updateThemeColor();
-						elements.theme.value === 'auto' && this.draw();
-					});
-
-					elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
-					elements.closeSettings.onclick = () => elements.preferencesDialog.close();
-					elements.spacingUnit.onchange = () => {
-						this.updateSpacingLabels();
-						this.update();
-					};
-
-					elements.resetConfig.onclick = () => {
-						[1, 2].forEach(n => INPUT_FIELDS.forEach(k => {
-							const e = elements[k + n], r = elements[k + 'Range' + n];
-							e.value = e.defaultValue;
-							if (r) r.value = e.value;
-						}));
-						this.update();
-					};
-
-					elements.swapFonts.onclick = () => this.swap();
-
-					document.querySelectorAll('.copyButton').forEach(button => {
-						button.onclick = () => this.handleButtonState(button, () => {
-							return navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText);
-						});
-					});
-
-					[1, 2].forEach((number, index) => {
-						const select = elements[`samples${number}`];
-						select.innerHTML += sampleOptions;
-						select.onchange = () => {
-							if (select.value) {
-								elements[`text${number}`].value = select.value;
-								select.value = "";
-								debouncedUpdate();
-							}
-						};
-
-						const fileInput = elements[`file${number}`];
-						const group = fileInput.closest('.group');
-
-						const updateFileName = f => elements[`fileName${number}`].textContent = elements[`fileName${number}`].title = f ? f.name : '';
-						const handleFile = f => { updateFileName(f); this.loadFont(f, index); };
-
-						elements[`uploadBtn${number}`].onclick = () => fileInput.click();
-						fileInput.onchange = e => handleFile(e.target.files[0]);
-
-						elements[`clear${number}`].onclick = () => {
-							this.fonts[index] = this.loadErrors[index] = null;
-							fileInput.value = '';
-							updateFileName(null);
-							this.update();
-						};
-
-						INPUT_FIELDS.forEach(k => {
-							const fn = /color|shift/.test(k) ? throttledUpdate : debouncedUpdate;
-							const n = elements[k + number], r = elements[k + 'Range' + number];
-							n.oninput = () => { if (r) r.value = n.value; fn(); };
-							if (r) r.oninput = () => { n.value = r.value; fn(); };
-						});
-
-						group.ondragover = e => { e.preventDefault(); group.classList.add('dragActive'); };
-						group.ondragleave = e => { if (!e.relatedTarget || !group.contains(e.relatedTarget)) group.classList.remove('dragActive'); };
-						group.ondrop = e => {
-							e.preventDefault(); group.classList.remove('dragActive');
-							if (e.dataTransfer.files[0]) {
-								fileInput.files = e.dataTransfer.files;
-								handleFile(e.dataTransfer.files[0]);
-							}
-						};
-
-						const toggle = (k, p, inv) => elements[k + number].onclick = () => {
-							const v = this[p][index] = !this[p][index];
-							elements[k + number].setAttribute('aria-pressed', inv ? !v : v);
-							this.draw();
-						};
-						toggle('mute', 'visibility', true);
-						toggle('solo', 'solo');
-					});
-
-					elements.canvas.onmousemove = raf(e => {
-						const { clientX, clientY } = e;
-						if (!this.lastDimensions) return;
-						const rect = elements.canvas.getBoundingClientRect();
-
-						const containerRect = elements.container.getBoundingClientRect();
-						const inBounds = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
-						elements.cursorGuide.hidden = !inBounds;
-						if (inBounds) {
-							elements.cursorGuide.style.top = `${clientY - containerRect.top}px`;
-							elements.cursorGuide.style.left = `${rect.left - containerRect.left}px`;
-							elements.cursorGuide.style.width = `${rect.width}px`;
-						}
-
-						const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
-						const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
-						if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
-
-						const content = this.analyses.map((a, i) => {
-								if (!a || a.error || !this.isFontVisible(i)) return null;
-								const rowY = Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift));
-								const val = (rowY >= 0 && rowY < a.densityByRow.length) ? a.densityByRow[rowY] : 0;
-								const name = this.fonts[i]?.fullName || `Font ${i + 1}`;
-								const percentage = Math.round((val / a.maxDensity) * 100);
-								return val ? `${name}: ${val}px (${percentage}%)` : null;
-							}).filter(Boolean).join('\n');
-
-							if (!content) return elements.tooltip.hidden = true;
-
-							elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
-							elements.tooltip.hidden = false;
-
-							const tooltipRect = elements.tooltip.getBoundingClientRect();
-							const offset = 15;
-							let left = clientX + offset;
-							let top = clientY + offset;
-
-							if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
-							if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
-
-							elements.tooltip.style.left = `${Math.max(0, left)}px`;
-							elements.tooltip.style.top = `${Math.max(0, top)}px`;
-					});
-					elements.canvas.onmouseleave = () => { elements.tooltip.hidden = true; elements.cursorGuide.hidden = true; };
-
-					document.addEventListener('keydown', e => {
-						if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
-						if (e.code === 'Digit1') { e.preventDefault(); e.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
-						if (e.code === 'Digit2') { e.preventDefault(); e.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
-					});
-				}
-
-				async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
-					const originalText = button.textContent;
-					if (processingText) button.textContent = processingText;
-					try {
-						await actionFn();
-						button.textContent = successText;
-					} catch (error) {
-						console.error(error);
-						button.textContent = 'Error';
-					} finally {
-						setTimeout(() => button.textContent = originalText, 2000);
-					}
-				}
-
-				swap() {
-					['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache'].forEach(key => {
-						[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
-					});
-					INPUT_FIELDS.forEach(k => {
-						const e1 = elements[k + '1'], e2 = elements[k + '2'];
-						const v1 = e1.value, v2 = e2.value;
-						e1.value = v2; e2.value = v1;
-						const r1 = elements[k + 'Range1'], r2 = elements[k + 'Range2'];
-						if (r1 && r2) { r1.value = v2; r2.value = v1; }
-					});
-					const n1 = elements.fileName1, n2 = elements.fileName2;
-					const t1 = n1.textContent, t2 = n2.textContent;
-					n1.textContent = n1.title = t2;
-					n2.textContent = n2.title = t1;
-					elements.file1.value = elements.file2.value = '';
-					this.update();
-				}
-
-				theme(themeName) {
-					document.documentElement.className = themeName === 'auto' ? '' : themeName;
-					elements.theme.value = themeName;
+				elements.theme.onchange = event => this.theme(event.target.value);
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
 					this.updateThemeColor();
-					this.draw();
-				}
+					if (elements.theme.value === 'auto') this.draw();
+				});
 
-				updateThemeColor() {
-					const s = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
-					const c = parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
-					const mix = k => c[k] * c.a + s[k] * (1 - c.a);
-					this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
-				}
+				elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
+				elements.closeSettings.onclick = () => elements.preferencesDialog.close();
+				elements.spacingUnit.onchange = () => { this.updateSpacingLabels(); this.update(); };
 
-				async loadFont(file, index) {
-					const seq = ++this.loadSequence[index];
-					this.loadErrors[index] = this.fonts[index] = null;
-					this.loading[index] = true;
+				elements.resetConfig.onclick = () => {
+					[1, 2].forEach(number => INPUT_FIELDS.forEach(key => {
+						const input = elements[key + number], range = elements[key + 'Range' + number];
+						input.value = input.defaultValue;
+						if (range) range.value = input.value;
+					}));
 					this.update();
-					try {
-						if (!file) return;
-						if (file.size > 3e7) throw new Error('File too large (max 30MB)');
-						const buffer = await file.arrayBuffer();
-						if (seq !== this.loadSequence[index]) return;
-						const font = fontkit.create(new Uint8Array(buffer));
-						if (!font.unitsPerEm) throw new Error('Invalid font');
-						this.fonts[index] = font;
-					} catch (e) {
-						if (seq === this.loadSequence[index]) this.loadErrors[index] = e.message;
-					} finally {
-						if (seq === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
-					}
-				}
+				};
 
-				getRenderData(index) {
-					const number = index + 1;
-					const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
-					if (!inputs.font || !inputs.fontSize) return null;
-					const cached = this.renderingCache[index];
-					if (cached && cached.data && Object.keys(inputs).every(k => k === 'color' || cached.inputs[k] === inputs[k])) {
-						if (cached.inputs.color !== inputs.color) {
-							paint(cached.data.canvas.getContext('2d'), inputs.color);
-							cached.inputs.color = inputs.color;
-						}
-						return cached.data;
-					}
-					return this.generateRenderData(index, inputs);
-				}
+				elements.swapFonts.onclick = () => this.swap();
 
-				generateRenderData(index, inputs) {
-					const { font, content, fontSize, letterSpacing, color } = inputs;
-					const size = Math.min(Math.max(fontSize, 1), 2000);
-					const scale = size / font.unitsPerEm;
-					const unit = elements.spacingUnit.value;
+				document.querySelectorAll('.copyButton').forEach(button => {
+					button.onclick = () => this.handleButtonState(button, () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText));
+				});
 
-					const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
+				[1, 2].forEach((number, index) => {
+					const select = elements[`samples${number}`];
+					select.innerHTML += sampleOptions;
+					select.onchange = () => { if (select.value) { elements[`text${number}`].value = select.value; select.value = ""; debouncedUpdate(); } };
 
-					const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
+					const fileInput = elements[`file${number}`];
+					const group = fileInput.closest('.group');
 
-					const cachedLayout = this.layoutCache[index];
-					const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
-					if (!hit) this.layoutCache[index] = { content, font, run: font.layout(content) };
-					const run = this.layoutCache[index].run;
+					const updateFileName = file => elements[`fileName${number}`].textContent = elements[`fileName${number}`].title = file ? file.name : '';
+					const handleFile = file => { updateFileName(file); this.loadFont(file, index); };
 
-					let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const position = run.positions[i];
-						const boundingBox = glyph.bbox;
-						if (boundingBox) {
-							const x = currentX + position.xOffset;
-							const y = position.yOffset;
-							minX = Math.min(minX, x + boundingBox.minX);
-							maxX = Math.max(maxX, x + boundingBox.maxX);
-							minY = Math.min(minY, y + boundingBox.minY);
-							maxY = Math.max(maxY, y + boundingBox.maxY);
-						}
-						currentX += (position.xAdvance * advanceScale) + tracking;
+					elements[`uploadBtn${number}`].onclick = () => fileInput.click();
+					fileInput.onchange = event => handleFile(event.target.files[0]);
+
+					elements[`clear${number}`].onclick = () => {
+						this.fonts[index] = this.loadErrors[index] = null;
+						fileInput.value = '';
+						updateFileName(null);
+						this.update();
+					};
+
+					INPUT_FIELDS.forEach(key => {
+						const fn = /color|shift/.test(key) ? throttledUpdate : debouncedUpdate;
+						const input = elements[key + number], range = elements[key + 'Range' + number];
+						input.oninput = () => { if (range) range.value = input.value; fn(); };
+						if (range) range.oninput = () => { input.value = range.value; fn(); };
 					});
-					if (minX === Infinity) minX = maxX = minY = maxY = 0;
-					const sc = v => (v || 0) * scale;
-					const metrics = { ascent: Math.max(maxY * scale, sc(font.ascent)), descent: Math.max(-minY * scale, Math.abs(sc(font.descent))), fontAscent: sc(font.ascent), fontDescent: Math.abs(sc(font.descent)), fontCapHeight: sc(font.capHeight), fontXHeight: sc(font.xHeight), advanceWidth: Math.ceil(currentX * scale) };
-					const drawOffsetX = -Math.min(0, minX * scale);
-					const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
-					const baseline = Math.ceil(metrics.ascent);
-					const height = Math.ceil(baseline + metrics.descent);
-					if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
 
-					const whiteCanvas = this.whiteCanvases[index];
-					const whiteContext = prepareCanvas(whiteCanvas, width, height);
-					whiteContext.save();
-					whiteContext.translate(drawOffsetX, baseline);
-					whiteContext.scale(1, -1);
-					whiteContext.fillStyle = '#FFFFFF';
-					let drawX = 0;
-					run.glyphs.forEach((glyph, i) => {
-						const position = run.positions[i];
-						// Optimization: Use translate/un-translate instead of save/restore to improve performance
-						const tx = (drawX + position.xOffset) * scale;
-						const ty = position.yOffset * scale;
-						whiteContext.translate(tx, ty);
-						whiteContext.beginPath();
-						glyph.render(whiteContext, size);
-						whiteContext.translate(-tx, -ty);
-						drawX += (position.xAdvance * advanceScale) + tracking;
-					});
-					whiteContext.restore();
+					group.ondragover = event => { event.preventDefault(); group.classList.add('dragActive'); };
+					group.ondragleave = event => { if (!event.relatedTarget || !group.contains(event.relatedTarget)) group.classList.remove('dragActive'); };
+					group.ondrop = event => {
+						event.preventDefault(); group.classList.remove('dragActive');
+						if (event.dataTransfer.files[0]) { fileInput.files = event.dataTransfer.files; handleFile(event.dataTransfer.files[0]); }
+					};
 
-					const canvas = this.offscreenCanvases[index];
-					const context = prepareCanvas(canvas, width, height);
-					context.drawImage(whiteCanvas, 0, 0);
-					paint(context, color);
+					const toggle = (key, property, invert) => elements[key + number].onclick = () => {
+						const value = this[property][index] = !this[property][index];
+						elements[key + number].setAttribute('aria-pressed', invert ? !value : value);
+						this.draw();
+					};
+					toggle('mute', 'visibility', true);
+					toggle('solo', 'solo');
+				});
 
-					const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
-					const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
-					const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
-					const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
-					const analysisData = analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
-
-					const graphPath = new Path2D();
-					const graphScale = this.graphWidth / analysisData.maxDensity;
-					let currentGraphWidth = 0, startGraphY = -1;
-					for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
-						const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
-						if (barWidth !== currentGraphWidth) {
-							if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
-							currentGraphWidth = barWidth; startGraphY = rowY;
-						}
-					}
-					if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
-
-					const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
-					this.renderingCache[index] = { inputs, data };
-					return data;
-				}
-
-				updateSpacingLabels() {
-					const unit = elements.spacingUnit.value;
-					const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
-					const defaultVal = unit === 'percent' ? 100 : 0;
-					[1, 2].forEach(n => {
-						elements[`spacingRange${n}`].setAttribute('aria-label', label);
-						elements[`spacing${n}`].parentElement.firstChild.textContent = label;
-						elements[`spacing${n}`].value = elements[`spacingRange${n}`].value = defaultVal;
-					});
-				}
-
-				isFontVisible(index) {
-					return this.solo.some(s => s) ? this.solo[index] : this.visibility[index];
-				}
-
-				update() {
-					this.analyses = [1, 2].map((number, index) => {
-						elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
-						try {
-							const data = this.getRenderData(index);
-							if (!data) return null;
-							const hasInk = data.maxY >= data.minY;
-							const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-							const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
-							const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
-							return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
-						} catch (error) { return { error: error.message }; }
-					});
-					this.draw();
-					[1, 2].forEach((number, index) => this.updateResult(number, index));
-				}
-
-				draw() {
-					const validItems = this.analyses.map((a, i) => ({ a, i })).filter(({ a, i }) => a && !a.error && this.isFontVisible(i));
-					if (!validItems.length) { this.context.canvas.height = 150; this.updateScale(); return; }
-
-					const sideMode = elements.render.value === 'side' && validItems.length > 1;
-					const max = fn => Math.max(0, ...validItems.map(({ a }) => fn(a)));
-					const maxAscent = max(i => i.baseline + i.baselineShift);
-					const maxDescent = max(i => i.height - i.baseline - i.baselineShift);
-					const maxOffsetX = max(i => i.drawOffsetX);
-					const totalWidth = sideMode ? validItems.reduce((t, { a }) => t + a.width, 0) : maxOffsetX + max(i => i.width - i.drawOffsetX);
-					const dim = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
-
-					this.context.canvas.width = dim.width;
-					this.context.canvas.height = dim.height;
-					this.context.fillStyle = this.canvasBackgroundColor;
-					this.context.fillRect(0, 0, dim.width, dim.height);
-
-					const contexts = this.isDark ? this.updateAuxiliaryCanvases(dim.width, dim.height) : null;
-					if (this.isDark) {
-						[contexts[0], contexts[1]].forEach(ctx => { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dim.width, dim.height); }); // mask, invInk
-						contexts[5].clearRect(0, 0, dim.width, dim.height); // light
-					} else {
-						this.compositeCanvas.width = dim.width; this.compositeCanvas.height = dim.height;
+				elements.canvas.onmousemove = raf(event => {
+					const { clientX, clientY } = event;
+					if (!this.lastDimensions) return;
+					const rect = elements.canvas.getBoundingClientRect();
+					const containerRect = elements.container.getBoundingClientRect();
+					const inBounds = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+					elements.cursorGuide.hidden = !inBounds;
+					if (inBounds) {
+						elements.cursorGuide.style.top = `${clientY - containerRect.top}px`;
+						elements.cursorGuide.style.left = `${rect.left - containerRect.left}px`;
+						elements.cursorGuide.style.width = `${rect.width}px`;
 					}
 
-					this.composeLayers(validItems, dim, contexts, sideMode);
+					const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
+					const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
+					if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
 
-					if (this.isDark) {
-						const [maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx] = contexts;
-						const fill = (ctx, c = '#000000') => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = c; ctx.fillRect(0, 0, dim.width, dim.height); };
-						const draw = (ctx, src, op) => { ctx.globalCompositeOperation = op || 'source-over'; ctx.drawImage(src, 0, 0); };
+					const content = this.analyses.map((analysis, index) => {
+						if (!analysis || analysis.error || !this.isFontVisible(index)) return null;
+						const rowY = Math.floor(y - (this.lastDimensions.baseline - analysis.baseline - analysis.baselineShift));
+						const value = (rowY >= 0 && rowY < analysis.densityByRow.length) ? analysis.densityByRow[rowY] : 0;
+						const name = this.fonts[index]?.fullName || `Font ${index + 1}`;
+						const percentage = Math.round((value / analysis.maxDensity) * 100);
+						return value ? `${name}: ${value}px (${percentage}%)` : null;
+					}).filter(Boolean).join('\n');
 
-						fill(diffCtx); draw(diffCtx, this.maskCanvas); draw(diffCtx, this.invInkCanvas, 'difference');
-						fill(emissiveCtx); draw(emissiveCtx, this.diffCanvas, 'lighter');
-						fill(diffCtx, '#ffffff'); draw(diffCtx, this.maskCanvas, 'difference');
-						fill(invMaskCtx); draw(invMaskCtx, this.diffCanvas, 'lighter');
+					if (!content) return elements.tooltip.hidden = true;
+					elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
+					elements.tooltip.hidden = false;
 
-						draw(this.context, this.invMaskCanvas, 'multiply');
-						draw(this.context, this.emissiveInkCanvas, 'lighter');
-						draw(this.context, this.lightCanvas, 'screen');
-						this.context.globalCompositeOperation = 'source-over';
-					} else {
-						this.context.drawImage(this.compositeCanvas, 0, 0);
-					}
-					this.drawGuides(dim, validItems);
-					this.updateScale();
-				}
+					const tooltipRect = elements.tooltip.getBoundingClientRect();
+					const offset = 15;
+					let left = clientX + offset;
+					let top = clientY + offset;
+					if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
+					if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
+					elements.tooltip.style.left = `${Math.max(0, left)}px`;
+					elements.tooltip.style.top = `${Math.max(0, top)}px`;
+				});
+				elements.canvas.onmouseleave = () => { elements.tooltip.hidden = true; elements.cursorGuide.hidden = true; };
 
-				updateAuxiliaryCanvases(w, h) {
-					return ['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(k => {
-						const c = this[k] || (this[k] = document.createElement('canvas'));
-						if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-						return c.getContext('2d');
-					});
-				}
+				document.addEventListener('keydown', event => {
+					if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+					if (event.code === 'Digit1') { event.preventDefault(); event.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
+					if (event.code === 'Digit2') { event.preventDefault(); event.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
+				});
+			}
 
-				composeLayers(validItems, dim, contexts, sideMode) {
-					let currentX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dim.maxDrawOffsetX);
-					const [maskCtx, invInkCtx, , , , lightCtx, tempCtx] = contexts || [];
-					const compositeCtx = !this.isDark ? this.compositeCanvas.getContext('2d') : null;
-
-					validItems.forEach(({ a, i }) => {
-						const y = dim.baseline - a.baseline - a.baselineShift;
-						const color = elements[`color${i + 1}`].value;
-						const { r, g, b } = parseColor(color);
-						const inkAlpha = (255 - Math.min(r, g, b)) / 255;
-						const drawX = sideMode ? currentX + (a.drawOffsetX || 0) : currentX;
-						const compose = (ctx, op, alpha, style, img) => {
-							ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
-							ctx.translate(0, y);
-							ctx.fill(a.graphPath);
-							ctx.drawImage(img, 0, 0, a.width, a.height, drawX - (a.drawOffsetX || 0), 0, a.width, a.height);
-							ctx.translate(0, -y);
-							ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-						};
-
-						if (this.isDark) {
-							if (inkAlpha > 0) {
-								compose(maskCtx, 'lighter', inkAlpha, '#ffffff', a.whiteCanvas);
-								const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-								tempCtx.clearRect(0, 0, a.width, a.height);
-								tempCtx.drawImage(a.whiteCanvas, 0, 0);
-								paint(tempCtx, invColor);
-								compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
-							}
-							const lightAlpha = Math.min(r, g, b) / 255;
-							if (lightAlpha > 0) compose(lightCtx, 'screen', lightAlpha, color, a.canvas);
-						} else {
-							compose(compositeCtx, 'multiply', inkAlpha, color, a.canvas);
-						}
-						if (sideMode) currentX += a.width;
-					});
-				}
-
-				drawGuides(dim, validItems) {
-					const guides = elements.guides.value;
-					if (['baseline', 'metrics'].includes(guides)) {
-						this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-						this.context.fillRect(0, dim.baseline, this.context.canvas.width, 1);
-					}
-					if (guides === 'metrics') {
-						validItems.forEach(({ a, i }) => {
-							const y = dim.baseline - a.baselineShift;
-							this.context.fillStyle = elements[`color${i + 1}`].value;
-							const line = (d, alpha) => { this.context.globalAlpha = alpha; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
-							line(-a.fontAscent, 0.5); line(a.fontDescent, 0.5);
-							line(-a.fontCapHeight, 0.3); line(-a.fontXHeight, 0.3);
-							this.context.globalAlpha = 1.0;
-						});
-					}
-				}
-
-				updateScale() {
-					const { canvas, container, preview } = elements;
-					canvas.style.transform = 'none';
-					container.style.width = container.style.height = container.style.overflow = '';
-					if (elements.zoom.value !== 'fit' || !canvas.width) return;
-					const style = getComputedStyle(container);
-					const px = parseFloat(style.paddingLeft) * 2;
-					const py = parseFloat(style.paddingTop) * 2;
-					const scale = Math.min((preview.clientWidth - px) / canvas.width, 1);
-					canvas.style.transform = `scale(${scale})`;
-					container.style.width = `${canvas.width * scale + px}px`;
-					container.style.height = `${canvas.height * scale + py}px`;
-					container.style.overflow = 'hidden';
-				}
-
-				updateResult(number, index) {
-					const analysis = this.analyses[index];
-					const error = this.loadErrors[index] || (analysis && analysis.error);
-					const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
-					const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
-					elements[`name${number}`].textContent = elements[`name${number}`].title = name;
-					elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
-					elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
-					elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-
-					if (this.loading[index]) {
-						elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-						return;
-					}
-					if (message) {
-						elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
-						return;
-					}
-
-					elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+			async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
+				const originalText = button.textContent;
+				if (processingText) button.textContent = processingText;
+				try {
+					await actionFn();
+					button.textContent = successText;
+				} catch (error) {
+					console.error(error);
+					button.textContent = 'Error';
+				} finally {
+					setTimeout(() => button.textContent = originalText, 2000);
 				}
 			}
-			new DensityTool();
-		</script>
-	</body>
+
+			swap() {
+				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache'].forEach(key => {
+					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
+				});
+				INPUT_FIELDS.forEach(key => {
+					const input1 = elements[key + '1'], input2 = elements[key + '2'];
+					const value1 = input1.value, value2 = input2.value;
+					input1.value = value2; input2.value = value1;
+					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
+					if (range1 && range2) { range1.value = value2; range2.value = value1; }
+				});
+				const name1 = elements.fileName1, name2 = elements.fileName2;
+				const text1 = name1.textContent, text2 = name2.textContent;
+				name1.textContent = name1.title = text2;
+				name2.textContent = name2.title = text1;
+				elements.file1.value = elements.file2.value = '';
+				this.update();
+			}
+
+			theme(themeName) {
+				document.documentElement.className = themeName === 'auto' ? '' : themeName;
+				elements.theme.value = themeName;
+				this.updateThemeColor();
+				this.draw();
+			}
+
+			updateThemeColor() {
+				const surface = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
+				const canvas = parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
+				const mix = key => canvas[key] * canvas.a + surface[key] * (1 - canvas.a);
+				this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
+			}
+
+			async loadFont(file, index) {
+				const sequence = ++this.loadSequence[index];
+				this.loadErrors[index] = this.fonts[index] = null;
+				this.loading[index] = true;
+				this.update();
+				try {
+					if (!file) return;
+					if (file.size > 3e7) throw new Error('File too large (max 30MB)');
+					const buffer = await file.arrayBuffer();
+					if (sequence !== this.loadSequence[index]) return;
+					const font = fontkit.create(new Uint8Array(buffer));
+					if (!font.unitsPerEm) throw new Error('Invalid font');
+					this.fonts[index] = font;
+				} catch (error) {
+					if (sequence === this.loadSequence[index]) this.loadErrors[index] = error.message;
+				} finally {
+					if (sequence === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
+				}
+			}
+
+			getRenderData(index) {
+				const number = index + 1;
+				const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
+				if (!inputs.font || !inputs.fontSize) return null;
+				const cached = this.renderingCache[index];
+				if (cached && cached.data && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
+					if (cached.inputs.color !== inputs.color) {
+						paint(cached.data.canvas.getContext('2d'), inputs.color);
+						cached.inputs.color = inputs.color;
+					}
+					return cached.data;
+				}
+				return this.generateRenderData(index, inputs);
+			}
+
+			generateRenderData(index, inputs) {
+				const { font, content, fontSize, letterSpacing, color } = inputs;
+				const size = Math.min(Math.max(fontSize, 1), 2000);
+				const scale = size / font.unitsPerEm;
+				const unit = elements.spacingUnit.value;
+				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
+				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
+
+				const cachedLayout = this.layoutCache[index];
+				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
+				if (!hit) this.layoutCache[index] = { content, font, run: font.layout(content) };
+				const run = this.layoutCache[index].run;
+
+				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
+				run.glyphs.forEach((glyph, index) => {
+					const position = run.positions[index];
+					const boundingBox = glyph.bbox;
+					if (boundingBox) {
+						const x = currentX + position.xOffset;
+						const y = position.yOffset;
+						minX = Math.min(minX, x + boundingBox.minX);
+						maxX = Math.max(maxX, x + boundingBox.maxX);
+						minY = Math.min(minY, y + boundingBox.minY);
+						maxY = Math.max(maxY, y + boundingBox.maxY);
+					}
+					currentX += (position.xAdvance * advanceScale) + tracking;
+				});
+				if (minX === Infinity) minX = maxX = minY = maxY = 0;
+				const scaled = value => (value || 0) * scale;
+				const metrics = {
+					ascent: Math.max(maxY * scale, scaled(font.ascent)),
+					descent: Math.max(-minY * scale, Math.abs(scaled(font.descent))),
+					fontAscent: scaled(font.ascent),
+					fontDescent: Math.abs(scaled(font.descent)),
+					fontCapHeight: scaled(font.capHeight),
+					fontXHeight: scaled(font.xHeight),
+					advanceWidth: Math.ceil(currentX * scale)
+				};
+				const drawOffsetX = -Math.min(0, minX * scale);
+				const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
+				const baseline = Math.ceil(metrics.ascent);
+				const height = Math.ceil(baseline + metrics.descent);
+				if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+
+				const whiteCanvas = this.whiteCanvases[index];
+				const whiteContext = prepareCanvas(whiteCanvas, width, height);
+				whiteContext.save();
+				whiteContext.translate(drawOffsetX, baseline);
+				whiteContext.scale(1, -1);
+				whiteContext.fillStyle = '#FFFFFF';
+				let drawX = 0;
+				run.glyphs.forEach((glyph, index) => {
+					const position = run.positions[index];
+					const tx = (drawX + position.xOffset) * scale;
+					const ty = position.yOffset * scale;
+					whiteContext.translate(tx, ty);
+					whiteContext.beginPath();
+					glyph.render(whiteContext, size);
+					whiteContext.translate(-tx, -ty);
+					drawX += (position.xAdvance * advanceScale) + tracking;
+				});
+				whiteContext.restore();
+
+				const canvas = this.offscreenCanvases[index];
+				const context = prepareCanvas(canvas, width, height);
+				context.drawImage(whiteCanvas, 0, 0);
+				paint(context, color);
+
+				const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
+				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
+				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
+				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
+				const analysisData = analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
+
+				const graphPath = new Path2D();
+				const graphScale = this.graphWidth / analysisData.maxDensity;
+				let currentGraphWidth = 0, startGraphY = -1;
+				for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
+					const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
+					if (barWidth !== currentGraphWidth) {
+						if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
+						currentGraphWidth = barWidth; startGraphY = rowY;
+					}
+				}
+				if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
+
+				const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+				this.renderingCache[index] = { inputs, data };
+				return data;
+			}
+
+			updateSpacingLabels() {
+				const unit = elements.spacingUnit.value;
+				const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
+				const defaultValue = unit === 'percent' ? 100 : 0;
+				[1, 2].forEach(number => {
+					elements[`spacingRange${number}`].setAttribute('aria-label', label);
+					elements[`spacing${number}`].parentElement.firstChild.textContent = label;
+					elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = defaultValue;
+				});
+			}
+
+			isFontVisible(index) { return this.solo.some(s => s) ? this.solo[index] : this.visibility[index]; }
+
+			update() {
+				this.analyses = [1, 2].map((number, index) => {
+					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
+					try {
+						const data = this.getRenderData(index);
+						if (!data) return null;
+						const hasInk = data.maxY >= data.minY;
+						const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
+						const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
+						const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
+						return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
+					} catch (error) { return { error: error.message }; }
+				});
+				this.draw();
+				[1, 2].forEach((number, index) => this.updateResult(number, index));
+			}
+
+			draw() {
+				const validItems = this.analyses.map((analysis, index) => ({ analysis, index })).filter(({ analysis, index }) => analysis && !analysis.error && this.isFontVisible(index));
+				if (!validItems.length) { this.context.canvas.height = 150; this.updateScale(); return; }
+
+				const sideMode = elements.render.value === 'side' && validItems.length > 1;
+				const max = fn => Math.max(0, ...validItems.map(({ analysis }) => fn(analysis)));
+				const maxAscent = max(analysis => analysis.baseline + analysis.baselineShift);
+				const maxDescent = max(analysis => analysis.height - analysis.baseline - analysis.baselineShift);
+				const maxOffsetX = max(analysis => analysis.drawOffsetX);
+				const totalWidth = sideMode ? validItems.reduce((sum, { analysis }) => sum + analysis.width, 0) : maxOffsetX + max(analysis => analysis.width - analysis.drawOffsetX);
+				const dimensions = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
+
+				this.context.canvas.width = dimensions.width;
+				this.context.canvas.height = dimensions.height;
+				this.context.fillStyle = this.canvasBackgroundColor;
+				this.context.fillRect(0, 0, dimensions.width, dimensions.height);
+
+				const contexts = this.isDark ? this.updateAuxiliaryCanvases(dimensions.width, dimensions.height) : null;
+				if (this.isDark) {
+					[contexts[0], contexts[1]].forEach(ctx => { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
+					contexts[5].clearRect(0, 0, dimensions.width, dimensions.height);
+				} else { this.compositeCanvas.width = dimensions.width; this.compositeCanvas.height = dimensions.height; }
+
+				this.composeLayers(validItems, dimensions, contexts, sideMode);
+
+				if (this.isDark) {
+					const [maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx] = contexts;
+					const fill = (ctx, c = '#000000') => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = c; ctx.fillRect(0, 0, dimensions.width, dimensions.height); };
+					const draw = (ctx, src, op) => { ctx.globalCompositeOperation = op || 'source-over'; ctx.drawImage(src, 0, 0); };
+
+					fill(diffCtx); draw(diffCtx, this.maskCanvas); draw(diffCtx, this.invInkCanvas, 'difference');
+					fill(emissiveCtx); draw(emissiveCtx, this.diffCanvas, 'lighter');
+					fill(diffCtx, '#ffffff'); draw(diffCtx, this.maskCanvas, 'difference');
+					fill(invMaskCtx); draw(invMaskCtx, this.diffCanvas, 'lighter');
+
+					draw(this.context, this.invMaskCanvas, 'multiply');
+					draw(this.context, this.emissiveInkCanvas, 'lighter');
+					draw(this.context, this.lightCanvas, 'screen');
+					this.context.globalCompositeOperation = 'source-over';
+				} else this.context.drawImage(this.compositeCanvas, 0, 0);
+
+				this.drawGuides(dimensions, validItems);
+				this.updateScale();
+			}
+
+			updateAuxiliaryCanvases(width, height) {
+				return ['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(key => {
+					const canvas = this[key] || (this[key] = document.createElement('canvas'));
+					if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+					return canvas.getContext('2d');
+				});
+			}
+
+			composeLayers(validItems, dimensions, contexts, sideMode) {
+				let currentX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
+				const [maskCtx, invInkCtx, , , , lightCtx, tempCtx] = contexts || [];
+				const compositeCtx = !this.isDark ? this.compositeCanvas.getContext('2d') : null;
+
+				validItems.forEach(({ analysis, index }) => {
+					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
+					const color = elements[`color${index + 1}`].value;
+					const { r, g, b } = parseColor(color);
+					const inkAlpha = (255 - Math.min(r, g, b)) / 255;
+					const drawX = sideMode ? currentX + (analysis.drawOffsetX || 0) : currentX;
+					const compose = (ctx, op, alpha, style, img) => {
+						ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
+						ctx.translate(0, y);
+						ctx.fill(analysis.graphPath);
+						ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
+						ctx.translate(0, -y);
+						ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+					};
+
+					if (this.isDark) {
+						if (inkAlpha > 0) {
+							compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
+							const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
+							tempCtx.clearRect(0, 0, analysis.width, analysis.height);
+							tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
+							paint(tempCtx, invColor);
+							compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
+						}
+						const lightAlpha = Math.min(r, g, b) / 255;
+						if (lightAlpha > 0) compose(lightCtx, 'screen', lightAlpha, color, analysis.canvas);
+					} else compose(compositeCtx, 'multiply', inkAlpha, color, analysis.canvas);
+					if (sideMode) currentX += analysis.width;
+				});
+			}
+
+			drawGuides(dimensions, validItems) {
+				const guides = elements.guides.value;
+				if (['baseline', 'metrics'].includes(guides)) {
+					this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+					this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
+				}
+				if (guides === 'metrics') {
+					validItems.forEach(({ analysis, index }) => {
+						const y = dimensions.baseline - analysis.baselineShift;
+						this.context.fillStyle = elements[`color${index + 1}`].value;
+						const line = (d, alpha) => { this.context.globalAlpha = alpha; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
+						line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
+						line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
+						this.context.globalAlpha = 1.0;
+					});
+				}
+			}
+
+			updateScale() {
+				const { canvas, container, preview } = elements;
+				canvas.style.transform = 'none';
+				container.style.width = container.style.height = container.style.overflow = '';
+				if (elements.zoom.value !== 'fit' || !canvas.width) return;
+				const style = getComputedStyle(container);
+				const paddingX = parseFloat(style.paddingLeft) * 2;
+				const paddingY = parseFloat(style.paddingTop) * 2;
+				const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
+				canvas.style.transform = `scale(${scale})`;
+				container.style.width = `${canvas.width * scale + paddingX}px`;
+				container.style.height = `${canvas.height * scale + paddingY}px`;
+				container.style.overflow = 'hidden';
+			}
+
+			updateResult(number, index) {
+				const analysis = this.analyses[index];
+				const error = this.loadErrors[index] || (analysis && analysis.error);
+				const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
+				const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
+				elements[`name${number}`].textContent = elements[`name${number}`].title = name;
+				elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
+				elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
+				elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
+
+				if (this.loading[index]) { elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>'; return; }
+				if (message) { elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`; return; }
+
+				elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+			}
+		}
+		new DensityTool();
+	</script>
+</body>
 </html>
