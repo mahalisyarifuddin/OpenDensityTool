@@ -451,13 +451,26 @@
 			font-family: monospace; 
 			box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
 		}
+
+		/* Refactoring additions */
+		.statisticValue, .output { font-variant-numeric: tabular-nums; }
+		#openSettings { width: auto; }
+		.flex-row-center { display: flex; justify-content: space-between; align-items: center; }
+		.toolbar-btn { width: auto; margin: 0; font-weight: normal; }
+		.mr-2 { margin-right: 8px; }
+		.group .header .controls { margin: 0 0 0 auto; gap: 4px; }
+		.file-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+		.mb-0 { margin-bottom: 0; }
+		.text-group { margin-bottom: .5rem; }
+		.text-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+		.sample-select { width: auto; padding: 2px 6px; height: auto; }
 	</style>
 </head>
 <body>
 	<div id="tooltip" hidden></div>
 	<header>
 		<h1>Typographic Density Tool</h1>
-		<button id="openSettings" style="width:auto" aria-label="Open Settings">Settings</button>
+		<button id="openSettings" aria-label="Open Settings">Settings</button>
 	</header>
 	<dialog id="preferencesDialog">
 		<div class="dialog-header">
@@ -465,33 +478,33 @@
 			<button id="closeSettings" class="close-button" aria-label="Close Settings">&times;</button>
 		</div>
 		<div class="group">
-			<label>Theme<select id="theme" style="margin-top:4px"><option value="auto">Auto Theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-			<label>Letter Spacing Unit<select id="spacingUnit" style="margin-top:4px"><option value="em" selected>Per mille (‰ em)</option><option value="px">Pixels (px)</option><option value="percent">Tracking (%)</option></select></label>
+			<label>Theme<select id="theme"><option value="auto">Auto Theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+			<label>Letter Spacing Unit<select id="spacingUnit"><option value="em" selected>Per mille (‰ em)</option><option value="px">Pixels (px)</option><option value="percent">Tracking (%)</option></select></label>
 		</div>
 	</dialog>
 	<main>
 		<section>
-			<h2><div style="display:flex;justify-content:space-between;align-items:center">Configuration <div><button id="swapFonts" class="actionButton" style="width:auto;margin:0;font-weight:normal;margin-right:8px">Swap</button><button id="resetConfig" class="actionButton" style="width:auto;margin:0;font-weight:normal">Reset</button></div></div></h2>
+			<h2><div class="flex-row-center">Configuration <div><button id="swapFonts" class="actionButton toolbar-btn mr-2">Swap</button><button id="resetConfig" class="actionButton toolbar-btn">Reset</button></div></div></h2>
 			<div class="group">
 				<div class="header">
 					<input type="color" id="color1" value="#00a2a2" aria-label="Font 1 Color">
 					<span id="name1">Font 1</span>
-					<div class="controls" style="margin:0 0 0 auto;gap:4px">
+					<div class="controls">
 						<button id="mute1" class="actionButton" aria-label="Toggle visibility Font 1" title="Toggle Visibility (1)" aria-pressed="false">M</button>
 						<button id="solo1" class="actionButton" aria-label="Solo Font 1" title="Solo (Shift+1)" aria-pressed="false">S</button>
 					</div>
 				</div>
-				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-					<label for="file1" style="margin-bottom:0">Font File</label>
+				<div class="file-toolbar">
+					<label for="file1" class="mb-0">Font File</label>
 					<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
 				</div>
 				<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
 				<button type="button" id="uploadBtn1" class="file-upload-btn"><span class="file-icon">📁</span> Choose Font File...</button>
 				<div id="fileName1" class="file-name-display"></div>
-				<div style="margin-bottom:.5rem">
-					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-						<label for="text1" style="margin-bottom:0">Text</label>
-						<select id="samples1" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples"><option value="">Samples...</option></select>
+				<div class="text-group">
+					<div class="text-label-row">
+						<label for="text1" class="mb-0">Text</label>
+						<select id="samples1" class="actionButton sample-select" aria-label="Text samples"><option value="">Samples...</option></select>
 					</div>
 					<textarea id="text1" maxlength="1000">Idealogy</textarea>
 				</div>
@@ -505,22 +518,22 @@
 				<div class="header">
 					<input type="color" id="color2" value="#ff00ff" aria-label="Font 2 Color">
 					<span id="name2">Font 2</span>
-					<div class="controls" style="margin:0 0 0 auto;gap:4px">
+					<div class="controls">
 						<button id="mute2" class="actionButton" aria-label="Toggle visibility Font 2" title="Toggle Visibility (2)" aria-pressed="false">M</button>
 						<button id="solo2" class="actionButton" aria-label="Solo Font 2" title="Solo (Shift+2)" aria-pressed="false">S</button>
 					</div>
 				</div>
-				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-					<label for="file2" style="margin-bottom:0">Font File</label>
+				<div class="file-toolbar">
+					<label for="file2" class="mb-0">Font File</label>
 					<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
 				</div>
 				<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
 				<button type="button" id="uploadBtn2" class="file-upload-btn"><span class="file-icon">📁</span> Choose Font File...</button>
 				<div id="fileName2" class="file-name-display"></div>
-				<div style="margin-bottom:.5rem">
-					<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-						<label for="text2" style="margin-bottom:0">Text</label>
-						<select id="samples2" class="actionButton" style="width:auto;padding:2px 6px;height:auto" aria-label="Text samples"><option value="">Samples...</option></select>
+				<div class="text-group">
+					<div class="text-label-row">
+						<label for="text2" class="mb-0">Text</label>
+						<select id="samples2" class="actionButton sample-select" aria-label="Text samples"><option value="">Samples...</option></select>
 					</div>
 					<textarea id="text2" maxlength="1000">Идеология</textarea>
 				</div>
