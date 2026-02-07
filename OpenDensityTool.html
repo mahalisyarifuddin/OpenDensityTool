@@ -590,7 +590,6 @@
 		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
 		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
-		const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
 		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
 		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
 
@@ -610,46 +609,59 @@
 			return canvas.getContext('2d', { willReadFrequently: true });
 		};
 
-		const analyzePixels = (context, width, height, scanYStart = 0, scanYEnd = height, scanXStart = 0, scanXEnd = width) => {
-			const sliceHeight = scanYEnd - scanYStart;
-			const sliceWidth = scanXEnd - scanXStart;
-			if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) return { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 };
-			const { data } = context.getImageData(scanXStart, scanYStart, sliceWidth, sliceHeight);
-			const pixelDataInt32 = new Uint32Array(data.buffer);
-			const densityByRow = new Float32Array(height);
-			let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
-			for (let y = scanYStart; y < scanYEnd; y++) {
-				let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
-				const rowStart = index;
-				while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
-				if (index === endIndex) continue;
-				const firstX = index - rowStart;
-				endIndex--;
-				while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
-				const lastX = endIndex - rowStart;
-				let rowInk = 0;
-				const limit = endIndex - 7;
-				for (; index <= limit; index += 8) {
-					rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
-					rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
-				}
-				for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-				densityByRow[y] = rowInk;
-				if (rowInk > maxDensity) maxDensity = rowInk;
-				inkPixels += rowInk;
-				if (minX > firstX) minX = firstX;
-				if (maxX < lastX) maxX = lastX;
-				if (minY > y) minY = y;
-				maxY = y;
+		const WORKER_CODE = `
+const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
+self.onmessage = function(e) {
+	const { id, buffer, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd } = e.data;
+	try {
+		const sliceHeight = scanYEnd - scanYStart;
+		const sliceWidth = scanXEnd - scanXStart;
+		if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) {
+			self.postMessage({ id, result: { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 } });
+			return;
+		}
+		const pixelDataInt32 = new Uint32Array(buffer);
+		const densityByRow = new Float32Array(height);
+		let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
+		for (let y = scanYStart; y < scanYEnd; y++) {
+			let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
+			const rowStart = index;
+			while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
+			if (index === endIndex) continue;
+			const firstX = index - rowStart;
+			endIndex--;
+			while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
+			const lastX = endIndex - rowStart;
+			let rowInk = 0;
+			const limit = endIndex - 7;
+			for (; index <= limit; index += 8) {
+				rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
+				rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
 			}
-			return { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) };
-		};
+			for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
+			densityByRow[y] = rowInk;
+			if (rowInk > maxDensity) maxDensity = rowInk;
+			inkPixels += rowInk;
+			if (minX > firstX) minX = firstX;
+			if (maxX < lastX) maxX = lastX;
+			if (minY > y) minY = y;
+			maxY = y;
+		}
+		self.postMessage({
+			id,
+			result: { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) }
+		}, [densityByRow.buffer]);
+	} catch (error) {
+		self.postMessage({ id, error: error.message });
+	}
+};
+`;
 
 		class DensityTool {
 			constructor() {
@@ -662,11 +674,35 @@
 					whiteCanvases: [makeCanvas(), makeCanvas()],
 					compositeCanvas: makeCanvas(),
 					graphWidth: 150, graphPadding: 20,
-					context: elements.canvas.getContext('2d')
+					context: elements.canvas.getContext('2d'),
+					workerResolvers: new Map(),
+					workerId: 0,
+					updateId: 0
 				});
+
+				const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+				this.worker = new Worker(URL.createObjectURL(blob));
+				this.worker.onmessage = ({ data }) => {
+					const { id, result, error } = data;
+					if (this.workerResolvers.has(id)) {
+						const { resolve, reject } = this.workerResolvers.get(id);
+						this.workerResolvers.delete(id);
+						if (error) reject(new Error(error));
+						else resolve(result);
+					}
+				};
+
 				this.setup();
 				this.theme('auto');
 				this.update();
+			}
+
+			runWorker(payload, transferables = []) {
+				return new Promise((resolve, reject) => {
+					const id = this.workerId++;
+					this.workerResolvers.set(id, { resolve, reject });
+					this.worker.postMessage({ id, ...payload }, transferables);
+				});
 			}
 
 			setup() {
@@ -883,7 +919,7 @@
 				}
 			}
 
-			getRenderData(index) {
+			async getRenderData(index) {
 				const number = index + 1;
 				const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
 				if (!inputs.font || !inputs.fontSize) return null;
@@ -895,10 +931,10 @@
 					}
 					return cached.data;
 				}
-				return this.generateRenderData(index, inputs);
+				return await this.generateRenderData(index, inputs);
 			}
 
-			generateRenderData(index, inputs) {
+			async generateRenderData(index, inputs) {
 				const { font, content, fontSize, letterSpacing, color } = inputs;
 				const size = Math.min(Math.max(fontSize, 1), 2000);
 				const scale = size / font.unitsPerEm;
@@ -970,7 +1006,11 @@
 				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
 				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
 				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
-				const analysisData = analyzePixels(context, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd);
+
+				const { data: imageData } = context.getImageData(scanXStart, scanYStart, scanXEnd - scanXStart, scanYEnd - scanYStart);
+				const analysisData = await this.runWorker({
+					buffer: imageData.buffer, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd
+				}, [imageData.buffer]);
 
 				const graphPath = new Path2D();
 				const graphScale = this.graphWidth / analysisData.maxDensity;
@@ -1002,11 +1042,12 @@
 
 			isFontVisible(index) { return this.solo.some(s => s) ? this.solo[index] : this.visibility[index]; }
 
-			update() {
-				this.analyses = [1, 2].map((number, index) => {
+			async update() {
+				const updateId = ++this.updateId;
+				const results = await Promise.all([1, 2].map(async (number, index) => {
 					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
 					try {
-						const data = this.getRenderData(index);
+						const data = await this.getRenderData(index);
 						if (!data) return null;
 						const hasInk = data.maxY >= data.minY;
 						const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
@@ -1014,7 +1055,10 @@
 						const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
 						return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
 					} catch (error) { return { error: error.message }; }
-				});
+				}));
+
+				if (updateId !== this.updateId) return;
+				this.analyses = results;
 				this.draw();
 				[1, 2].forEach((number, index) => this.updateResult(number, index));
 			}
