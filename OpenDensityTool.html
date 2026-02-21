@@ -215,6 +215,14 @@
 		button:hover { 
 			background: var(--hover); 
 		}
+		.actionButton.confirm-danger {
+			background-color: var(--danger);
+			color: var(--on-danger);
+		}
+		.actionButton.confirm-danger:hover {
+			background-color: var(--danger);
+			opacity: 0.9;
+		}
 		dialog {
 			background: var(--surface);
 			color: var(--text);
@@ -746,12 +754,29 @@ self.onmessage = function(e) {
 				elements.spacingUnit.onchange = () => { this.updateSpacingLabels(); this.update(); };
 
 				elements.resetConfig.onclick = () => {
-					[1, 2].forEach(number => INPUT_FIELDS.forEach(key => {
-						const input = elements[key + number], range = elements[key + 'Range' + number];
-						input.value = input.defaultValue;
-						if (range) range.value = input.value;
-					}));
-					this.update();
+					const btn = elements.resetConfig;
+					if (btn.dataset.confirming) {
+						[1, 2].forEach(number => INPUT_FIELDS.forEach(key => {
+							const input = elements[key + number], range = elements[key + 'Range' + number];
+							input.value = input.defaultValue;
+							if (range) range.value = input.value;
+						}));
+						this.update();
+						clearTimeout(this.resetTimeout);
+						delete btn.dataset.confirming;
+						btn.textContent = 'Reset';
+						btn.classList.remove('confirm-danger');
+					} else {
+						btn.dataset.confirming = 'true';
+						const originalText = btn.textContent;
+						btn.textContent = 'Confirm?';
+						btn.classList.add('confirm-danger');
+						this.resetTimeout = setTimeout(() => {
+							delete btn.dataset.confirming;
+							btn.textContent = originalText;
+							btn.classList.remove('confirm-danger');
+						}, 3000);
+					}
 				};
 
 				elements.swapFonts.onclick = () => this.swap();
