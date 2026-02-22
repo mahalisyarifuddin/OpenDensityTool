@@ -1028,7 +1028,7 @@ self.onmessage = function(e) {
 			async applyAutospacing(index, run, font, tightness) {
 				const capHeight = font.capHeight || (font.ascent * 0.7);
 				const xHeight = font.xHeight || (font.ascent * 0.5);
-				const targetBase = 380 * (1 - tightness / 100);
+				const targetBase = 420 * (1 - tightness / 100);
 				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(index, g)));
 
 				for (let i = 0; i < run.glyphs.length - 1; i++) {
@@ -1040,8 +1040,8 @@ self.onmessage = function(e) {
 					const isC2 = g2.bbox.maxY > (xHeight + (capHeight - xHeight) * 0.3);
 
 					let pairTarget = targetBase;
-					if (isC1 && isC2) pairTarget *= 1.15;
-					else if (isC1 || isC2) pairTarget *= 1.05;
+					if (isC1 && isC2) pairTarget *= 1.2;
+					else if (isC1 || isC2) pairTarget *= 1.1;
 
 					const targetWidth = (pairTarget / 1000) * font.unitsPerEm;
 					const pos1 = run.positions[i];
@@ -1054,20 +1054,13 @@ self.onmessage = function(e) {
 					for (let y = yStart; y <= yEnd; y += step) {
 						const row1 = p1.baseline - Math.round(y * p1.scale);
 						const row2 = p2.baseline - Math.round(y * p2.scale);
-
 						if (row1 >= 0 && row1 < p1.right.length && row2 >= 0 && row2 < p2.left.length) {
 							const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
 							if (inkR1 !== -1 && inkL2 !== -1) {
 								const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
 								const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
 								const gap = (pos1.xAdvance + l2_fu) - r1_fu;
-
-								let weight = 1.0;
-								if (y < 0) weight = 0.6;
-								else if (y < xHeight) weight = 1.2;
-								else if (y < capHeight) weight = 1.0;
-								else weight = 0.4;
-
+								let weight = (y < 0) ? 0.6 : (y < xHeight) ? 1.2 : (y < capHeight) ? 1.0 : 0.4;
 								sumGap += gap * weight;
 								minGap = Math.min(minGap, gap);
 								count += weight;
@@ -1078,13 +1071,10 @@ self.onmessage = function(e) {
 					if (count > 0) {
 						const avgGap = sumGap / count;
 						const gapVariance = Math.max(0, avgGap - minGap);
-						const airFactor = (isC1 !== isC2) ? 0.25 : 0.18;
-						const effectiveTargetWidth = targetWidth + (gapVariance * airFactor);
-
+						const airFactor = (isC1 && isC2) ? 0.15 : (isC1 || isC2) ? 0.22 : 0.2;
+						const effectiveTargetWidth = targetWidth + (gapVariance * airFactor) + Math.max(0, (50 - gapVariance) * 0.05);
 						const rhythm = 100 - tightness;
-						const kTexture = effectiveTargetWidth - minGap;
-						const kRhythm = effectiveTargetWidth - avgGap;
-						pos1.xAdvance += (1 - rhythm / 100) * kTexture + (rhythm / 100) * kRhythm;
+						pos1.xAdvance += (1 - rhythm / 100) * (effectiveTargetWidth - minGap) + (rhythm / 100) * (effectiveTargetWidth - avgGap);
 					}
 				}
 			}
