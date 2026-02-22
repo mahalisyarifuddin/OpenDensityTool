@@ -1026,56 +1026,139 @@ self.onmessage = function(e) {
 			}
 
 			async applyAutospacing(index, run, font, tightness) {
+				const upm = font.unitsPerEm;
 				const capHeight = font.capHeight || (font.ascent * 0.7);
-				const xHeight = font.xHeight || (font.ascent * 0.5);
-				const targetBase = 420 * (1 - tightness / 100);
+				const xHeight   = font.xHeight   || (font.ascent * 0.5);
+
+				// ── Target gap ────────────────────────────────────────────────────────
+				// Expressed as a fraction of UPM so the algorithm behaves consistently
+				// across 1000-, 2048-, and other UPM fonts without any magic constants
+				// that silently assume a particular units-per-em. 0.42 × UPM means
+				// "42% of an em" at maximum looseness; typical use is tightness 70–90,
+				// where the target collapses to ~4–12% of the em — a few pixels of
+				// visible white space at display sizes.
+				const targetBase = upm * 0.42 * (1 - tightness / 100);
+
+				// ── Overlap floor ────────────────────────────────────────────────────
+				// A slightly negative floor lets maximum-tightness settings produce the
+				// very light ink-to-ink contact seen in some display or italic faces.
+				// We cap it so glyphs never collide in a visually disruptive way.
+				const MIN_GAP = upm * -0.02;
+
+				// ── Reset kern to get a clean optical baseline ───────────────────────
+				// fontkit's layout() bakes GPOS/kern pairs into xAdvance before we see
+				// it. If we add optical corrections on top of those, well-kern-ed pairs
+				// (e.g. "AV") get double-adjusted. Since the user is explicitly opting
+				// into optical spacing, we restore each advance to the glyph's natural
+				// (un-kern-ed) width first, then let optical spacing set all gaps from
+				// scratch. This gives consistent, predictable results regardless of how
+				// rich or sparse the font's kern table is.
+				run.glyphs.forEach((glyph, i) => {
+					run.positions[i].xAdvance = glyph.advanceWidth;
+				});
+
 				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(index, g)));
 
 				for (let i = 0; i < run.glyphs.length - 1; i++) {
-					const p1 = profiles[i], p2 = profiles[i+1];
+					const p1 = profiles[i], p2 = profiles[i + 1];
 					if (!p1 || !p2) continue;
 
-					const g1 = run.glyphs[i], g2 = run.glyphs[i+1];
-					const isC1 = g1.bbox.maxY > (xHeight + (capHeight - xHeight) * 0.3);
-					const isC2 = g2.bbox.maxY > (xHeight + (capHeight - xHeight) * 0.3);
+					const g1 = run.glyphs[i], g2 = run.glyphs[i + 1];
 
+					// ── Character class ──────────────────────────────────────────────
+					// Unicode case detection is more reliable than bbox height because
+					// ascenders like 'd', 'h', 'l' have tall bboxes but should not be
+					// spaced like capitals. We use toUpperCase() comparison when a
+					// codepoint is available, and fall back to the bbox heuristic only
+					// for glyphs with no codepoint (ligatures, symbols, etc.).
+					const cp1 = g1.codePoints?.[0], cp2 = g2.codePoints?.[0];
+					const ch1 = cp1 != null ? String.fromCodePoint(cp1) : '';
+					const ch2 = cp2 != null ? String.fromCodePoint(cp2) : '';
+					const isUpper1 = ch1
+						? (ch1 === ch1.toUpperCase() && ch1 !== ch1.toLowerCase())
+						: (g1.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
+					const isUpper2 = ch2
+						? (ch2 === ch2.toUpperCase() && ch2 !== ch2.toLowerCase())
+						: (g2.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
+
+					// Cap–cap pairs get the most breathing room; mixed pairs get a
+					// little extra; lower–lower pairs use the base target unchanged.
 					let pairTarget = targetBase;
-					if (isC1 && isC2) pairTarget *= 1.2;
-					else if (isC1 || isC2) pairTarget *= 1.1;
+					if (isUpper1 && isUpper2)      pairTarget *= 1.2;
+					else if (isUpper1 || isUpper2) pairTarget *= 1.1;
 
-					const targetWidth = (pairTarget / 1000) * font.unitsPerEm;
 					const pos1 = run.positions[i];
-					let sumGap = 0, minGap = Infinity, count = 0;
 
-					const yStart = Math.min(g1.bbox.minY, g2.bbox.minY);
-					const yEnd = Math.max(g1.bbox.maxY, g2.bbox.maxY);
-					const step = Math.max(1, (yEnd - yStart) / 40);
+					// ── Vertical gap scan ────────────────────────────────────────────
+					// We sample the visible gap between right-ink-edge of glyph 1 and
+					// left-ink-edge of glyph 2 at many heights. More steps for taller
+					// glyphs so cap pairs are profiled as finely as x-height pairs —
+					// clamped between 30 and 120 to keep cost reasonable.
+					const yStart  = Math.min(g1.bbox.minY, g2.bbox.minY);
+					const yEnd    = Math.max(g1.bbox.maxY, g2.bbox.maxY);
+					const steps   = Math.max(30, Math.min(120, Math.round((yEnd - yStart) / upm * 150)));
+					const step    = (yEnd - yStart) / steps;
+
+					let sumGap = 0, minGap = Infinity, count = 0;
 
 					for (let y = yStart; y <= yEnd; y += step) {
 						const row1 = p1.baseline - Math.round(y * p1.scale);
 						const row2 = p2.baseline - Math.round(y * p2.scale);
-						if (row1 >= 0 && row1 < p1.right.length && row2 >= 0 && row2 < p2.left.length) {
-							const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
-							if (inkR1 !== -1 && inkL2 !== -1) {
-								const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
-								const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
-								const gap = (pos1.xAdvance + l2_fu) - r1_fu;
-								let weight = (y < 0) ? 0.6 : (y < xHeight) ? 1.2 : (y < capHeight) ? 1.0 : 0.4;
-								sumGap += gap * weight;
-								minGap = Math.min(minGap, gap);
-								count += weight;
-							}
-						}
+						if (row1 < 0 || row1 >= p1.right.length) continue;
+						if (row2 < 0 || row2 >= p2.left.length)  continue;
+						const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
+						if (inkR1 === -1 || inkL2 === -1) continue;
+
+						// Convert pixel coordinates back to font units.
+						// p1.scale = 100 / upm, so dividing by scale recovers font units.
+						const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
+						const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
+						const gap   = (pos1.xAdvance + l2_fu) - r1_fu;
+
+						// Weight scanlines by optical zone. The x-height band (0 → xHeight)
+						// carries the most weight because it is the visual "home" of Latin
+						// text. The cap band matters but slightly less. Ascenders above
+						// cap-height and descenders below the baseline are down-weighted
+						// because they contribute less to the perceived spacing of a line.
+						const weight = y < 0        ? 0.5
+						             : y < xHeight  ? 1.2
+						             : y < capHeight ? 1.0
+						             :                 0.4;
+						sumGap += gap * weight;
+						minGap  = Math.min(minGap, gap);
+						count  += weight;
 					}
 
-					if (count > 0) {
-						const avgGap = sumGap / count;
-						const gapVariance = Math.max(0, avgGap - minGap);
-						const airFactor = (isC1 && isC2) ? 0.15 : (isC1 || isC2) ? 0.22 : 0.2;
-						const effectiveTargetWidth = targetWidth + (gapVariance * airFactor) + Math.max(0, (50 - gapVariance) * 0.05);
-						const rhythm = 100 - tightness;
-						pos1.xAdvance += (1 - rhythm / 100) * (effectiveTargetWidth - minGap) + (rhythm / 100) * (effectiveTargetWidth - avgGap);
-					}
+					if (count === 0 || minGap === Infinity) continue;
+
+					const avgGap  = sumGap / count;
+
+					// ── Variance compensation ────────────────────────────────────────
+					// Variance measures how much the gap opens above its tightest point.
+					// A high-variance pair like "AV" or "To" has a very tight spot at
+					// mid-height but wide-open gaps at top and bottom. Without correction
+					// the tight spot would look pinched even if the average gap is fine.
+					// We add a fraction of the variance back to the target so these pairs
+					// get a bit of extra air — proportional to the font's own geometry
+					// rather than a hardcoded pixel count.
+					const variance  = Math.max(0, avgGap - minGap);
+					const airFactor = (isUpper1 && isUpper2) ? 0.15
+					                : (isUpper1 || isUpper2) ? 0.20
+					                :                          0.18;
+					const effectiveTarget = pairTarget + variance * airFactor;
+
+					// ── Blend and apply ──────────────────────────────────────────────
+					// At tightness=100 we target the minimum gap (tightest physically
+					// possible without overlap). At tightness=0 we target the weighted
+					// average gap (most airy). Blending between the two gives the user
+					// a smooth, intuitive control over how "tight" the result feels.
+					const t      = tightness / 100;
+					const refGap = minGap * t + avgGap * (1 - t);
+					const delta  = effectiveTarget - refGap;
+
+					// Clamp so we never push ink closer together than MIN_GAP,
+					// regardless of how extreme the tightness setting is.
+					pos1.xAdvance += Math.max(delta, MIN_GAP - minGap);
 				}
 			}
 
