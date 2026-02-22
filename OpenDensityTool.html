@@ -521,6 +521,14 @@
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500"><input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"><input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
 				</div>
+				<div class="row" style="margin-top: 0.5rem;">
+					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+						<input type="checkbox" id="autospacing1" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+					</label>
+				</div>
+				<div id="asControls1" hidden>
+					<label>Tightness (%)<input type="number" id="tightness1" value="50" min="0" max="100"><input type="range" id="tightnessRange1" value="50" min="0" max="100" aria-label="Tightness (%)"></label>
+				</div>
 			</div>
 			<div class="group">
 				<div class="header">
@@ -549,6 +557,14 @@
 				<div class="row">
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500"><input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"><input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
+				</div>
+				<div class="row" style="margin-top: 0.5rem;">
+					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+						<input type="checkbox" id="autospacing2" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+					</label>
+				</div>
+				<div id="asControls2" hidden>
+					<label>Tightness (%)<input type="number" id="tightness2" value="50" min="0" max="100"><input type="range" id="tightnessRange2" value="50" min="0" max="100" aria-label="Tightness (%)"></label>
 				</div>
 			</div>
 		</section>
@@ -598,7 +614,7 @@
 		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
 		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
-		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
+		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color', 'autospacing', 'tightness'];
 		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
 
 		const parseColor = (color) => {
@@ -612,8 +628,10 @@
 		};
 
 		const prepareCanvas = (canvas, width, height) => {
-			canvas.width = Math.max(canvas.width, width);
-			canvas.height = Math.max(canvas.height, height);
+			if (canvas.width !== width || canvas.height !== height) {
+				canvas.width = width;
+				canvas.height = height;
+			}
 			return canvas.getContext('2d', { willReadFrequently: true });
 		};
 
@@ -625,17 +643,23 @@ self.onmessage = function(e) {
 		const sliceHeight = scanYEnd - scanYStart;
 		const sliceWidth = scanXEnd - scanXStart;
 		if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) {
-			self.postMessage({ id, result: { densityByRow: new Float32Array(height), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 } });
+			self.postMessage({ id, result: { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 } });
 			return;
 		}
 		const pixelDataInt32 = new Uint32Array(buffer);
 		const densityByRow = new Float32Array(height);
+		const leftProfile = new Int32Array(height).fill(-1);
+		const rightProfile = new Int32Array(height).fill(-1);
 		let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
 		for (let y = scanYStart; y < scanYEnd; y++) {
 			let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
 			const rowStart = index;
 			while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
-			if (index === endIndex) continue;
+			if (index === endIndex) {
+				leftProfile[y] = -1;
+				rightProfile[y] = -1;
+				continue;
+			}
 			const firstX = index - rowStart;
 			endIndex--;
 			while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
@@ -654,6 +678,8 @@ self.onmessage = function(e) {
 			}
 			for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
 			densityByRow[y] = rowInk;
+			leftProfile[y] = firstX + scanXStart;
+			rightProfile[y] = lastX + scanXStart;
 			if (rowInk > maxDensity) maxDensity = rowInk;
 			inkPixels += rowInk;
 			if (minX > firstX) minX = firstX;
@@ -663,8 +689,8 @@ self.onmessage = function(e) {
 		}
 		self.postMessage({
 			id,
-			result: { densityByRow, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) }
-		}, [densityByRow.buffer]);
+			result: { densityByRow, leftProfile, rightProfile, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) }
+		}, [densityByRow.buffer, leftProfile.buffer, rightProfile.buffer]);
 	} catch (error) {
 		self.postMessage({ id, error: error.message });
 	}
@@ -677,6 +703,7 @@ self.onmessage = function(e) {
 				Object.assign(this, {
 					fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
 					loading: [false, false], loadSequence: [0, 0], renderingCache: [],
+					profileCache: [new Map(), new Map()],
 					layoutCache: [null, null], analyses: [],
 					offscreenCanvases: [makeCanvas(), makeCanvas()],
 					whiteCanvases: [makeCanvas(), makeCanvas()],
@@ -756,11 +783,18 @@ self.onmessage = function(e) {
 				elements.resetConfig.onclick = () => {
 					const btn = elements.resetConfig;
 					if (btn.dataset.confirming) {
-						[1, 2].forEach(number => INPUT_FIELDS.forEach(key => {
-							const input = elements[key + number], range = elements[key + 'Range' + number];
-							input.value = input.defaultValue;
-							if (range) range.value = input.value;
-						}));
+						[1, 2].forEach(number => {
+							INPUT_FIELDS.forEach(key => {
+								const input = elements[key + number], range = elements[key + 'Range' + number];
+								if (input.type === 'checkbox') {
+									input.checked = input.defaultChecked;
+								} else {
+									input.value = input.defaultValue;
+								}
+								if (range) range.value = input.value;
+							});
+							elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
+						});
 						this.update();
 						clearTimeout(this.resetTimeout);
 						delete btn.dataset.confirming;
@@ -807,10 +841,17 @@ self.onmessage = function(e) {
 					};
 
 					INPUT_FIELDS.forEach(key => {
-						const fn = /color|shift/.test(key) ? throttledUpdate : debouncedUpdate;
+						const fn = /color|shift|tightness/.test(key) ? throttledUpdate : debouncedUpdate;
 						const input = elements[key + number], range = elements[key + 'Range' + number];
-						input.oninput = () => { if (range) range.value = input.value; fn(); };
-						if (range) range.oninput = () => { input.value = range.value; fn(); };
+						if (input.type === 'checkbox') {
+							input.onchange = () => {
+								if (key === 'autospacing') elements[`asControls${number}`].hidden = !input.checked;
+								fn();
+							};
+						} else {
+							input.oninput = () => { if (range) range.value = input.value; fn(); };
+							if (range) range.oninput = () => { input.value = range.value; fn(); };
+						}
 					});
 
 					group.ondragover = event => { event.preventDefault(); group.classList.add('dragActive'); };
@@ -892,16 +933,22 @@ self.onmessage = function(e) {
 			}
 
 			swap() {
-				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache'].forEach(key => {
+				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache'].forEach(key => {
 					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
 				});
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
-					const value1 = input1.value, value2 = input2.value;
-					input1.value = value2; input2.value = value1;
+					if (input1.type === 'checkbox') {
+						const checked1 = input1.checked, checked2 = input2.checked;
+						input1.checked = checked2; input2.checked = checked1;
+					} else {
+						const value1 = input1.value, value2 = input2.value;
+						input1.value = value2; input2.value = value1;
+					}
 					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
-					if (range1 && range2) { range1.value = value2; range2.value = value1; }
+					if (range1 && range2) { range1.value = elements[key + '1'].value; range2.value = elements[key + '2'].value; }
 				});
+				[1, 2].forEach(number => elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked);
 				const name1 = elements.fileName1, name2 = elements.fileName2;
 				const text1 = name1.textContent, text2 = name2.textContent;
 				name1.textContent = name1.title = text2;
@@ -927,6 +974,7 @@ self.onmessage = function(e) {
 			async loadFont(file, index) {
 				const sequence = ++this.loadSequence[index];
 				this.loadErrors[index] = this.fonts[index] = null;
+				this.profileCache[index].clear();
 				this.loading[index] = true;
 				this.update();
 				try {
@@ -944,9 +992,104 @@ self.onmessage = function(e) {
 				}
 			}
 
+			async getGlyphProfile(index, glyph) {
+				const cache = this.profileCache[index];
+				if (cache.has(glyph.id)) return cache.get(glyph.id);
+				const fontSize = 100;
+				const font = this.fonts[index];
+				const scale = fontSize / font.unitsPerEm;
+				const bbox = glyph.bbox;
+				if (!bbox) return null;
+				const width = Math.ceil((bbox.maxX - bbox.minX) * scale) + 4;
+				const baseline = Math.ceil(bbox.maxY * scale) + 2;
+				const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
+				const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
+				if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+				const canvas = document.createElement('canvas');
+				canvas.width = width; canvas.height = height;
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				ctx.translate(drawOffsetX, baseline);
+				ctx.scale(1, -1);
+				ctx.fillStyle = '#FFFFFF';
+				glyph.render(ctx, fontSize);
+				const { data: imageData } = ctx.getImageData(0, 0, width, height);
+				const result = await this.runWorker({
+					buffer: imageData.buffer, width, height, scanYStart: 0, scanYEnd: height, scanXStart: 0, scanXEnd: width
+				}, [imageData.buffer]);
+				const profile = {
+					left: result.leftProfile,
+					right: result.rightProfile,
+					baseline, scale, drawOffsetX
+				};
+				cache.set(glyph.id, profile);
+				return profile;
+			}
+
+			async applyAutospacing(index, run, font, tightness) {
+				const capHeight = font.capHeight || (font.ascent * 0.7);
+				const xHeight = font.xHeight || (font.ascent * 0.5);
+				const targetBase = 420 * (1 - tightness / 100);
+				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(index, g)));
+
+				for (let i = 0; i < run.glyphs.length - 1; i++) {
+					const p1 = profiles[i], p2 = profiles[i+1];
+					if (!p1 || !p2) continue;
+
+					const g1 = run.glyphs[i], g2 = run.glyphs[i+1];
+					const isC1 = g1.bbox.maxY > (xHeight + (capHeight - xHeight) * 0.3);
+					const isC2 = g2.bbox.maxY > (xHeight + (capHeight - xHeight) * 0.3);
+
+					let pairTarget = targetBase;
+					if (isC1 && isC2) pairTarget *= 1.2;
+					else if (isC1 || isC2) pairTarget *= 1.1;
+
+					const targetWidth = (pairTarget / 1000) * font.unitsPerEm;
+					const pos1 = run.positions[i];
+					let sumGap = 0, minGap = Infinity, count = 0;
+
+					const yStart = Math.min(g1.bbox.minY, g2.bbox.minY);
+					const yEnd = Math.max(g1.bbox.maxY, g2.bbox.maxY);
+					const step = Math.max(1, (yEnd - yStart) / 40);
+
+					for (let y = yStart; y <= yEnd; y += step) {
+						const row1 = p1.baseline - Math.round(y * p1.scale);
+						const row2 = p2.baseline - Math.round(y * p2.scale);
+						if (row1 >= 0 && row1 < p1.right.length && row2 >= 0 && row2 < p2.left.length) {
+							const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
+							if (inkR1 !== -1 && inkL2 !== -1) {
+								const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
+								const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
+								const gap = (pos1.xAdvance + l2_fu) - r1_fu;
+								let weight = (y < 0) ? 0.6 : (y < xHeight) ? 1.2 : (y < capHeight) ? 1.0 : 0.4;
+								sumGap += gap * weight;
+								minGap = Math.min(minGap, gap);
+								count += weight;
+							}
+						}
+					}
+
+					if (count > 0) {
+						const avgGap = sumGap / count;
+						const gapVariance = Math.max(0, avgGap - minGap);
+						const airFactor = (isC1 && isC2) ? 0.15 : (isC1 || isC2) ? 0.22 : 0.2;
+						const effectiveTargetWidth = targetWidth + (gapVariance * airFactor) + Math.max(0, (50 - gapVariance) * 0.05);
+						const rhythm = 100 - tightness;
+						pos1.xAdvance += (1 - rhythm / 100) * (effectiveTargetWidth - minGap) + (rhythm / 100) * (effectiveTargetWidth - avgGap);
+					}
+				}
+			}
+
 			async getRenderData(index) {
 				const number = index + 1;
-				const inputs = { font: this.fonts[index], content: elements[`text${number}`].value, fontSize: +elements[`size${number}`].value || 0, letterSpacing: +elements[`spacing${number}`].value || 0, color: elements[`color${number}`].value };
+				const inputs = {
+					font: this.fonts[index],
+					content: elements[`text${number}`].value,
+					fontSize: +elements[`size${number}`].value || 0,
+					letterSpacing: +elements[`spacing${number}`].value || 0,
+					color: elements[`color${number}`].value,
+					autospacing: elements[`autospacing${number}`].checked,
+					tightness: +elements[`tightness${number}`].value
+				};
 				if (!inputs.font || !inputs.fontSize) return null;
 				const cached = this.renderingCache[index];
 				if (cached && cached.data && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
@@ -967,9 +1110,16 @@ self.onmessage = function(e) {
 				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
 				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
 
+				const asEnabled = elements[`autospacing${index + 1}`].checked;
+				const tightness = +elements[`tightness${index + 1}`].value;
 				const cachedLayout = this.layoutCache[index];
-				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font;
-				if (!hit) this.layoutCache[index] = { content, font, run: font.layout(content) };
+				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font &&
+				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness;
+				if (!hit) {
+					const run = font.layout(content);
+					if (asEnabled) await this.applyAutospacing(index, run, font, tightness);
+					this.layoutCache[index] = { content, font, run, asEnabled, tightness };
+				}
 				const run = this.layoutCache[index].run;
 
 				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
@@ -1031,6 +1181,10 @@ self.onmessage = function(e) {
 				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
 				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
 				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
+
+				if (![scanXStart, scanYStart, scanXEnd, scanYEnd].every(Number.isFinite) || scanXEnd <= scanXStart || scanYEnd <= scanYStart) {
+					return { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1, graphPath: new Path2D(), ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+				}
 
 				const { data: imageData } = context.getImageData(scanXStart, scanYStart, scanXEnd - scanXStart, scanYEnd - scanYStart);
 				const analysisData = await this.runWorker({
