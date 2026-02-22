@@ -521,6 +521,14 @@
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500"><input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"><input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
 				</div>
+				<div class="row" style="margin-top: 0.5rem;">
+					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+						<input type="checkbox" id="autospacing1" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+					</label>
+				</div>
+				<div id="asControls1" hidden>
+					<label>Tightness (%)<input type="number" id="tightness1" value="50" min="0" max="100"><input type="range" id="tightnessRange1" value="50" min="0" max="100" aria-label="Tightness (%)"></label>
+				</div>
 			</div>
 			<div class="group">
 				<div class="header">
@@ -550,6 +558,14 @@
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500"><input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"><input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
 				</div>
+				<div class="row" style="margin-top: 0.5rem;">
+					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+						<input type="checkbox" id="autospacing2" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+					</label>
+				</div>
+				<div id="asControls2" hidden>
+					<label>Tightness (%)<input type="number" id="tightness2" value="50" min="0" max="100"><input type="range" id="tightnessRange2" value="50" min="0" max="100" aria-label="Tightness (%)"></label>
+				</div>
 			</div>
 		</section>
 		<section>
@@ -560,14 +576,6 @@
 					<select id="render" aria-label="Render mode"><option value="overlay">Overlay</option><option value="side">Side-by-side</option></select>
 					<select id="density" aria-label="Density calculation method"><option value="ink">Ink Box</option><option value="em">Em Box</option></select>
 					<select id="guides" aria-label="Guides"><option value="none">No Guides</option><option value="baseline">Show Baseline</option><option value="metrics">Show Metrics</option></select>
-					<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; font-weight: normal; margin-bottom: 0;">
-						<input type="checkbox" id="optAutospacing" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
-					</label>
-					<label id="optControls" hidden style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0; white-space: nowrap;">
-						Tightness (%)
-						<input type="number" id="optTightness" value="50" min="0" max="100" style="width: 60px; margin-top: 0;">
-						<input type="range" id="optTightnessRange" value="50" min="0" max="100" aria-label="Optical Tightness (%)" style="width: 100px; margin-top: 0;">
-					</label>
 				</div>
 				<button id="copyImage">Copy Image</button>
 				<button id="export">Export PNG</button>
@@ -606,7 +614,7 @@
 		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
 		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
 		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
-		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color'];
+		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color', 'autospacing', 'tightness'];
 		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
 
 		const parseColor = (color) => {
@@ -740,21 +748,6 @@ self.onmessage = function(e) {
 				elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
 				['render', 'density', 'guides'].forEach(id => { elements[id].onchange = () => this.update(); });
 
-				elements.optAutospacing.onchange = () => {
-					elements.optControls.hidden = !elements.optAutospacing.checked;
-					this.update();
-				};
-				const updateTightness = () => {
-					elements.optTightnessRange.value = elements.optTightness.value;
-					throttledUpdate();
-				};
-				const updateTightnessRange = () => {
-					elements.optTightness.value = elements.optTightnessRange.value;
-					throttledUpdate();
-				};
-				elements.optTightness.oninput = updateTightness;
-				elements.optTightnessRange.oninput = updateTightnessRange;
-
 				elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
 					await new Promise(r => setTimeout(r, 50));
 					const link = document.createElement('a');
@@ -787,13 +780,15 @@ self.onmessage = function(e) {
 						[1, 2].forEach(number => {
 							INPUT_FIELDS.forEach(key => {
 								const input = elements[key + number], range = elements[key + 'Range' + number];
-								input.value = input.defaultValue;
+								if (input.type === 'checkbox') {
+									input.checked = input.defaultChecked;
+								} else {
+									input.value = input.defaultValue;
+								}
 								if (range) range.value = input.value;
 							});
+							elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
 						});
-						elements.optAutospacing.checked = false;
-						elements.optControls.hidden = true;
-						elements.optTightness.value = elements.optTightnessRange.value = 50;
 						this.update();
 						clearTimeout(this.resetTimeout);
 						delete btn.dataset.confirming;
@@ -840,7 +835,7 @@ self.onmessage = function(e) {
 					};
 
 					INPUT_FIELDS.forEach(key => {
-						const fn = /color|shift/.test(key) ? throttledUpdate : debouncedUpdate;
+						const fn = /color|shift|tightness/.test(key) ? throttledUpdate : debouncedUpdate;
 						const input = elements[key + number], range = elements[key + 'Range' + number];
 						if (input.type === 'checkbox') {
 							input.onchange = () => {
@@ -937,11 +932,17 @@ self.onmessage = function(e) {
 				});
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
-					const value1 = input1.value, value2 = input2.value;
-					input1.value = value2; input2.value = value1;
+					if (input1.type === 'checkbox') {
+						const checked1 = input1.checked, checked2 = input2.checked;
+						input1.checked = checked2; input2.checked = checked1;
+					} else {
+						const value1 = input1.value, value2 = input2.value;
+						input1.value = value2; input2.value = value1;
+					}
 					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
 					if (range1 && range2) { range1.value = elements[key + '1'].value; range2.value = elements[key + '2'].value; }
 				});
+				[1, 2].forEach(number => elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked);
 				const name1 = elements.fileName1, name2 = elements.fileName2;
 				const text1 = name1.textContent, text2 = name2.textContent;
 				name1.textContent = name1.title = text2;
@@ -1075,8 +1076,8 @@ self.onmessage = function(e) {
 				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
 				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
 
-				const asEnabled = elements.optAutospacing.checked;
-				const tightness = +elements.optTightness.value;
+				const asEnabled = elements[`autospacing${index + 1}`].checked;
+				const tightness = +elements[`tightness${index + 1}`].value;
 				const cachedLayout = this.layoutCache[index];
 				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font &&
 				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness;
