@@ -998,6 +998,7 @@ self.onmessage = function(e) {
 				const baseline = Math.ceil(bbox.maxY * scale) + 2;
 				const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
 				const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
+				if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
 				const whiteCanvas = document.createElement('canvas');
 				const whiteContext = prepareCanvas(whiteCanvas, width, height);
 				whiteContext.translate(drawOffsetX, baseline);
@@ -1147,6 +1148,10 @@ self.onmessage = function(e) {
 				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
 				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
 				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
+
+				if (![scanXStart, scanYStart, scanXEnd, scanYEnd].every(Number.isFinite) || scanXEnd <= scanXStart || scanYEnd <= scanYStart) {
+					return { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1, graphPath: new Path2D(), ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+				}
 
 				const { data: imageData } = context.getImageData(scanXStart, scanYStart, scanXEnd - scanXStart, scanYEnd - scanYStart);
 				const analysisData = await this.runWorker({
