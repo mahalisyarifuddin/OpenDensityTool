@@ -610,857 +610,608 @@
 		import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
 
 		const fontkit = fontkitModule.default || fontkitModule;
-		const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
-		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
-		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
-		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
-		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color', 'autospacing', 'tightness'];
-		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
-
-		const parseColor = (color) => {
-			if (!color) return { r: 0, g: 0, b: 0, a: 0 };
-			if (color[0] === '#') {
-				const int = parseInt((color.length < 5 ? color.replace(/[^#]/g, '$&$&') : color).slice(1, 7), 16);
-				return { r: int >> 16 & 255, g: int >> 8 & 255, b: int & 255, a: 1 };
-			}
-			const [r = 0, g = 0, b = 0, a = 1] = (color.match(/[\d.]+/g) || []).map(Number);
-			return { r, g, b, a };
-		};
-
-		const prepareCanvas = (canvas, width, height) => {
-			if (canvas.width !== width || canvas.height !== height) {
-				canvas.width = width;
-				canvas.height = height;
-			}
-			return canvas.getContext('2d', { willReadFrequently: true });
-		};
+		const elements = new Proxy({},{get:(_,id)=>document.getElementById(id)});
+		const debounce = (fn,ms)=> { let t; return (...args)=> (clearTimeout(t),t = setTimeout(()=>fn(...args),ms)); };
+		const raf = (fn)=> { let t; return (...args)=> (cancelAnimationFrame(t),t = requestAnimationFrame(()=>(fn(...args),t = null))); };
+		const paint = (ctx,color)=> (ctx.globalCompositeOperation = 'source-in',ctx.fillStyle = color,ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height),ctx.globalCompositeOperation = 'source-over');
+		const INPUT_FIELDS = ['text','size','spacing','shift','color','autospacing','tightness'];
+		const row = (label,value)=> `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
+		const parseColor = (color)=> (
+			!color
+				? { r: 0,g: 0,b: 0,a: 0 }
+				: color[0] === '#'
+					? (int=>({ r: int >> 16 & 255,g: int >> 8 & 255,b: int & 255,a: 1 }))(parseInt((color.length < 5 ? color.replace(/[^#]/g,'$&$&') : color).slice(1,7),16))
+					: (([r=0,g=0,b=0,a=1])=>({r,g,b,a}))((color.match(/[\d.]+/g) || []).map(Number))
+		);
+		const prepareCanvas = (canvas,width,height)=> (
+			(canvas.width !== width || canvas.height !== height) && (canvas.width = width,canvas.height = height),
+			canvas.getContext('2d',{ willReadFrequently: true })
+		);
 
 		const WORKER_CODE = `
 const ALPHA_SHIFT = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 31 : 7;
-self.onmessage = function(e) {
-	const { id, buffer, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd } = e.data;
+self.onmessage = (e)=> (({ id,buffer,width,height,scanYStart,scanYEnd,scanXStart,scanXEnd } = e.data)=> {
 	try {
-		const sliceHeight = scanYEnd - scanYStart;
-		const sliceWidth = scanXEnd - scanXStart;
-		if (width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0) {
-			self.postMessage({ id, result: { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1 } });
-			return;
-		}
-		const pixelDataInt32 = new Uint32Array(buffer);
-		const densityByRow = new Float32Array(height);
-		const leftProfile = new Int32Array(height).fill(-1);
-		const rightProfile = new Int32Array(height).fill(-1);
-		let inkPixels = 0, minX = sliceWidth, maxX = -1, minY = height, maxY = -1, maxDensity = 0;
-		for (let y = scanYStart; y < scanYEnd; y++) {
-			let index = (y - scanYStart) * sliceWidth, endIndex = index + sliceWidth;
-			const rowStart = index;
-			while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
-			if (index === endIndex) {
-				leftProfile[y] = -1;
-				rightProfile[y] = -1;
-				continue;
-			}
-			const firstX = index - rowStart;
-			endIndex--;
-			while (endIndex > index && !((pixelDataInt32[endIndex] >>> ALPHA_SHIFT) & 1)) endIndex--;
-			const lastX = endIndex - rowStart;
-			let rowInk = 0;
-			const limit = endIndex - 7;
-			for (; index <= limit; index += 8) {
-				rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 1] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 2] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 3] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 4] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 5] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 6] >>> ALPHA_SHIFT) & 1;
-				rowInk += (pixelDataInt32[index + 7] >>> ALPHA_SHIFT) & 1;
-			}
-			for (; index <= endIndex; index++) rowInk += (pixelDataInt32[index] >>> ALPHA_SHIFT) & 1;
-			densityByRow[y] = rowInk;
-			leftProfile[y] = firstX + scanXStart;
-			rightProfile[y] = lastX + scanXStart;
-			if (rowInk > maxDensity) maxDensity = rowInk;
-			inkPixels += rowInk;
-			if (minX > firstX) minX = firstX;
-			if (maxX < lastX) maxX = lastX;
-			if (minY > y) minY = y;
-			maxY = y;
-		}
-		self.postMessage({
-			id,
-			result: { densityByRow, leftProfile, rightProfile, inkPixels, minX: minX + scanXStart, maxX: maxX + scanXStart, minY, maxY, maxDensity: Math.max(1, maxDensity) }
-		}, [densityByRow.buffer, leftProfile.buffer, rightProfile.buffer]);
+		const sliceHeight = scanYEnd - scanYStart,sliceWidth = scanXEnd - scanXStart;
+		(width === 0 || height === 0 || sliceHeight <= 0 || sliceWidth <= 0)
+			? self.postMessage({ id,result: { densityByRow: new Float32Array(height),leftProfile: new Int32Array(height).fill(-1),rightProfile: new Int32Array(height).fill(-1),inkPixels: 0,minX: 0,maxX: 0,minY: 0,maxY: 0,maxDensity: 1 } })
+			: (()=>{
+				const pixelDataInt32 = new Uint32Array(buffer),densityByRow = new Float32Array(height),leftProfile = new Int32Array(height).fill(-1),rightProfile = new Int32Array(height).fill(-1);
+				let inkPixels = 0,minX = sliceWidth,maxX = -1,minY = height,maxY = -1,maxDensity = 0;
+				for (let y = scanYStart; y < scanYEnd; y++) {
+					let index = (y - scanYStart) * sliceWidth;
+					const endIndex = index + sliceWidth,rowStart = index;
+					while (index < endIndex && !((pixelDataInt32[index] >>> ALPHA_SHIFT) & 1)) index++;
+					(index === endIndex)
+						? (leftProfile[y] = -1,rightProfile[y] = -1)
+						: (()=>{
+							const firstX = index - rowStart;
+							let lastIdx = endIndex - 1;
+							while (lastIdx > index && !((pixelDataInt32[lastIdx] >>> ALPHA_SHIFT) & 1)) lastIdx--;
+							const lastX = lastIdx - rowStart;
+							let rowInk = 0;
+							for (let i = index; i <= lastIdx; i++) rowInk += (pixelDataInt32[i] >>> ALPHA_SHIFT) & 1;
+							densityByRow[y] = rowInk;
+							leftProfile[y] = firstX + scanXStart;
+							rightProfile[y] = lastX + scanXStart;
+							rowInk > maxDensity && (maxDensity = rowInk);
+							inkPixels += rowInk;
+							minX > firstX && (minX = firstX);
+							maxX < lastX && (maxX = lastX);
+							minY > y && (minY = y);
+							maxY = y;
+						})();
+				}
+				self.postMessage({
+					id,
+					result: { densityByRow,leftProfile,rightProfile,inkPixels,minX: minX + scanXStart,maxX: maxX + scanXStart,minY,maxY,maxDensity: Math.max(1,maxDensity) }
+				},[densityByRow.buffer,leftProfile.buffer,rightProfile.buffer]);
+			})();
 	} catch (error) {
-		self.postMessage({ id, error: error.message });
+		self.postMessage({ id,error: error.message });
 	}
-};
+})(e.data);
 `;
 
 		class DensityTool {
 			constructor() {
-				const makeCanvas = () => document.createElement('canvas');
-				Object.assign(this, {
-					fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
-					loading: [false, false], loadSequence: [0, 0], renderingCache: [],
-					profileCache: [new Map(), new Map()],
-					layoutCache: [null, null], analyses: [],
-					offscreenCanvases: [makeCanvas(), makeCanvas()],
-					whiteCanvases: [makeCanvas(), makeCanvas()],
+				const makeCanvas = ()=>document.createElement('canvas');
+				Object.assign(this,{
+					fonts: [],loadErrors: [],visibility: [true,true],solo: [false,false],
+					loading: [false,false],loadSequence: [0,0],renderingCache: [],
+					profileCache: [new Map(),new Map()],
+					layoutCache: [null,null],analyses: [],
+					offscreenCanvases: [makeCanvas(),makeCanvas()],
+					whiteCanvases: [makeCanvas(),makeCanvas()],
 					compositeCanvas: makeCanvas(),
-					graphWidth: 150, graphPadding: 20,
+					graphWidth: 150,graphPadding: 20,
 					context: elements.canvas.getContext('2d'),
 					workerResolvers: new Map(),
 					workerId: 0,
 					updateId: 0
-				});
-
-				const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
-				this.worker = new Worker(URL.createObjectURL(blob));
-				this.worker.onmessage = ({ data }) => {
-					const { id, result, error } = data;
-					if (this.workerResolvers.has(id)) {
-						const { resolve, reject } = this.workerResolvers.get(id);
-						this.workerResolvers.delete(id);
-						if (error) reject(new Error(error));
-						else resolve(result);
-					}
-				};
-
-				this.setup();
-				this.theme('auto');
+				}),
+				this.worker = new Worker(URL.createObjectURL(new Blob([WORKER_CODE],{ type: 'application/javascript' }))),
+				this.worker.onmessage = ({data})=> (({id,result,error}=data)=>
+					this.workerResolvers.has(id) && (({resolve,reject})=> (
+						this.workerResolvers.delete(id),
+						error ? reject(new Error(error)) : resolve(result)
+					))(this.workerResolvers.get(id))
+				)(data),
+				this.setup(),
+				this.theme('auto'),
 				this.update();
 			}
 
-			runWorker(payload, transferables = []) {
-				return new Promise((resolve, reject) => {
-					const id = this.workerId++;
-					this.workerResolvers.set(id, { resolve, reject });
-					this.worker.postMessage({ id, ...payload }, transferables);
-				});
+			runWorker(payload,transferables=[]) {
+				return new Promise((resolve,reject)=> (
+					this.workerResolvers.set(this.workerId,{ resolve,reject }),
+					this.worker.postMessage({ id: this.workerId++,...payload },transferables)
+				));
 			}
 
 			setup() {
-				const debouncedUpdate = debounce(() => this.update(), 300);
-				const throttledUpdate = raf(() => this.update());
-				const sampleOptions = Object.entries({
-					"Pangram (En)": "The quick brown fox jumps over the lazy dog",
-					"Pangram (Cy)": "Съешь же ещё этих мягких французских булок, да выпей чаю",
-					"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
-					"Numbers": "0123456789",
-					"Alignment": "Haxodp"
-				}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
+				const debouncedUpdate = debounce(()=>this.update(),300),
+					throttledUpdate = raf(()=>this.update()),
+					sampleOptions = Object.entries({
+						"Pangram (En)": "The quick brown fox jumps over the lazy dog",
+						"Pangram (Cy)": "Съешь же ещё этих мягких французских булок,да выпей чаю",
+						"Alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz",
+						"Numbers": "0123456789",
+						"Alignment": "Haxodp"
+					}).map(([label,text])=>`<option value="${text}">${label}</option>`).join('');
 
-				elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
-				['render', 'density', 'guides'].forEach(id => { elements[id].onchange = () => this.update(); });
+				elements.zoom.onchange = window.onresize = raf(()=>this.updateScale()),
+				['render','density','guides'].forEach(id=>(elements[id].onchange = ()=>this.update())),
+				elements.export.onclick = ()=>this.handleButtonState(elements.export,async ()=>(
+					await new Promise(r=>setTimeout(r,50)),
+					((link,names)=>(
+						link.href = elements.canvas.toDataURL(),
+						link.download = `density_${names.length ? names.join('_vs_') : new Date().toISOString().slice(0,19).replace(/[T:]/g,'-')}.png`,
+						link.click()
+					))(document.createElement('a'),this.fonts.map((f,i)=>f?f.fullName.replace(/[^a-z0-9]/gi,''):'').filter(Boolean))
+				),'Saved!','Exporting...'),
+				elements.copyImage.onclick = ()=>this.handleButtonState(elements.copyImage,async ()=>(
+					((blob)=>blob ? navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]) : Promise.reject(new Error('Blob creation failed')))(await new Promise(r=>elements.canvas.toBlob(r)))
+				),'Copied!','Copying...'),
+				elements.theme.onchange = e=>this.theme(e.target.value),
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>(
+					this.updateThemeColor(),
+					elements.theme.value === 'auto' && this.draw()
+				)),
+				elements.openSettings.onclick = ()=>elements.preferencesDialog.showModal(),
+				elements.closeSettings.onclick = ()=>elements.preferencesDialog.close(),
+				elements.spacingUnit.onchange = ()=>(this.updateSpacingLabels(),this.update()),
 
-				elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
-					await new Promise(r => setTimeout(r, 50));
-					const link = document.createElement('a');
-					link.href = elements.canvas.toDataURL();
-					const names = this.fonts.map((font, index) => font ? font.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
-					const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-					link.download = `density_${namePart}.png`;
-					link.click();
-				}, 'Saved!', 'Exporting...');
-
-				elements.copyImage.onclick = () => this.handleButtonState(elements.copyImage, async () => {
-					const blob = await new Promise(resolve => elements.canvas.toBlob(resolve));
-					if (!blob) throw new Error('Blob creation failed');
-					await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-				}, 'Copied!', 'Copying...');
-
-				elements.theme.onchange = event => this.theme(event.target.value);
-				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-					this.updateThemeColor();
-					if (elements.theme.value === 'auto') this.draw();
-				});
-
-				elements.openSettings.onclick = () => elements.preferencesDialog.showModal();
-				elements.closeSettings.onclick = () => elements.preferencesDialog.close();
-				elements.spacingUnit.onchange = () => { this.updateSpacingLabels(); this.update(); };
-
-				elements.resetConfig.onclick = () => {
-					const btn = elements.resetConfig;
-					if (btn.dataset.confirming) {
-						[1, 2].forEach(number => {
-							INPUT_FIELDS.forEach(key => {
-								const input = elements[key + number], range = elements[key + 'Range' + number];
-								if (input.type === 'checkbox') {
-									input.checked = input.defaultChecked;
-								} else {
-									input.value = input.defaultValue;
-								}
-								if (range) range.value = input.value;
-							});
-							elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
-						});
-						this.update();
-						clearTimeout(this.resetTimeout);
-						delete btn.dataset.confirming;
-						btn.textContent = 'Reset';
-						btn.classList.remove('confirm-danger');
-					} else {
-						btn.dataset.confirming = 'true';
-						const originalText = btn.textContent;
-						btn.textContent = 'Confirm?';
-						btn.classList.add('confirm-danger');
-						this.resetTimeout = setTimeout(() => {
-							delete btn.dataset.confirming;
-							btn.textContent = originalText;
-							btn.classList.remove('confirm-danger');
-						}, 3000);
-					}
-				};
-
-				elements.swapFonts.onclick = () => this.swap();
-
-				document.querySelectorAll('.copyButton').forEach(button => {
-					button.onclick = () => this.handleButtonState(button, () => navigator.clipboard.writeText(document.getElementById(button.dataset.target).innerText));
-				});
-
-				[1, 2].forEach((number, index) => {
-					const select = elements[`samples${number}`];
-					select.innerHTML += sampleOptions;
-					select.onchange = () => { if (select.value) { elements[`text${number}`].value = select.value; select.value = ""; debouncedUpdate(); } };
-
-					const fileInput = elements[`file${number}`];
-					const group = fileInput.closest('.group');
-
-					const updateFileName = file => elements[`fileName${number}`].textContent = elements[`fileName${number}`].title = file ? file.name : '';
-					const handleFile = file => { updateFileName(file); this.loadFont(file, index); };
-
-					elements[`uploadBtn${number}`].onclick = () => fileInput.click();
-					fileInput.onchange = event => handleFile(event.target.files[0]);
-
-					elements[`clear${number}`].onclick = () => {
-						this.fonts[index] = this.loadErrors[index] = null;
-						fileInput.value = '';
-						updateFileName(null);
-						this.update();
-					};
-
-					INPUT_FIELDS.forEach(key => {
-						const fn = /color|shift|tightness/.test(key) ? throttledUpdate : debouncedUpdate;
-						const input = elements[key + number], range = elements[key + 'Range' + number];
-						if (input.type === 'checkbox') {
-							input.onchange = () => {
-								if (key === 'autospacing') elements[`asControls${number}`].hidden = !input.checked;
-								fn();
-							};
-						} else {
-							input.oninput = () => { if (range) range.value = input.value; fn(); };
-							if (range) range.oninput = () => { input.value = range.value; fn(); };
-						}
-					});
-
-					group.ondragover = event => { event.preventDefault(); group.classList.add('dragActive'); };
-					group.ondragleave = event => { if (!event.relatedTarget || !group.contains(event.relatedTarget)) group.classList.remove('dragActive'); };
-					group.ondrop = event => {
-						event.preventDefault(); group.classList.remove('dragActive');
-						if (event.dataTransfer.files[0]) { fileInput.files = event.dataTransfer.files; handleFile(event.dataTransfer.files[0]); }
-					};
-
-					const toggle = (key, property, invert) => elements[key + number].onclick = () => {
-						const value = this[property][index] = !this[property][index];
-						elements[key + number].setAttribute('aria-pressed', invert ? !value : value);
-						this.draw();
-					};
-					toggle('mute', 'visibility', true);
-					toggle('solo', 'solo');
-				});
-
-				elements.canvas.onmousemove = raf(event => {
-					const { clientX, clientY } = event;
-					if (!this.lastDimensions) return;
-					const rect = elements.canvas.getBoundingClientRect();
-					const containerRect = elements.container.getBoundingClientRect();
-					const inBounds = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
-					elements.cursorGuide.hidden = !inBounds;
-					if (inBounds) {
-						elements.cursorGuide.style.top = `${clientY - containerRect.top}px`;
-						elements.cursorGuide.style.left = `${rect.left - containerRect.left}px`;
-						elements.cursorGuide.style.width = `${rect.width}px`;
-					}
-
-					const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
-					const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
-					if (x > this.graphWidth || x < 0) return elements.tooltip.hidden = true;
-
-					const content = this.analyses.map((analysis, index) => {
-						if (!analysis || analysis.error || !this.isFontVisible(index)) return null;
-						const rowY = Math.floor(y - (this.lastDimensions.baseline - analysis.baseline - analysis.baselineShift));
-						const value = (rowY >= 0 && rowY < analysis.densityByRow.length) ? analysis.densityByRow[rowY] : 0;
-						const name = this.fonts[index]?.fullName || `Font ${index + 1}`;
-						const percentage = Math.round((value / analysis.maxDensity) * 100);
-						return value ? `${name}: ${value}px (${percentage}%)` : null;
-					}).filter(Boolean).join('\n');
-
-					if (!content) return elements.tooltip.hidden = true;
-					elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
-					elements.tooltip.hidden = false;
-
-					const tooltipRect = elements.tooltip.getBoundingClientRect();
-					const offset = 15;
-					let left = clientX + offset;
-					let top = clientY + offset;
-					if (left + tooltipRect.width > window.innerWidth) left = clientX - tooltipRect.width - offset;
-					if (top + tooltipRect.height > window.innerHeight) top = clientY - tooltipRect.height - offset;
-					elements.tooltip.style.left = `${Math.max(0, left)}px`;
-					elements.tooltip.style.top = `${Math.max(0, top)}px`;
-				});
-				elements.canvas.onmouseleave = () => { elements.tooltip.hidden = true; elements.cursorGuide.hidden = true; };
-
-				document.addEventListener('keydown', event => {
-					if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
-					if (event.code === 'Digit1') { event.preventDefault(); event.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
-					if (event.code === 'Digit2') { event.preventDefault(); event.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
-				});
+				elements.resetConfig.onclick = ()=>((btn)=>(
+					btn.dataset.confirming
+						? (
+							[1,2].forEach(n=>(
+								INPUT_FIELDS.forEach(k=>((input,range)=>(
+									input.type === 'checkbox' ? input.checked = input.defaultChecked : input.value = input.defaultValue,
+									range && (range.value = input.value)
+								))(elements[k+n],elements[k+'Range'+n])),
+								elements[`asControls${n}`].hidden = !elements[`autospacing${n}`].checked
+							)),
+							this.update(),
+							clearTimeout(this.resetTimeout),
+							delete btn.dataset.confirming,
+							btn.textContent = 'Reset',
+							btn.classList.remove('confirm-danger')
+						)
+						: (
+							btn.dataset.confirming = 'true',
+							((originalText)=>(
+								btn.textContent = 'Confirm?',
+								btn.classList.add('confirm-danger'),
+								this.resetTimeout = setTimeout(()=>(
+									delete btn.dataset.confirming,
+									btn.textContent = originalText,
+									btn.classList.remove('confirm-danger')
+								),3000)
+							))(btn.textContent)
+						)
+				))(elements.resetConfig),
+				elements.swapFonts.onclick = ()=>this.swap(),
+				document.querySelectorAll('.copyButton').forEach(btn=>(
+					btn.onclick = ()=>this.handleButtonState(btn,()=>navigator.clipboard.writeText(document.getElementById(btn.dataset.target).innerText))
+				)),
+				[1,2].forEach((n,i)=>((select,fileInput,group,updateFileName,handleFile)=>(
+					select.innerHTML += sampleOptions,
+					select.onchange = ()=>(select.value && (elements[`text${n}`].value = select.value,select.value = '',debouncedUpdate())),
+					elements[`uploadBtn${n}`].onclick = ()=>fileInput.click(),
+					fileInput.onchange = e=>handleFile(e.target.files[0]),
+					elements[`clear${n}`].onclick = ()=>(this.fonts[i] = this.loadErrors[i] = null,fileInput.value = '',updateFileName(null),this.update()),
+					INPUT_FIELDS.forEach(k=>((fn,input,range)=>(
+						input.type === 'checkbox'
+							? (input.onchange = ()=>(k === 'autospacing' && (elements[`asControls${n}`].hidden = !input.checked),fn()))
+							: (
+								input.oninput = ()=>(range && (range.value = input.value),fn()),
+								range && (range.oninput = ()=>(input.value = range.value,fn()))
+							)
+					))(/color|shift|tightness/.test(k) ? throttledUpdate : debouncedUpdate,elements[k+n],elements[k+'Range'+n])),
+					group.ondragover = e=>(e.preventDefault(),group.classList.add('dragActive')),
+					group.ondragleave = e=>(!e.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('dragActive'),
+					group.ondrop = e=>(e.preventDefault(),group.classList.remove('dragActive'),e.dataTransfer.files[0] && (elements[`file${n}`].files = e.dataTransfer.files,handleFile(e.dataTransfer.files[0]))),
+					((toggle)=>(
+						toggle('mute','visibility',true),
+						toggle('solo','solo')
+					))((k,p,inv)=>(elements[k+n].onclick = ()=>(
+						((val)=>(
+							elements[k+n].setAttribute('aria-pressed',inv ? !val : val),
+							this.draw()
+						))(this[p][i] = !this[p][i])
+					)))
+				))(elements[`samples${n}`],elements[`file${n}`],elements[`file${n}`].closest('.group'),f=>elements[`fileName${n}`].textContent = elements[`fileName${n}`].title = f ? f.name : '',f=>(updateFileName(f),this.loadFont(f,i)))),
+				elements.canvas.onmousemove = raf(e=>((clientX,clientY)=>(
+					this.lastDimensions && (([rect,containerRect])=>(
+						((inBounds)=>(
+							elements.cursorGuide.hidden = !inBounds,
+							inBounds && (
+								elements.cursorGuide.style.top = `${clientY - containerRect.top}px`,
+								elements.cursorGuide.style.left = `${rect.left - containerRect.left}px`,
+								elements.cursorGuide.style.width = `${rect.width}px`
+							),
+							((x,y)=>(
+								(x > this.graphWidth || x < 0)
+									? elements.tooltip.hidden = true
+									: ((content)=>(
+										!content
+											? elements.tooltip.hidden = true
+											: (
+												elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`,
+												elements.tooltip.hidden = false,
+												((tooltipRect,offset)=>(
+													((left,top)=>(
+														elements.tooltip.style.left = `${Math.max(0,left + tooltipRect.width > window.innerWidth ? clientX - tooltipRect.width - offset : left)}px`,
+														elements.tooltip.style.top = `${Math.max(0,top + tooltipRect.height > window.innerHeight ? clientY - tooltipRect.height - offset : top)}px`
+													))(clientX + offset,clientY + offset)
+												))(elements.tooltip.getBoundingClientRect(),15)
+											)
+									))(this.analyses.map((a,idx)=>(!a || a.error || !this.isFontVisible(idx)) ? null : (rowY=> (rowY >= 0 && rowY < a.densityByRow.length && a.densityByRow[rowY]) ? `${this.fonts[idx]?.fullName || `Font ${idx+1}`}: ${a.densityByRow[rowY]}px (${Math.round((a.densityByRow[rowY]/a.maxDensity)*100)}%)` : null)(Math.floor(y - (this.lastDimensions.baseline - a.baseline - a.baselineShift)))).filter(Boolean).join('\n'))
+							))((clientX - rect.left) * (elements.canvas.width / rect.width),(clientY - rect.top) * (elements.canvas.height / rect.height))
+						))(clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom)
+					))([elements.canvas.getBoundingClientRect(),elements.container.getBoundingClientRect()])
+				))(e.clientX,e.clientY)),
+				elements.canvas.onmouseleave = ()=>(elements.tooltip.hidden = true,elements.cursorGuide.hidden = true),
+				document.addEventListener('keydown',e=>(
+					/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable || (
+						e.code === 'Digit1' && (e.preventDefault(),e.shiftKey ? elements.solo1.click() : elements.mute1.click()),
+						e.code === 'Digit2' && (e.preventDefault(),e.shiftKey ? elements.solo2.click() : elements.mute2.click())
+					)
+				));
 			}
 
-			async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
+			async handleButtonState(button,actionFn,successText='Copied!',processingText) {
 				const originalText = button.textContent;
-				if (processingText) button.textContent = processingText;
-				try {
-					await actionFn();
-					button.textContent = successText;
-				} catch (error) {
-					console.error(error);
-					button.textContent = 'Error';
-				} finally {
-					setTimeout(() => button.textContent = originalText, 2000);
-				}
+				return (
+					processingText && (button.textContent = processingText),
+					actionFn()
+						.then(()=>button.textContent = successText)
+						.catch(e=>(console.error(e),button.textContent = 'Error'))
+						.finally(()=>setTimeout(()=>button.textContent = originalText,2000))
+				);
 			}
 
 			swap() {
-				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache'].forEach(key => {
-					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
-				});
-				INPUT_FIELDS.forEach(key => {
-					const input1 = elements[key + '1'], input2 = elements[key + '2'];
-					if (input1.type === 'checkbox') {
-						const checked1 = input1.checked, checked2 = input2.checked;
-						input1.checked = checked2; input2.checked = checked1;
-					} else {
-						const value1 = input1.value, value2 = input2.value;
-						input1.value = value2; input2.value = value1;
-					}
-					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
-					if (range1 && range2) { range1.value = elements[key + '1'].value; range2.value = elements[key + '2'].value; }
-				});
-				[1, 2].forEach(number => elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked);
-				const name1 = elements.fileName1, name2 = elements.fileName2;
-				const text1 = name1.textContent, text2 = name2.textContent;
-				name1.textContent = name1.title = text2;
-				name2.textContent = name2.title = text1;
-				elements.file1.value = elements.file2.value = '';
+				['fonts','loadErrors','loading','loadSequence','renderingCache','layoutCache','profileCache'].forEach(k=>([this[k][0],this[k][1]] = [this[k][1],this[k][0]])),
+				INPUT_FIELDS.forEach(k=>((i1,i2,r1,r2)=>(
+					i1.type === 'checkbox' ? [i1.checked,i2.checked] = [i2.checked,i1.checked] : [i1.value,i2.value] = [i2.value,i1.value],
+					r1 && r2 && ([r1.value,r2.value] = [elements[k+'1'].value,elements[k+'2'].value])
+				))(elements[k+'1'],elements[k+'2'],elements[k+'Range1'],elements[k+'Range2'])),
+				[1,2].forEach(n=>(elements[`asControls${n}`].hidden = !elements[`autospacing${n}`].checked)),
+				(([n1,n2])=>(
+					[n1.textContent,n2.textContent] = [n2.textContent,n1.textContent],
+					[n1.title,n2.title] = [n2.title,n1.title]
+				))([elements.fileName1,elements.fileName2]),
+				elements.file1.value = elements.file2.value = '',
 				this.update();
 			}
 
-			theme(themeName) {
-				document.documentElement.className = themeName === 'auto' ? '' : themeName;
-				elements.theme.value = themeName;
-				this.updateThemeColor();
+			theme(n) {
+				document.documentElement.className = n === 'auto' ? '' : n,
+				elements.theme.value = n,
+				this.updateThemeColor(),
 				this.draw();
 			}
 
 			updateThemeColor() {
-				const surface = parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff');
-				const canvas = parseColor(this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor);
-				const mix = key => canvas[key] * canvas.a + surface[key] * (1 - canvas.a);
-				this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
+				((s,c)=>(
+					this.canvasBackgroundColor = getComputedStyle(elements.canvas).backgroundColor,
+					((mix)=>this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128)(k=> c[k] * c.a + s[k] * (1 - c.a))
+				))(parseColor(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff'),parseColor(getComputedStyle(elements.canvas).backgroundColor));
 			}
 
-			async loadFont(file, index) {
-				const sequence = ++this.loadSequence[index];
-				this.loadErrors[index] = this.fonts[index] = null;
-				this.profileCache[index].clear();
-				this.loading[index] = true;
-				this.update();
-				try {
-					if (!file) return;
-					if (file.size > 3e7) throw new Error('File too large (max 30MB)');
-					const buffer = await file.arrayBuffer();
-					if (sequence !== this.loadSequence[index]) return;
-					const font = fontkit.create(new Uint8Array(buffer));
-					if (!font.unitsPerEm) throw new Error('Invalid font');
-					this.fonts[index] = font;
-				} catch (error) {
-					if (sequence === this.loadSequence[index]) this.loadErrors[index] = error.message;
-				} finally {
-					if (sequence === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
-				}
+			async loadFont(file,i) {
+				const s = ++this.loadSequence[i];
+				return (
+					this.loadErrors[i] = this.fonts[i] = null,
+					this.profileCache[i].clear(),
+					this.loading[i] = true,
+					this.update(),
+					(!file ? Promise.resolve() : (file.size > 3e7 ? Promise.reject(new Error('File too large (max 30MB)')) : file.arrayBuffer()))
+						.then(buf=>buf && (s === this.loadSequence[i]) && (font=>!font.unitsPerEm ? Promise.reject(new Error('Invalid font')) : (this.fonts[i] = font))(fontkit.create(new Uint8Array(buf))))
+						.catch(e=>(s === this.loadSequence[i]) && (this.loadErrors[i] = e.message))
+						.finally(()=>(s === this.loadSequence[i]) && (this.loading[i] = false,this.update()))
+				);
 			}
 
-			async getGlyphProfile(index, glyph) {
-				const cache = this.profileCache[index];
-				if (cache.has(glyph.id)) return cache.get(glyph.id);
-				const fontSize = 100;
-				const font = this.fonts[index];
-				const scale = fontSize / font.unitsPerEm;
-				const bbox = glyph.bbox;
-				if (!bbox) return null;
-				const width = Math.ceil((bbox.maxX - bbox.minX) * scale) + 4;
-				const baseline = Math.ceil(bbox.maxY * scale) + 2;
-				const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
-				const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
-				if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-				const canvas = document.createElement('canvas');
-				canvas.width = width; canvas.height = height;
-				const ctx = canvas.getContext('2d', { willReadFrequently: true });
-				ctx.translate(drawOffsetX, baseline);
-				ctx.scale(1, -1);
-				ctx.fillStyle = '#FFFFFF';
-				glyph.render(ctx, fontSize);
-				const { data: imageData } = ctx.getImageData(0, 0, width, height);
-				const result = await this.runWorker({
-					buffer: imageData.buffer, width, height, scanYStart: 0, scanYEnd: height, scanXStart: 0, scanXEnd: width
-				}, [imageData.buffer]);
-				const profile = {
-					left: result.leftProfile,
-					right: result.rightProfile,
-					baseline, scale, drawOffsetX
-				};
-				cache.set(glyph.id, profile);
-				return profile;
+			async getGlyphProfile(idx,g) {
+				const cache = this.profileCache[idx],fS = 100,f = this.fonts[idx],sc = fS / f.unitsPerEm,b = g.bbox;
+				return cache.has(g.id) ? cache.get(g.id) : (
+					!b ? null : (([w,h,bl,dX])=>(
+						(!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) ? null : (
+							((cvs)=>(
+								((ctx)=>(
+									cvs.width = w,cvs.height = h,
+									ctx.translate(dX,bl),ctx.scale(1,-1),ctx.fillStyle = '#FFFFFF',
+									g.render(ctx,fS),
+									((imgData)=>this.runWorker({
+										buffer: imgData.buffer,width: w,height: h,scanYStart: 0,scanYEnd: h,scanXStart: 0,scanXEnd: w
+									},[imgData.buffer]).then(res=>((p)=>(
+										cache.set(g.id,p),p
+									))({ left: res.leftProfile,right: res.rightProfile,baseline: bl,scale: sc,drawOffsetX: dX })))(ctx.getImageData(0,0,w,h))
+								))(cvs.getContext('2d',{ willReadFrequently: true }))
+							))(document.createElement('canvas'))
+						)
+					))([Math.ceil((b.maxX - b.minX) * sc) + 4,Math.ceil((b.maxY - b.minY) * sc) + 4,Math.ceil(b.maxY * sc) + 2,-Math.min(0,b.minX * sc) + 2])
+				);
 			}
 
-			async applyAutospacing(index, run, font, tightness) {
-				const upm = font.unitsPerEm;
-				const capHeight = font.capHeight || (font.ascent * 0.7);
-				const xHeight   = font.xHeight   || (font.ascent * 0.5);
-
-				// ── Target gap ────────────────────────────────────────────────────────
-				// Expressed as a fraction of UPM so the algorithm behaves consistently
-				// across 1000-, 2048-, and other UPM fonts without any magic constants
-				// that silently assume a particular units-per-em. 0.42 × UPM means
-				// "42% of an em" at maximum looseness; typical use is tightness 70–90,
-				// where the target collapses to ~4–12% of the em — a few pixels of
-				// visible white space at display sizes.
-				const targetBase = upm * 0.42 * (1 - tightness / 100);
-
-				// ── Overlap floor ────────────────────────────────────────────────────
-				// A slightly negative floor lets maximum-tightness settings produce the
-				// very light ink-to-ink contact seen in some display or italic faces.
-				// We cap it so glyphs never collide in a visually disruptive way.
-				const MIN_GAP = upm * -0.02;
-
-				// ── Reset kern to get a clean optical baseline ───────────────────────
-				// fontkit's layout() bakes GPOS/kern pairs into xAdvance before we see
-				// it. If we add optical corrections on top of those, well-kern-ed pairs
-				// (e.g. "AV") get double-adjusted. Since the user is explicitly opting
-				// into optical spacing, we restore each advance to the glyph's natural
-				// (un-kern-ed) width first, then let optical spacing set all gaps from
-				// scratch. This gives consistent, predictable results regardless of how
-				// rich or sparse the font's kern table is.
-				run.glyphs.forEach((glyph, i) => {
-					run.positions[i].xAdvance = glyph.advanceWidth;
-				});
-
-				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(index, g)));
-
-				for (let i = 0; i < run.glyphs.length - 1; i++) {
-					const p1 = profiles[i], p2 = profiles[i + 1];
-					if (!p1 || !p2) continue;
-
-					const g1 = run.glyphs[i], g2 = run.glyphs[i + 1];
-
-					// ── Character class ──────────────────────────────────────────────
-					// Unicode case detection is more reliable than bbox height because
-					// ascenders like 'd', 'h', 'l' have tall bboxes but should not be
-					// spaced like capitals. We use toUpperCase() comparison when a
-					// codepoint is available, and fall back to the bbox heuristic only
-					// for glyphs with no codepoint (ligatures, symbols, etc.).
-					const cp1 = g1.codePoints?.[0], cp2 = g2.codePoints?.[0];
-					const ch1 = cp1 != null ? String.fromCodePoint(cp1) : '';
-					const ch2 = cp2 != null ? String.fromCodePoint(cp2) : '';
-					const isUpper1 = ch1
-						? (ch1 === ch1.toUpperCase() && ch1 !== ch1.toLowerCase())
-						: (g1.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
-					const isUpper2 = ch2
-						? (ch2 === ch2.toUpperCase() && ch2 !== ch2.toLowerCase())
-						: (g2.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
-
-					// Cap–cap pairs get the most breathing room; mixed pairs get a
-					// little extra; lower–lower pairs use the base target unchanged.
-					let pairTarget = targetBase;
-					if (isUpper1 && isUpper2)      pairTarget *= 1.2;
-					else if (isUpper1 || isUpper2) pairTarget *= 1.1;
-
-					const pos1 = run.positions[i];
-
-					// ── Vertical gap scan ────────────────────────────────────────────
-					// We sample the visible gap between right-ink-edge of glyph 1 and
-					// left-ink-edge of glyph 2 at many heights. More steps for taller
-					// glyphs so cap pairs are profiled as finely as x-height pairs —
-					// clamped between 30 and 120 to keep cost reasonable.
-					const yStart  = Math.min(g1.bbox.minY, g2.bbox.minY);
-					const yEnd    = Math.max(g1.bbox.maxY, g2.bbox.maxY);
-					const steps   = Math.max(30, Math.min(120, Math.round((yEnd - yStart) / upm * 150)));
-					const step    = (yEnd - yStart) / steps;
-
-					let sumGap = 0, minGap = Infinity, count = 0;
-
-					for (let y = yStart; y <= yEnd; y += step) {
-						const row1 = p1.baseline - Math.round(y * p1.scale);
-						const row2 = p2.baseline - Math.round(y * p2.scale);
-						if (row1 < 0 || row1 >= p1.right.length) continue;
-						if (row2 < 0 || row2 >= p2.left.length)  continue;
-						const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
-						if (inkR1 === -1 || inkL2 === -1) continue;
-
-						// Convert pixel coordinates back to font units.
-						// p1.scale = 100 / upm, so dividing by scale recovers font units.
-						const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
-						const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
-						const gap   = (pos1.xAdvance + l2_fu) - r1_fu;
-
-						// Weight scanlines by optical zone. The x-height band (0 → xHeight)
-						// carries the most weight because it is the visual "home" of Latin
-						// text. The cap band matters but slightly less. Ascenders above
-						// cap-height and descenders below the baseline are down-weighted
-						// because they contribute less to the perceived spacing of a line.
-						const weight = y < 0        ? 0.5
-						             : y < xHeight  ? 1.2
-						             : y < capHeight ? 1.0
-						             :                 0.4;
-						sumGap += gap * weight;
-						minGap  = Math.min(minGap, gap);
-						count  += weight;
-					}
-
-					if (count === 0 || minGap === Infinity) continue;
-
-					const avgGap  = sumGap / count;
-
-					// ── Variance compensation ────────────────────────────────────────
-					// Variance measures how much the gap opens above its tightest point.
-					// A high-variance pair like "AV" or "To" has a very tight spot at
-					// mid-height but wide-open gaps at top and bottom. Without correction
-					// the tight spot would look pinched even if the average gap is fine.
-					// We add a fraction of the variance back to the target so these pairs
-					// get a bit of extra air — proportional to the font's own geometry
-					// rather than a hardcoded pixel count.
-					const variance  = Math.max(0, avgGap - minGap);
-					const airFactor = (isUpper1 && isUpper2) ? 0.15
-					                : (isUpper1 || isUpper2) ? 0.20
-					                :                          0.18;
-					const effectiveTarget = pairTarget + variance * airFactor;
-
-					// ── Blend and apply ──────────────────────────────────────────────
-					// At tightness=100 we target the minimum gap (tightest physically
-					// possible without overlap). At tightness=0 we target the weighted
-					// average gap (most airy). Blending between the two gives the user
-					// a smooth, intuitive control over how "tight" the result feels.
-					const t      = tightness / 100;
-					const refGap = minGap * t + avgGap * (1 - t);
-					const delta  = effectiveTarget - refGap;
-
-					// Clamp so we never push ink closer together than MIN_GAP,
-					// regardless of how extreme the tightness setting is.
-					pos1.xAdvance += Math.max(delta, MIN_GAP - minGap);
-				}
+			async applyAutospacing(idx,run,f,tigh) {
+				const upm = f.unitsPerEm,cH = f.capHeight || (f.ascent * 0.7),xH = f.xHeight || (f.ascent * 0.5),tB = upm * 0.42 * (1 - tigh / 100),MIN_G = upm * -0.02;
+				run.glyphs.forEach((g,i)=>(run.positions[i].xAdvance = g.advanceWidth)),
+				await Promise.all(run.glyphs.map(g=>this.getGlyphProfile(idx,g))).then(profs=>(
+					profs.slice(0,-1).forEach((p1,i)=>((p2,g1,g2,pos1)=>(
+						p1 && p2 && (([isU1,isU2])=>((pT)=>(
+							((yS,yE)=>(
+								((steps)=>(
+									((step)=>(
+										((sumG,minG,cnt)=>(
+											Array.from({length: steps+1},(_,j)=>yS + j*step).forEach(y=>((r1,r2)=>(
+												r1 >= 0 && r1 < p1.right.length && r2 >= 0 && r2 < p2.left.length && p1.right[r1] !== -1 && p2.left[r2] !== -1 && ((r1fu,l2fu)=>(
+													((gap)=>(
+														((w)=>(
+															sumG += gap * w,minG = Math.min(minG,gap),cnt += w
+														))(y < 0 ? 0.5 : y < xH ? 1.2 : y < cH ? 1.0 : 0.4)
+													))((pos1.xAdvance + l2fu) - r1fu)
+												))((p1.right[r1] - p1.drawOffsetX) / p1.scale,(p2.left[r2] - p2.drawOffsetX) / p2.scale)
+											))(p1.baseline - Math.round(y * p1.scale),p2.baseline - Math.round(y * p2.scale))),
+											cnt > 0 && minG !== Infinity && ((avgG)=>(
+												((v,aF)=>(
+													((eT)=>(
+														((t,refG)=>(
+															pos1.xAdvance += Math.max(eT - refG,MIN_G - minG)
+														))(tigh / 100,minG * (tigh / 100) + avgG * (1 - tigh / 100))
+													))(pT + v * aF)
+												))(Math.max(0,avgG - minG),(isU1 && isU2) ? 0.15 : (isU1 || isU2) ? 0.20 : 0.18)
+											))(sumG / cnt)
+										))(0,Infinity,0)
+									))((yE - yS) / steps)
+								))(Math.max(30,Math.min(120,Math.round((yE - yS) / upm * 150))))
+							))(Math.min(g1.bbox.minY,g2.bbox.minY),Math.max(g1.bbox.maxY,g2.bbox.maxY))
+						))(isU1 && isU2 ? tB * 1.2 : isU1 || isU2 ? tB * 1.1 : tB))( (([c1,c2])=>([
+							c1 ? (c1 === c1.toUpperCase() && c1 !== c1.toLowerCase()) : (g1.bbox.maxY > xH + (cH - xH) * 0.3),
+							c2 ? (c2 === c2.toUpperCase() && c2 !== c2.toLowerCase()) : (g2.bbox.maxY > xH + (cH - xH) * 0.3)
+						]))([g1.codePoints?.[0] ? String.fromCodePoint(g1.codePoints[0]) : '',g2.codePoints?.[0] ? String.fromCodePoint(g2.codePoints[0]) : '']) )
+					))(profs[i+1],run.glyphs[i],run.glyphs[i+1],run.positions[i]))
+				));
 			}
 
-			async getRenderData(index) {
-				const number = index + 1;
-				const inputs = {
-					font: this.fonts[index],
-					content: elements[`text${number}`].value,
-					fontSize: +elements[`size${number}`].value || 0,
-					letterSpacing: +elements[`spacing${number}`].value || 0,
-					color: elements[`color${number}`].value,
-					autospacing: elements[`autospacing${number}`].checked,
-					tightness: +elements[`tightness${number}`].value
-				};
-				if (!inputs.font || !inputs.fontSize) return null;
-				const cached = this.renderingCache[index];
-				if (cached && cached.data && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
-					if (cached.inputs.color !== inputs.color) {
-						paint(cached.data.canvas.getContext('2d'), inputs.color);
-						cached.inputs.color = inputs.color;
-					}
-					return cached.data;
-				}
-				return await this.generateRenderData(index, inputs);
+			async getRenderData(i) {
+				const n = i + 1,inputs = {
+					font: this.fonts[i],
+					content: elements[`text${n}`].value,
+					fontSize: +elements[`size${n}`].value || 0,
+					letterSpacing: +elements[`spacing${n}`].value || 0,
+					color: elements[`color${n}`].value,
+					autospacing: elements[`autospacing${n}`].checked,
+					tightness: +elements[`tightness${n}`].value
+				},cached = this.renderingCache[i];
+				return (!inputs.font || !inputs.fontSize) ? null : (
+					(cached && cached.data && Object.keys(inputs).every(k=>k === 'color' || cached.inputs[k] === inputs[k]))
+						? (
+							cached.inputs.color !== inputs.color && (
+								paint(cached.data.canvas.getContext('2d'),inputs.color),
+								cached.inputs.color = inputs.color
+							),
+							cached.data
+						)
+						: this.generateRenderData(i,inputs)
+				);
 			}
 
-			async generateRenderData(index, inputs) {
-				const { font, content, fontSize, letterSpacing, color } = inputs;
-				const size = Math.min(Math.max(fontSize, 1), 2000);
-				const scale = size / font.unitsPerEm;
-				const unit = elements.spacingUnit.value;
-				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
-				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
-
-				const asEnabled = elements[`autospacing${index + 1}`].checked;
-				const tightness = +elements[`tightness${index + 1}`].value;
-				const cachedLayout = this.layoutCache[index];
-				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font &&
-				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness;
-				if (!hit) {
-					const run = font.layout(content);
-					if (asEnabled) await this.applyAutospacing(index, run, font, tightness);
-					this.layoutCache[index] = { content, font, run, asEnabled, tightness };
-				}
-				const run = this.layoutCache[index].run;
-
-				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
-				run.glyphs.forEach((glyph, index) => {
-					const position = run.positions[index];
-					const boundingBox = glyph.bbox;
-					if (boundingBox) {
-						const x = currentX + position.xOffset;
-						const y = position.yOffset;
-						minX = Math.min(minX, x + boundingBox.minX);
-						maxX = Math.max(maxX, x + boundingBox.maxX);
-						minY = Math.min(minY, y + boundingBox.minY);
-						maxY = Math.max(maxY, y + boundingBox.maxY);
-					}
-					currentX += (position.xAdvance * advanceScale) + tracking;
-				});
-				if (minX === Infinity) minX = maxX = minY = maxY = 0;
-				const scaled = value => (value || 0) * scale;
-				const metrics = {
-					ascent: Math.max(maxY * scale, scaled(font.ascent)),
-					descent: Math.max(-minY * scale, Math.abs(scaled(font.descent))),
-					fontAscent: scaled(font.ascent),
-					fontDescent: Math.abs(scaled(font.descent)),
-					fontCapHeight: scaled(font.capHeight),
-					fontXHeight: scaled(font.xHeight),
-					advanceWidth: Math.ceil(currentX * scale)
-				};
-				const drawOffsetX = -Math.min(0, minX * scale);
-				const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
-				const baseline = Math.ceil(metrics.ascent);
-				const height = Math.ceil(baseline + metrics.descent);
-				if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
-
-				const whiteCanvas = this.whiteCanvases[index];
-				const whiteContext = prepareCanvas(whiteCanvas, width, height);
-				whiteContext.save();
-				whiteContext.translate(drawOffsetX, baseline);
-				whiteContext.scale(1, -1);
-				whiteContext.fillStyle = '#FFFFFF';
-				let drawX = 0;
-				run.glyphs.forEach((glyph, index) => {
-					const position = run.positions[index];
-					const tx = (drawX + position.xOffset) * scale;
-					const ty = position.yOffset * scale;
-					whiteContext.translate(tx, ty);
-					whiteContext.beginPath();
-					glyph.render(whiteContext, size);
-					whiteContext.translate(-tx, -ty);
-					drawX += (position.xAdvance * advanceScale) + tracking;
-				});
-				whiteContext.restore();
-
-				const canvas = this.offscreenCanvases[index];
-				const context = prepareCanvas(canvas, width, height);
-				context.drawImage(whiteCanvas, 0, 0);
-				paint(context, color);
-
-				const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
-				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
-				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
-				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
-
-				if (![scanXStart, scanYStart, scanXEnd, scanYEnd].every(Number.isFinite) || scanXEnd <= scanXStart || scanYEnd <= scanYStart) {
-					return { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1, graphPath: new Path2D(), ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
-				}
-
-				const { data: imageData } = context.getImageData(scanXStart, scanYStart, scanXEnd - scanXStart, scanYEnd - scanYStart);
-				const analysisData = await this.runWorker({
-					buffer: imageData.buffer, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd
-				}, [imageData.buffer]);
-
-				const graphPath = new Path2D();
-				const graphScale = this.graphWidth / analysisData.maxDensity;
-				let currentGraphWidth = 0, startGraphY = -1;
-				for (let rowY = 0; rowY < analysisData.densityByRow.length; rowY++) {
-					const barWidth = analysisData.densityByRow[rowY] ? analysisData.densityByRow[rowY] * graphScale : 0;
-					if (barWidth !== currentGraphWidth) {
-						if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, rowY - startGraphY);
-						currentGraphWidth = barWidth; startGraphY = rowY;
-					}
-				}
-				if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
-
-				const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
-				this.renderingCache[index] = { inputs, data };
-				return data;
+			async generateRenderData(idx,inputs) {
+				const { font,content,fontSize,letterSpacing,color } = inputs,
+					size = Math.min(Math.max(fontSize,1),2000),
+					scale = size / font.unitsPerEm,
+					unit = elements.spacingUnit.value,
+					tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm,
+					advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1,
+					asE = elements[`autospacing${idx + 1}`].checked,
+					tight = +elements[`tightness${idx + 1}`].value,
+					cL = this.layoutCache[idx];
+				!(cL && cL.content === content && cL.font === font && cL.asEnabled === asE && cL.tightness === tight) && (
+					await (async (run)=>(
+						asE && await this.applyAutospacing(idx,run,font,tight),
+						this.layoutCache[idx] = { content,font,run,asEnabled: asE,tightness: tight }
+					))(font.layout(content))
+				);
+				const run = this.layoutCache[idx].run;
+				let minX = Infinity,maxX = -Infinity,minY = Infinity,maxY = -Infinity,currentX = 0;
+				run.glyphs.forEach((g,i)=>((pos,b)=>(
+					b && (
+						minX = Math.min(minX,currentX + pos.xOffset + b.minX),
+						maxX = Math.max(maxX,currentX + pos.xOffset + b.maxX),
+						minY = Math.min(minY,pos.yOffset + b.minY),
+						maxY = Math.max(maxY,pos.yOffset + b.maxY)
+					),
+					currentX += (pos.xAdvance * advanceScale) + tracking
+				))(run.positions[i],g.bbox)),
+				minX === Infinity && (minX = maxX = minY = maxY = 0);
+				const scld = v=>(v || 0) * scale,
+					metrics = {
+						ascent: Math.max(maxY * scale,scld(font.ascent)),
+						descent: Math.max(-minY * scale,Math.abs(scld(font.descent))),
+						fontAscent: scld(font.ascent),
+						fontDescent: Math.abs(scld(font.descent)),
+						fontCapHeight: scld(font.capHeight),
+						fontXHeight: scld(font.xHeight),
+						advanceWidth: Math.ceil(currentX * scale)
+					},
+					dX = -Math.min(0,minX * scale),
+					w = Math.ceil(Math.max(metrics.advanceWidth,maxX * scale) + dX),
+					bl = Math.ceil(metrics.ascent),
+					h = Math.ceil(bl + metrics.descent);
+				(w > 32767 || h > 32767) && (()=>{throw new Error('Canvas dimensions too large')})();
+				const wC = this.whiteCanvases[idx],wCtx = prepareCanvas(wC,w,h);
+				wCtx.save(),wCtx.translate(dX,bl),wCtx.scale(1,-1),wCtx.fillStyle = '#FFFFFF';
+				let dX_ = 0;
+				run.glyphs.forEach((g,i)=>((pos)=>(
+					wCtx.translate((dX_ + pos.xOffset) * scale,pos.yOffset * scale),
+					wCtx.beginPath(),
+					g.render(wCtx,size),
+					wCtx.translate(-(dX_ + pos.xOffset) * scale,-pos.yOffset * scale),
+					dX_ += (pos.xAdvance * advanceScale) + tracking
+				))(run.positions[i])),
+				wCtx.restore();
+				const cvs = this.offscreenCanvases[idx],ctx = prepareCanvas(cvs,w,h);
+				ctx.drawImage(wC,0,0),paint(ctx,color);
+				const sYS = Math.max(0,Math.floor(bl - maxY * scale) - 1),
+					sYE = Math.min(h,Math.ceil(bl - minY * scale) + 1),
+					sXS = Math.max(0,Math.floor(minX * scale + dX) - 1),
+					sXE = Math.min(w,Math.ceil(maxX * scale + dX) + 1);
+				return (![sXS,sYS,sXE,sYE].every(Number.isFinite) || sXE <= sXS || sYE <= sYS)
+					? { densityByRow: new Float32Array(h),leftProfile: new Int32Array(h).fill(-1),rightProfile: new Int32Array(h).fill(-1),inkPixels: 0,minX: 0,maxX: 0,minY: 0,maxY: 0,maxDensity: 1,graphPath: new Path2D(),...metrics,drawOffsetX: dX,width: w,height: h,canvas: cvs,whiteCanvas: wC,baseline: bl,letterSpacing,fontSize: size,font }
+					: (
+						((imgData)=>this.runWorker({
+							buffer: imgData.buffer,width: w,height: h,scanYStart: sYS,scanYEnd: sYE,scanXStart: sXS,scanXEnd: sXE
+						},[imgData.buffer]).then(aD=>((gP,gS,cGW,sGY)=>(
+							aD.densityByRow.forEach((v,rY)=>((bW)=>(
+								bW !== cGW && (
+									cGW > 0 && gP.rect(this.graphWidth - cGW,sGY,cGW,rY - sGY),
+									cGW = bW,sGY = rY
+								)
+							))(v ? v * gS : 0)),
+							cGW > 0 && gP.rect(this.graphWidth - cGW,sGY,cGW,aD.densityByRow.length - sGY),
+							((data)=>(
+								this.renderingCache[idx] = { inputs,data },data
+							))({ ...aD,graphPath: gP,...metrics,drawOffsetX: dX,width: w,height: h,canvas: cvs,whiteCanvas: wC,baseline: bl,letterSpacing,fontSize: size,font })
+						))(new Path2D(),this.graphWidth / aD.maxDensity,0,-1)))(ctx.getImageData(sXS,sYS,sXE - sXS,sYE - sYS))
+					);
 			}
 
 			updateSpacingLabels() {
-				const unit = elements.spacingUnit.value;
-				const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
-				const defaultValue = unit === 'percent' ? 100 : 0;
-				[1, 2].forEach(number => {
-					elements[`spacingRange${number}`].setAttribute('aria-label', label);
-					elements[`spacing${number}`].parentElement.firstChild.textContent = label;
-					elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = defaultValue;
-				});
+				const u = elements.spacingUnit.value,
+					l = u === 'percent' ? 'Tracking (%)' : u === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)',
+					dV = u === 'percent' ? 100 : 0;
+				[1,2].forEach(n=>(
+					elements[`spacingRange${n}`].setAttribute('aria-label',l),
+					elements[`spacing${n}`].parentElement.firstChild.textContent = l,
+					elements[`spacing${n}`].value = elements[`spacingRange${n}`].value = dV
+				));
 			}
 
-			isFontVisible(index) { return this.solo.some(s => s) ? this.solo[index] : this.visibility[index]; }
+			isFontVisible(i) { return this.solo.some(s=>s) ? this.solo[i] : this.visibility[i]; }
 
 			async update() {
-				const updateId = ++this.updateId;
-				const results = await Promise.all([1, 2].map(async (number, index) => {
-					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
-					try {
-						const data = await this.getRenderData(index);
-						if (!data) return null;
-						const hasInk = data.maxY >= data.minY;
-						const area = Math.max(1, elements.density.value === 'ink' ? (hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1) : Math.max(1, data.advanceWidth) * (data.ascent + data.descent));
-						const yMin = hasInk ? Math.round(data.baseline - data.maxY) : 0;
-						const yMax = hasInk ? Math.round(data.baseline - data.minY) : 0;
-						return { ...data, baselineShift: +elements[`shift${number}`].value || 0, density: ((data.inkPixels / area) * 100).toFixed(1), yMin, yMax, inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0 };
-					} catch (error) { return { error: error.message }; }
-				}));
-
-				if (updateId !== this.updateId) return;
-				this.analyses = results;
-				this.draw();
-				[1, 2].forEach((number, index) => this.updateResult(number, index));
+				const uId = ++this.updateId;
+				return Promise.all([1,2].map(async (n,i)=>(
+					elements[`dot${n}`].style.backgroundColor = elements[`color${n}`].value,
+					this.getRenderData(i).then(d=>d && ((hI)=>((area)=>(
+						{ ...d,baselineShift: +elements[`shift${n}`].value || 0,density: ((d.inkPixels / area) * 100).toFixed(1),yMin: hI ? Math.round(d.baseline - d.maxY) : 0,yMax: hI ? Math.round(d.baseline - d.minY) : 0,inkHeight: hI ? (d.maxY - d.minY + 1) : 0 }
+					))(Math.max(1,elements.density.value === 'ink' ? (hI ? (d.maxX - d.minX + 1) * (d.maxY - d.minY + 1) : 1) : Math.max(1,d.advanceWidth) * (d.ascent + d.descent))))(d.maxY >= d.minY))
+					.catch(e=>({ error: e.message }))
+				))).then(res=>(uId === this.updateId) && (
+					this.analyses = res,
+					this.draw(),
+					[1,2].forEach((n,i)=>this.updateResult(n,i))
+				));
 			}
 
 			draw() {
-				const validItems = this.analyses.map((analysis, index) => ({ analysis, index })).filter(({ analysis, index }) => analysis && !analysis.error && this.isFontVisible(index));
-				if (!validItems.length) { this.context.canvas.height = 150; this.updateScale(); return; }
-
-				const sideMode = elements.render.value === 'side' && validItems.length > 1;
-				const max = fn => Math.max(0, ...validItems.map(({ analysis }) => fn(analysis)));
-				const maxAscent = max(analysis => analysis.baseline + analysis.baselineShift);
-				const maxDescent = max(analysis => analysis.height - analysis.baseline - analysis.baselineShift);
-				const maxOffsetX = max(analysis => analysis.drawOffsetX);
-				const totalWidth = sideMode ? validItems.reduce((sum, { analysis }) => sum + analysis.width, 0) : maxOffsetX + max(analysis => analysis.width - analysis.drawOffsetX);
-				const dimensions = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
-
-				this.context.canvas.width = dimensions.width;
-				this.context.canvas.height = dimensions.height;
-				this.context.fillStyle = this.canvasBackgroundColor;
-				this.context.fillRect(0, 0, dimensions.width, dimensions.height);
-
-				const contexts = this.isDark ? this.updateAuxiliaryCanvases(dimensions.width, dimensions.height) : null;
-				if (this.isDark) {
-					[contexts[0], contexts[1]].forEach(ctx => { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
-					contexts[5].clearRect(0, 0, dimensions.width, dimensions.height);
-				} else { this.compositeCanvas.width = dimensions.width; this.compositeCanvas.height = dimensions.height; }
-
-				this.composeLayers(validItems, dimensions, contexts, sideMode);
-
-				if (this.isDark) {
-					const [maskCtx, invInkCtx, emissiveCtx, invMaskCtx, diffCtx, lightCtx] = contexts;
-					const fill = (ctx, c = '#000000') => { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = c; ctx.fillRect(0, 0, dimensions.width, dimensions.height); };
-					const draw = (ctx, src, op) => { ctx.globalCompositeOperation = op || 'source-over'; ctx.drawImage(src, 0, 0); };
-
-					fill(diffCtx); draw(diffCtx, this.maskCanvas); draw(diffCtx, this.invInkCanvas, 'difference');
-					fill(emissiveCtx); draw(emissiveCtx, this.diffCanvas, 'lighter');
-					fill(diffCtx, '#ffffff'); draw(diffCtx, this.maskCanvas, 'difference');
-					fill(invMaskCtx); draw(invMaskCtx, this.diffCanvas, 'lighter');
-
-					draw(this.context, this.invMaskCanvas, 'multiply');
-					draw(this.context, this.emissiveInkCanvas, 'lighter');
-					draw(this.context, this.lightCanvas, 'screen');
-					this.context.globalCompositeOperation = 'source-over';
-				} else this.context.drawImage(this.compositeCanvas, 0, 0);
-
-				this.drawGuides(dimensions, validItems);
-				this.updateScale();
+				const vI = this.analyses.map((a,i)=>({ a,i })).filter(({a,i})=>a && !a.error && this.isFontVisible(i));
+				return !vI.length ? (this.context.canvas.height = 150,this.updateScale()) : (
+					((sM,mx)=>(
+						((mA,mD,mOX)=>(
+							((tW)=>(
+								((dims)=>(
+									this.lastDimensions = dims,
+									this.context.canvas.width = dims.width,
+									this.context.canvas.height = dims.height,
+									this.context.fillStyle = this.canvasBackgroundColor,
+									this.context.fillRect(0,0,dims.width,dims.height),
+									((ctxs)=>(
+										this.isDark
+											? (
+												[ctxs[0],ctxs[1]].forEach(c=>(c.fillStyle = '#000000',c.fillRect(0,0,dims.width,dims.height))),
+												ctxs[5].clearRect(0,0,dims.width,dims.height)
+											)
+											: (this.compositeCanvas.width = dims.width,this.compositeCanvas.height = dims.height),
+										this.composeLayers(vI,dims,ctxs,sM),
+										this.isDark
+											? (([mC,iIC,eC,iMC,dC,lC])=>((f,d)=>(
+												f(dC),d(dC,this.maskCanvas),d(dC,this.invInkCanvas,'difference'),
+												f(eC),d(eC,this.diffCanvas,'lighter'),
+												f(dC,'#ffffff'),d(dC,this.maskCanvas,'difference'),
+												f(iMC),d(iMC,this.diffCanvas,'lighter'),
+												d(this.context,this.invMaskCanvas,'multiply'),
+												d(this.context,this.emissiveInkCanvas,'lighter'),
+												d(this.context,this.lightCanvas,'screen'),
+												this.context.globalCompositeOperation = 'source-over'
+											))((c,cl='#000000')=>(c.globalCompositeOperation = 'source-over',c.fillStyle = cl,c.fillRect(0,0,dims.width,dims.height)),(c,s,o='source-over')=>(c.globalCompositeOperation = o,c.drawImage(s,0,0))))(ctxs)
+											: this.context.drawImage(this.compositeCanvas,0,0),
+										this.drawGuides(dims,vI),
+										this.updateScale()
+									))(this.isDark ? this.updateAuxiliaryCanvases(dims.width,dims.height) : null)
+								))({ width: Math.ceil(this.graphWidth + this.graphPadding + tW),height: Math.ceil(mA + mD),baseline: Math.ceil(mA),maxDrawOffsetX: mOX })
+							))(sM ? vI.reduce((s,{a})=>s + a.width,0) : mOX + mx(a=>a.width - a.drawOffsetX))
+						))(mx(a=>a.baseline + a.baselineShift),mx(a=>a.height - a.baseline - a.baselineShift),mx(a=>a.drawOffsetX))
+					))(elements.render.value === 'side' && vI.length > 1,f=>Math.max(0,...vI.map(({a})=>f(a))))
+				);
 			}
 
-			updateAuxiliaryCanvases(width, height) {
-				return ['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(key => {
-					const canvas = this[key] || (this[key] = document.createElement('canvas'));
-					if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
-					return canvas.getContext('2d');
-				});
+			updateAuxiliaryCanvases(w,h) {
+				return ['maskCanvas','invInkCanvas','emissiveInkCanvas','invMaskCanvas','diffCanvas','lightCanvas','tempCanvas'].map(k=>((cvs)=>(
+					(cvs.width !== w || cvs.height !== h) && (cvs.width = w,cvs.height = h),
+					cvs.getContext('2d')
+				))(this[k] || (this[k] = document.createElement('canvas'))));
 			}
 
-			composeLayers(validItems, dimensions, contexts, sideMode) {
-				let currentX = this.graphWidth + this.graphPadding + (sideMode ? 0 : dimensions.maxDrawOffsetX);
-				const [maskCtx, invInkCtx, , , , lightCtx, tempCtx] = contexts || [];
-				const compositeCtx = !this.isDark ? this.compositeCanvas.getContext('2d') : null;
-
-				validItems.forEach(({ analysis, index }) => {
-					const y = dimensions.baseline - analysis.baseline - analysis.baselineShift;
-					const color = elements[`color${index + 1}`].value;
-					const { r, g, b } = parseColor(color);
-					const inkAlpha = (255 - Math.min(r, g, b)) / 255;
-					const drawX = sideMode ? currentX + (analysis.drawOffsetX || 0) : currentX;
-					const compose = (ctx, op, alpha, style, img) => {
-						ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha; ctx.fillStyle = style;
-						ctx.translate(0, y);
-						ctx.fill(analysis.graphPath);
-						ctx.drawImage(img, 0, 0, analysis.width, analysis.height, drawX - (analysis.drawOffsetX || 0), 0, analysis.width, analysis.height);
-						ctx.translate(0, -y);
-						ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-					};
-
-					if (this.isDark) {
-						if (inkAlpha > 0) {
-							compose(maskCtx, 'lighter', inkAlpha, '#ffffff', analysis.whiteCanvas);
-							const invColor = `rgb(${255 - r},${255 - g},${255 - b})`;
-							tempCtx.clearRect(0, 0, analysis.width, analysis.height);
-							tempCtx.drawImage(analysis.whiteCanvas, 0, 0);
-							paint(tempCtx, invColor);
-							compose(invInkCtx, 'screen', inkAlpha, invColor, this.tempCanvas);
-						}
-						const lightAlpha = Math.min(r, g, b) / 255;
-						if (lightAlpha > 0) compose(lightCtx, 'screen', lightAlpha, color, analysis.canvas);
-					} else compose(compositeCtx, 'multiply', inkAlpha, color, analysis.canvas);
-					if (sideMode) currentX += analysis.width;
-				});
+			composeLayers(vI,dims,ctxs,sM) {
+				let curX = this.graphWidth + this.graphPadding + (sM ? 0 : dims.maxDrawOffsetX);
+				const [mCx,iICx,,,,lCx,tCx] = ctxs || [],compCx = !this.isDark ? this.compositeCanvas.getContext('2d') : null;
+				vI.forEach(({a,i})=>((y,c)=>(
+					((rgb)=>(
+						((iA,dX)=>(
+							((comp)=>(
+								this.isDark
+									? (
+										iA > 0 && (
+											comp(mCx,'lighter',iA,'#ffffff',a.whiteCanvas),
+											((invC)=>(
+												tCx.clearRect(0,0,a.width,a.height),tCx.drawImage(a.whiteCanvas,0,0),paint(tCx,invC),
+												comp(iICx,'screen',iA,invC,this.tempCanvas)
+											))(`rgb(${255 - rgb.r},${255 - rgb.g},${255 - rgb.b})`)
+										),
+										((lA)=>(lA > 0 && comp(lCx,'screen',lA,c,a.canvas)))(Math.min(rgb.r,rgb.g,rgb.b) / 255)
+									)
+									: comp(compCx,'multiply',iA,c,a.canvas),
+								sM && (curX += a.width)
+							))((cx,op,al,st,im)=>(
+								cx.globalCompositeOperation = op,cx.globalAlpha = al,cx.fillStyle = st,
+								cx.translate(0,y),cx.fill(a.graphPath),
+								cx.drawImage(im,0,0,a.width,a.height,dX - (a.drawOffsetX || 0),0,a.width,a.height),
+								cx.translate(0,-y),
+								cx.globalCompositeOperation = 'source-over',cx.globalAlpha = 1
+							))
+						))((255 - Math.min(rgb.r,rgb.g,rgb.b)) / 255,sM ? curX + (a.drawOffsetX || 0) : curX)
+					))(parseColor(c))
+				))(dims.baseline - a.baseline - a.baselineShift,elements[`color${i+1}`].value));
 			}
 
-			drawGuides(dimensions, validItems) {
-				const guides = elements.guides.value;
-				if (['baseline', 'metrics'].includes(guides)) {
-					this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-					this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
-				}
-				if (guides === 'metrics') {
-					validItems.forEach(({ analysis, index }) => {
-						const y = dimensions.baseline - analysis.baselineShift;
-						this.context.fillStyle = elements[`color${index + 1}`].value;
-						const line = (d, alpha) => { this.context.globalAlpha = alpha; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
-						line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
-						line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
-						this.context.globalAlpha = 1.0;
-					});
-				}
+			drawGuides(dims,vI) {
+				const g = elements.guides.value;
+				['baseline','metrics'].includes(g) && (this.context.fillStyle = 'rgba(255,0,0,0.5)',this.context.fillRect(0,dims.baseline,this.context.canvas.width,1)),
+				g === 'metrics' && vI.forEach(({a,i})=>((y,cl)=>(
+					this.context.fillStyle = cl,
+					((line)=>(
+						line(-a.fontAscent,0.5),line(a.fontDescent,0.5),line(-a.fontCapHeight,0.3),line(-a.fontXHeight,0.3),
+						this.context.globalAlpha = 1.0
+					))((d,al)=>(this.context.globalAlpha = al,this.context.fillRect(0,Math.floor(y + d),this.context.canvas.width,1)))
+				))(dims.baseline - a.baselineShift,elements[`color${i+1}`].value));
 			}
 
 			updateScale() {
-				const { canvas, container, preview } = elements;
-				canvas.style.transform = 'none';
-				container.style.width = container.style.height = container.style.overflow = '';
-				if (elements.zoom.value !== 'fit' || !canvas.width) return;
-				const style = getComputedStyle(container);
-				const paddingX = parseFloat(style.paddingLeft) * 2;
-				const paddingY = parseFloat(style.paddingTop) * 2;
-				const scale = Math.min((preview.clientWidth - paddingX) / canvas.width, 1);
-				canvas.style.transform = `scale(${scale})`;
-				container.style.width = `${canvas.width * scale + paddingX}px`;
-				container.style.height = `${canvas.height * scale + paddingY}px`;
-				container.style.overflow = 'hidden';
+				const { canvas,container,preview } = elements;
+				return (
+					canvas.style.transform = 'none',
+					container.style.width = container.style.height = container.style.overflow = '',
+					(elements.zoom.value === 'fit' && canvas.width) && (([style,pX,pY])=>(
+						((sc)=>(
+							canvas.style.transform = `scale(${sc})`,
+							container.style.width = `${canvas.width * sc + pX}px`,
+							container.style.height = `${canvas.height * sc + pY}px`,
+							container.style.overflow = 'hidden'
+						))(Math.min((preview.clientWidth - pX) / canvas.width,1))
+					))([getComputedStyle(container),parseFloat(getComputedStyle(container).paddingLeft) * 2,parseFloat(getComputedStyle(container).paddingTop) * 2])
+				);
 			}
 
-			updateResult(number, index) {
-				const analysis = this.analyses[index];
-				const error = this.loadErrors[index] || (analysis && analysis.error);
-				const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
-				const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
-				elements[`name${number}`].textContent = elements[`name${number}`].title = name;
-				elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
-				elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
-				elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
-
-				if (this.loading[index]) { elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>'; return; }
-				if (message) { elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`; return; }
-
-				elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+			updateResult(n,i) {
+				const a = this.analyses[i],err = this.loadErrors[i] || (a && a.error),
+					msg = err ? `Error: ${err}` : !this.fonts[i] ? 'Load font.' : !a ? 'Invalid settings.' : '',
+					nm = this.fonts[i] ? (this.fonts[i].fullName || `Font ${n}`) : `Font ${n}`,res = elements[`result${n}`];
+				return (
+					elements[`name${n}`].textContent = elements[`name${n}`].title = nm,
+					elements[`analysisName${n}`].textContent = elements[`analysisName${n}`].title = `${nm} Analysis`,
+					elements[`color${n}`].setAttribute('aria-label',`${nm} Color`),
+					elements[`analysisName${n}`].nextElementSibling.setAttribute('aria-label',`Copy ${nm} analysis`),
+					this.loading[i]
+						? (res.innerHTML = '<div class="spinner" aria-label="Loading"></div>')
+						: msg
+							? (res.innerHTML = `<div class="state-message">${msg}</div>`)
+							: (res.innerHTML = `<div class="statisticGrid">${row('Density',a.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y',a.yMax)}${row('Min Y',a.yMin)}${row('Height',a.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent',Math.round(a.fontAscent))}${row('Cap Height',Math.round(a.fontCapHeight))}${row('x-Height',Math.round(a.fontXHeight))}${row('Descent','-' + Math.round(a.fontDescent))}</div></div>`)
+				);
 			}
 		}
 		new DensityTool();
