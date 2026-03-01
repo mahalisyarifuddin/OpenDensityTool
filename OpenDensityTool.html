@@ -790,7 +790,7 @@ self.onmessage = (e)=> (({ id,buffer,width,height,scanYStart,scanYEnd,scanXStart
 							)
 					))(/color|shift|tightness/.test(k) ? throttledUpdate : debouncedUpdate,elements[k+n],elements[k+'Range'+n])),
 					group.ondragover = e=>(e.preventDefault(),group.classList.add('dragActive')),
-					group.ondragleave = e=>(!e.relatedTarget || !group.contains(event.relatedTarget)) && group.classList.remove('dragActive'),
+					group.ondragleave = e=>(!e.relatedTarget || !group.contains(e.relatedTarget)) && group.classList.remove('dragActive'),
 					group.ondrop = e=>(e.preventDefault(),group.classList.remove('dragActive'),e.dataTransfer.files[0] && (elements[`file${n}`].files = e.dataTransfer.files,handleFile(e.dataTransfer.files[0]))),
 					((toggle)=>(
 						toggle('mute','visibility',true),
