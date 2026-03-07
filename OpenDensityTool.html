@@ -215,6 +215,10 @@
 		button:hover { 
 			background: var(--hover); 
 		}
+		button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
 		.actionButton.confirm-danger {
 			background-color: var(--danger);
 			color: var(--on-danger);
@@ -923,6 +927,7 @@ self.onmessage = function(e) {
 			async handleButtonState(button, actionFn, successText = 'Copied!', processingText) {
 				const originalText = button.textContent;
 				if (processingText) button.textContent = processingText;
+				button.disabled = true;
 				try {
 					await actionFn();
 					button.textContent = successText;
@@ -930,7 +935,10 @@ self.onmessage = function(e) {
 					console.error(error);
 					button.textContent = 'Error';
 				} finally {
-					setTimeout(() => button.textContent = originalText, 2000);
+					setTimeout(() => {
+						button.textContent = originalText;
+						button.disabled = false;
+					}, 2000);
 				}
 			}
 
