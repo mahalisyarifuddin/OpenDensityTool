@@ -1107,7 +1107,7 @@ self.onmessage = function(e) {
 					const yStart  = Math.min(g1.bbox.minY, g2.bbox.minY);
 					const yEnd    = Math.max(g1.bbox.maxY, g2.bbox.maxY);
 					const steps   = Math.max(30, Math.min(120, Math.round((yEnd - yStart) / upm * 150)));
-					const step    = (yEnd - yStart) / steps;
+					const step    = Math.max(1, (yEnd - yStart) / steps);
 
 					let sumGap = 0, minGap = Infinity, count = 0;
 
