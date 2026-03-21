@@ -786,38 +786,21 @@ self.onmessage = function(e) {
 				elements.closeSettings.onclick = () => elements.preferencesDialog.close();
 				elements.spacingUnit.onchange = () => { this.updateSpacingLabels(); this.update(); };
 
-				elements.resetConfig.onclick = () => {
-					const btn = elements.resetConfig;
-					if (btn.dataset.confirming) {
-						[1, 2].forEach(number => {
-							INPUT_FIELDS.forEach(key => {
-								const input = elements[key + number], range = elements[key + 'Range' + number];
-								if (input.type === 'checkbox') {
-									input.checked = input.defaultChecked;
-								} else {
-									input.value = input.defaultValue;
-								}
-								if (range) range.value = input.value;
-							});
-							elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
+				elements.resetConfig.onclick = () => this.confirmAction(elements.resetConfig, () => {
+					[1, 2].forEach(number => {
+						INPUT_FIELDS.forEach(key => {
+							const input = elements[key + number], range = elements[key + 'Range' + number];
+							if (input.type === 'checkbox') {
+								input.checked = input.defaultChecked;
+							} else {
+								input.value = input.defaultValue;
+							}
+							if (range) range.value = input.value;
 						});
-						this.update();
-						clearTimeout(this.resetTimeout);
-						delete btn.dataset.confirming;
-						btn.textContent = 'Reset';
-						btn.classList.remove('confirm-danger');
-					} else {
-						btn.dataset.confirming = 'true';
-						const originalText = btn.textContent;
-						btn.textContent = 'Confirm?';
-						btn.classList.add('confirm-danger');
-						this.resetTimeout = setTimeout(() => {
-							delete btn.dataset.confirming;
-							btn.textContent = originalText;
-							btn.classList.remove('confirm-danger');
-						}, 3000);
-					}
-				};
+						elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
+					});
+					this.update();
+				});
 
 				elements.swapFonts.onclick = () => this.swap();
 
@@ -839,12 +822,12 @@ self.onmessage = function(e) {
 					elements[`uploadBtn${number}`].onclick = () => fileInput.click();
 					fileInput.onchange = event => handleFile(event.target.files[0]);
 
-					elements[`clear${number}`].onclick = () => {
+					elements[`clear${number}`].onclick = () => this.confirmAction(elements[`clear${number}`], () => {
 						this.fonts[index] = this.loadErrors[index] = null;
 						fileInput.value = '';
 						updateFileName(null);
 						this.update();
-					};
+					});
 
 					INPUT_FIELDS.forEach(key => {
 						const fn = /color|shift|tightness/.test(key) ? throttledUpdate : debouncedUpdate;
@@ -939,6 +922,30 @@ self.onmessage = function(e) {
 						button.textContent = originalText;
 						button.disabled = false;
 					}, 2000);
+				}
+			}
+
+
+			confirmAction(btn, actionFn) {
+				if (btn.dataset.confirming) {
+					actionFn();
+					clearTimeout(btn.confirmTimeout);
+					delete btn.dataset.confirming;
+					btn.textContent = btn.dataset.originalText;
+					btn.classList.remove('confirm-danger');
+					btn.removeAttribute('aria-label');
+				} else {
+					btn.dataset.confirming = 'true';
+					btn.dataset.originalText = btn.textContent;
+					btn.textContent = 'Confirm?';
+					btn.classList.add('confirm-danger');
+					btn.setAttribute('aria-label', 'Confirm ' + btn.dataset.originalText);
+					btn.confirmTimeout = setTimeout(() => {
+						delete btn.dataset.confirming;
+						btn.textContent = btn.dataset.originalText;
+						btn.classList.remove('confirm-danger');
+						btn.removeAttribute('aria-label');
+					}, 3000);
 				}
 			}
 
