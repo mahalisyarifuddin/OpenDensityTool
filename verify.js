@@ -46,5 +46,31 @@ const path = require('path');
 
   console.log('Test passed: dragleave correctly removes dragActive class without ReferenceError.');
 
+  // Test confirmAction aria-label restoration
+  const clearBtn = await page.$('#clear1');
+  const initialAria = await page.evaluate(el => el.getAttribute('aria-label'), clearBtn);
+  if (initialAria !== 'Clear Font 1') {
+    console.error(`Expected initial aria-label to be 'Clear Font 1', got '${initialAria}'`);
+    process.exit(1);
+  }
+
+  // Click to trigger confirm state
+  await clearBtn.click();
+  let currentAria = await page.evaluate(el => el.getAttribute('aria-label'), clearBtn);
+  if (currentAria !== 'Confirm Clear') {
+    console.error(`Expected confirm aria-label to be 'Confirm Clear', got '${currentAria}'`);
+    process.exit(1);
+  }
+
+  // Click again to confirm
+  await clearBtn.click();
+  currentAria = await page.evaluate(el => el.getAttribute('aria-label'), clearBtn);
+  if (currentAria !== 'Clear Font 1') {
+    console.error(`Expected restored aria-label to be 'Clear Font 1', got '${currentAria}'`);
+    process.exit(1);
+  }
+
+  console.log('Test passed: confirmAction correctly restores aria-label.');
+
   await browser.close();
 })();
