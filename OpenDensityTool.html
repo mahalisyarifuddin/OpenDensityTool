@@ -927,25 +927,28 @@ self.onmessage = function(e) {
 
 
 			confirmAction(btn, actionFn) {
-				if (btn.dataset.confirming) {
-					actionFn();
-					clearTimeout(btn.confirmTimeout);
+				const reset = () => {
 					delete btn.dataset.confirming;
 					btn.textContent = btn.dataset.originalText;
 					btn.classList.remove('confirm-danger');
-					btn.removeAttribute('aria-label');
+					if (btn.dataset.originalAria) {
+						btn.setAttribute('aria-label', btn.dataset.originalAria);
+					} else {
+						btn.removeAttribute('aria-label');
+					}
+				};
+				if (btn.dataset.confirming) {
+					actionFn();
+					clearTimeout(btn.confirmTimeout);
+					reset();
 				} else {
 					btn.dataset.confirming = 'true';
 					btn.dataset.originalText = btn.textContent;
+					btn.dataset.originalAria = btn.getAttribute('aria-label') || '';
 					btn.textContent = 'Confirm?';
 					btn.classList.add('confirm-danger');
 					btn.setAttribute('aria-label', 'Confirm ' + btn.dataset.originalText);
-					btn.confirmTimeout = setTimeout(() => {
-						delete btn.dataset.confirming;
-						btn.textContent = btn.dataset.originalText;
-						btn.classList.remove('confirm-danger');
-						btn.removeAttribute('aria-label');
-					}, 3000);
+					btn.confirmTimeout = setTimeout(reset, 3000);
 				}
 			}
 
