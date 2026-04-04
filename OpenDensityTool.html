@@ -959,20 +959,17 @@ self.onmessage = function(e) {
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
 					if (input1.type === 'checkbox') {
-						const checked1 = input1.checked, checked2 = input2.checked;
-						input1.checked = checked2; input2.checked = checked1;
+						[input1.checked, input2.checked] = [input2.checked, input1.checked];
 					} else {
-						const value1 = input1.value, value2 = input2.value;
-						input1.value = value2; input2.value = value1;
+						[input1.value, input2.value] = [input2.value, input1.value];
 					}
 					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
 					if (range1 && range2) { range1.value = elements[key + '1'].value; range2.value = elements[key + '2'].value; }
 				});
 				[1, 2].forEach(number => elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked);
 				const name1 = elements.fileName1, name2 = elements.fileName2;
-				const text1 = name1.textContent, text2 = name2.textContent;
-				name1.textContent = name1.title = text2;
-				name2.textContent = name2.title = text1;
+				[name1.textContent, name2.textContent] = [name2.textContent, name1.textContent];
+				[name1.title, name2.title] = [name1.textContent, name2.textContent];
 				elements.file1.value = elements.file2.value = '';
 				this.update();
 			}
