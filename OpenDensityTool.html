@@ -476,6 +476,10 @@
 		.text-group { margin-bottom: .5rem; }
 		.text-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 		.sample-select { width: auto; padding: 2px 6px; height: auto; }
+		/* Refactor: Extract repeated inline styles to CSS classes */
+		.autospacing-row { margin-top: 0.5rem; }
+		.autospacing-row label.autospacing-label { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
+		.autospacing-row label.autospacing-label input:not([type=range]) { width: auto; margin-top: 0; }
 	</style>
 </head>
 <body>
@@ -525,9 +529,9 @@
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500"><input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"><input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
 				</div>
-				<div class="row" style="margin-top: 0.5rem;">
-					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
-						<input type="checkbox" id="autospacing1" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+				<div class="autospacing-row">
+					<label class="autospacing-label">
+						<input type="checkbox" id="autospacing1" class="autospacing-checkbox"> <span>Optical Spacing</span>
 					</label>
 				</div>
 				<div id="asControls1" hidden>
@@ -562,9 +566,9 @@
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500"><input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"><input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
 				</div>
-				<div class="row" style="margin-top: 0.5rem;">
-					<label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
-						<input type="checkbox" id="autospacing2" style="width: auto; margin: 0;"> <span>Optical Spacing</span>
+				<div class="autospacing-row">
+					<label class="autospacing-label">
+						<input type="checkbox" id="autospacing2" class="autospacing-checkbox"> <span>Optical Spacing</span>
 					</label>
 				</div>
 				<div id="asControls2" hidden>
@@ -931,11 +935,10 @@ self.onmessage = function(e) {
 					delete btn.dataset.confirming;
 					btn.textContent = btn.dataset.originalText;
 					btn.classList.remove('confirm-danger');
-					if (btn.dataset.originalAria) {
-						btn.setAttribute('aria-label', btn.dataset.originalAria);
-					} else {
-						btn.removeAttribute('aria-label');
-					}
+
+					// Refactor: removed verbose if/else
+					if (btn.dataset.originalAria) btn.setAttribute('aria-label', btn.dataset.originalAria);
+					else btn.removeAttribute('aria-label');
 				};
 				if (btn.dataset.confirming) {
 					actionFn();
