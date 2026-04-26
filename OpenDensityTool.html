@@ -718,6 +718,7 @@ self.onmessage = function(e) {
 					offscreenCanvases: [makeCanvas(), makeCanvas()],
 					whiteCanvases: [makeCanvas(), makeCanvas()],
 					compositeCanvas: makeCanvas(),
+					glyphCanvas: makeCanvas(),
 					graphWidth: 150, graphPadding: 20,
 					context: elements.canvas.getContext('2d'),
 					workerResolvers: new Map(),
@@ -1025,13 +1026,14 @@ self.onmessage = function(e) {
 				const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
 				const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
 				if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-				const canvas = document.createElement('canvas');
-				canvas.width = width; canvas.height = height;
-				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				const canvas = this.glyphCanvas;
+				const ctx = prepareCanvas(canvas, width, height);
+				ctx.save();
 				ctx.translate(drawOffsetX, baseline);
 				ctx.scale(1, -1);
 				ctx.fillStyle = '#FFFFFF';
 				glyph.render(ctx, fontSize);
+				ctx.restore();
 				const { data: imageData } = ctx.getImageData(0, 0, width, height);
 				const result = await this.runWorker({
 					buffer: imageData.buffer, width, height, scanYStart: 0, scanYEnd: height, scanXStart: 0, scanXEnd: width
