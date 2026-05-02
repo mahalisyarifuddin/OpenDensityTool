@@ -957,8 +957,14 @@ self.onmessage = function(e) {
 			}
 
 			swap() {
-				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache'].forEach(key => {
+				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache', 'visibility', 'solo'].forEach(key => {
 					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
+				});
+				['mute', 'solo'].forEach(key => {
+					const btn1 = elements[key + '1'], btn2 = elements[key + '2'];
+					const pressed1 = btn1.getAttribute('aria-pressed');
+					btn1.setAttribute('aria-pressed', btn2.getAttribute('aria-pressed'));
+					btn2.setAttribute('aria-pressed', pressed1);
 				});
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
