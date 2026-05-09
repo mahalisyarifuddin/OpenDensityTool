@@ -1019,38 +1019,40 @@ self.onmessage = function(e) {
 				}
 			}
 
-			async getGlyphProfile(index, glyph) {
+			getGlyphProfile(index, glyph) {
 				const cache = this.profileCache[index];
 				if (cache.has(glyph.id)) return cache.get(glyph.id);
-				const fontSize = 100;
-				const font = this.fonts[index];
-				const scale = fontSize / font.unitsPerEm;
-				const bbox = glyph.bbox;
-				if (!bbox) return null;
-				const width = Math.ceil((bbox.maxX - bbox.minX) * scale) + 4;
-				const baseline = Math.ceil(bbox.maxY * scale) + 2;
-				const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
-				const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
-				if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-				const canvas = this.glyphCanvas;
-				const ctx = prepareCanvas(canvas, width, height);
-				ctx.save();
-				ctx.translate(drawOffsetX, baseline);
-				ctx.scale(1, -1);
-				ctx.fillStyle = '#FFFFFF';
-				glyph.render(ctx, fontSize);
-				ctx.restore();
-				const { data: imageData } = ctx.getImageData(0, 0, width, height);
-				const result = await this.runWorker({
-					buffer: imageData.buffer, width, height, scanYStart: 0, scanYEnd: height, scanXStart: 0, scanXEnd: width
-				}, [imageData.buffer]);
-				const profile = {
-					left: result.leftProfile,
-					right: result.rightProfile,
-					baseline, scale, drawOffsetX
-				};
-				cache.set(glyph.id, profile);
-				return profile;
+				const promise = (async () => {
+					const fontSize = 100;
+					const font = this.fonts[index];
+					const scale = fontSize / font.unitsPerEm;
+					const bbox = glyph.bbox;
+					if (!bbox) return null;
+					const width = Math.ceil((bbox.maxX - bbox.minX) * scale) + 4;
+					const baseline = Math.ceil(bbox.maxY * scale) + 2;
+					const height = Math.ceil((bbox.maxY - bbox.minY) * scale) + 4;
+					const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
+					if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+					const canvas = this.glyphCanvas;
+					const ctx = prepareCanvas(canvas, width, height);
+					ctx.save();
+					ctx.translate(drawOffsetX, baseline);
+					ctx.scale(1, -1);
+					ctx.fillStyle = '#FFFFFF';
+					glyph.render(ctx, fontSize);
+					ctx.restore();
+					const { data: imageData } = ctx.getImageData(0, 0, width, height);
+					const result = await this.runWorker({
+						buffer: imageData.buffer, width, height, scanYStart: 0, scanYEnd: height, scanXStart: 0, scanXEnd: width
+					}, [imageData.buffer]);
+					return {
+						left: result.leftProfile,
+						right: result.rightProfile,
+						baseline, scale, drawOffsetX
+					};
+				})();
+				cache.set(glyph.id, promise);
+				return promise;
 			}
 
 			async applyAutospacing(index, run, font, tightness) {
@@ -1491,7 +1493,7 @@ self.onmessage = function(e) {
 				elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
 			}
 		}
-		new DensityTool();
+		window.app = new DensityTool();
 	</script>
 </body>
 </html>

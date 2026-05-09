@@ -12,3 +12,8 @@
 **Mode:** 🩺 Medic
 **Learning:** During the swapping of font 1 and font 2 slots, multiple distinct application states must be synchronized. The `swap()` function was swapping primary inputs but overlooked swapping the `visibility` and `solo` internal state arrays, as well as the corresponding DOM `aria-pressed` states on the mute and solo UI buttons. This resulted in the application holding incorrect state regarding which font was muted or soloed.
 **Action:** When creating composite operations like swapping states between parallel sets of inputs/components, always meticulously cross-reference all mutable internal arrays and all corresponding DOM attributes to guarantee comprehensive state exchange. Ensure tests validate both the logical arrays and DOM outputs for such actions.
+
+## 2025-05-18 - [Concurrent Async Cache Miss in Glyph Profiling]
+**Mode:** ⚡ Bolt
+**Learning:** When `getGlyphProfile` is called concurrently across a run of glyphs using `Promise.all`, duplicated glyphs (e.g., repeated characters in a string) query the cache synchronously. Because the cache was previously only populated *after* the `await` on the worker finished, multiple concurrent requests for the same glyph all resulted in cache misses, causing duplicate canvas rendering and redundant worker dispatches.
+**Action:** When implementing memoization for asynchronous operations that can be triggered concurrently, instantiate and cache the `Promise` synchronously *before* awaiting its result. This ensures concurrent requests for the same key block on a single shared Promise.
