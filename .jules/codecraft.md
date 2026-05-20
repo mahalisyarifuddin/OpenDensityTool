@@ -17,3 +17,8 @@
 **Mode:** ⚡ Bolt
 **Learning:** When `getGlyphProfile` is called concurrently across a run of glyphs using `Promise.all`, duplicated glyphs (e.g., repeated characters in a string) query the cache synchronously. Because the cache was previously only populated *after* the `await` on the worker finished, multiple concurrent requests for the same glyph all resulted in cache misses, causing duplicate canvas rendering and redundant worker dispatches.
 **Action:** When implementing memoization for asynchronous operations that can be triggered concurrently, instantiate and cache the `Promise` synchronously *before* awaiting its result. This ensures concurrent requests for the same key block on a single shared Promise.
+
+## 2025-05-20 - [Optical Spacing Scaling & Offset Bug]
+**Mode:** 🩺 Medic
+**Learning:** Optical spacing calculations (`applyAutospacing`) initially failed to account for GPOS `yOffset` and tracking-based `advanceScale`. `yOffset` was ignored during scanline row lookups, leading to incorrect gap analysis for vertically shifted glyphs. Additionally, while the rendering engine applied `advanceScale` (tracking %), the autospacing algorithm worked on unscaled font units, causing a mismatch where the intended optical gap would be scaled by the tracking percentage, defeating the correction.
+**Action:** Always pass global rendering scaling factors (like `advanceScale`) into coordinate-sensitive algorithms like autospacing. Adjust both the target metrics and the final adjustments proportionally, and ensure that vertical profiling lookups always offset their coordinates by the glyph's vertical position in the layout.
