@@ -1055,7 +1055,7 @@ self.onmessage = function(e) {
 				return promise;
 			}
 
-			async applyAutospacing(index, run, font, tightness) {
+			async applyAutospacing(index, run, font, tightness, advanceScale = 1) {
 				const upm = font.unitsPerEm;
 				const capHeight = font.capHeight || (font.ascent * 0.7);
 				const xHeight   = font.xHeight   || (font.ascent * 0.5);
@@ -1067,13 +1067,13 @@ self.onmessage = function(e) {
 				// "42% of an em" at maximum looseness; typical use is tightness 70–90,
 				// where the target collapses to ~4–12% of the em — a few pixels of
 				// visible white space at display sizes.
-				const targetBase = upm * 0.42 * (1 - tightness / 100);
+				const targetBase = upm * 0.42 * (1 - tightness / 100) * advanceScale;
 
 				// ── Overlap floor ────────────────────────────────────────────────────
 				// A slightly negative floor lets maximum-tightness settings produce the
 				// very light ink-to-ink contact seen in some display or italic faces.
 				// We cap it so glyphs never collide in a visually disruptive way.
-				const MIN_GAP = upm * -0.02;
+				const MIN_GAP = upm * -0.02 * advanceScale;
 
 				// ── Reset kern to get a clean optical baseline ───────────────────────
 				// fontkit's layout() bakes GPOS/kern pairs into xAdvance before we see
@@ -1117,23 +1117,23 @@ self.onmessage = function(e) {
 					if (isUpper1 && isUpper2)      pairTarget *= 1.2;
 					else if (isUpper1 || isUpper2) pairTarget *= 1.1;
 
-					const pos1 = run.positions[i];
+					const pos1 = run.positions[i], pos2 = run.positions[i + 1];
 
 					// ── Vertical gap scan ────────────────────────────────────────────
 					// We sample the visible gap between right-ink-edge of glyph 1 and
 					// left-ink-edge of glyph 2 at many heights. More steps for taller
 					// glyphs so cap pairs are profiled as finely as x-height pairs —
 					// clamped between 30 and 120 to keep cost reasonable.
-					const yStart  = Math.min(g1.bbox.minY, g2.bbox.minY);
-					const yEnd    = Math.max(g1.bbox.maxY, g2.bbox.maxY);
-					const steps   = Math.max(30, Math.min(120, Math.round((yEnd - yStart) / upm * 150)));
+					const yStart  = Math.min(g1.bbox.minY + pos1.yOffset, g2.bbox.minY + pos2.yOffset);
+					const yEnd    = Math.max(g1.bbox.maxY + pos1.yOffset, g2.bbox.maxY + pos2.yOffset);
+					const steps   = Math.max(30, Math.min(120, Math.round((yEnd - yStart) * p1.scale * 1.5)));
 					const step    = Math.max(1, (yEnd - yStart) / steps);
 
 					let sumGap = 0, minGap = Infinity, count = 0;
 
 					for (let y = yStart; y <= yEnd; y += step) {
-						const row1 = p1.baseline - Math.round(y * p1.scale);
-						const row2 = p2.baseline - Math.round(y * p2.scale);
+						const row1 = p1.baseline - Math.round((y - pos1.yOffset) * p1.scale);
+						const row2 = p2.baseline - Math.round((y - pos2.yOffset) * p2.scale);
 						if (row1 < 0 || row1 >= p1.right.length) continue;
 						if (row2 < 0 || row2 >= p2.left.length)  continue;
 						const inkR1 = p1.right[row1], inkL2 = p2.left[row2];
@@ -1143,7 +1143,7 @@ self.onmessage = function(e) {
 						// p1.scale = 100 / upm, so dividing by scale recovers font units.
 						const r1_fu = (inkR1 - p1.drawOffsetX) / p1.scale;
 						const l2_fu = (inkL2 - p2.drawOffsetX) / p2.scale;
-						const gap   = (pos1.xAdvance + l2_fu) - r1_fu;
+						const gap   = (pos1.xAdvance * advanceScale + l2_fu) - r1_fu;
 
 						// Weight scanlines by optical zone. The x-height band (0 → xHeight)
 						// carries the most weight because it is the visual "home" of Latin
@@ -1171,10 +1171,14 @@ self.onmessage = function(e) {
 					// We add a fraction of the variance back to the target so these pairs
 					// get a bit of extra air — proportional to the font's own geometry
 					// rather than a hardcoded pixel count.
+					//
+					// Note: Including (variance * airFactor) ensures that even at
+					// tightness=100, high-variance pairs maintain a small positive gap
+					// to prevent visual collision.
 					const variance  = Math.max(0, avgGap - minGap);
-					const airFactor = (isUpper1 && isUpper2) ? 0.15
-					                : (isUpper1 || isUpper2) ? 0.20
-					                :                          0.18;
+					const airFactor = (isUpper1 && isUpper2) ? 0.20
+					                : (isUpper1 || isUpper2) ? 0.18
+					                :                          0.15;
 					const effectiveTarget = pairTarget + variance * airFactor;
 
 					// ── Blend and apply ──────────────────────────────────────────────
@@ -1188,7 +1192,7 @@ self.onmessage = function(e) {
 
 					// Clamp so we never push ink closer together than MIN_GAP,
 					// regardless of how extreme the tightness setting is.
-					pos1.xAdvance += Math.max(delta, MIN_GAP - minGap);
+					pos1.xAdvance += Math.max(delta, MIN_GAP - minGap) / advanceScale;
 				}
 			}
 
@@ -1230,7 +1234,7 @@ self.onmessage = function(e) {
 				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness;
 				if (!hit) {
 					const run = font.layout(content);
-					if (asEnabled) await this.applyAutospacing(index, run, font, tightness);
+					if (asEnabled) await this.applyAutospacing(index, run, font, tightness, advanceScale);
 					this.layoutCache[index] = { content, font, run, asEnabled, tightness };
 				}
 				const run = this.layoutCache[index].run;
