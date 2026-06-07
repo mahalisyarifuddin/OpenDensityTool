@@ -1209,14 +1209,30 @@ self.onmessage = function(e) {
 				};
 				if (!inputs.font || !inputs.fontSize) return null;
 				const cached = this.renderingCache[index];
-				if (cached && cached.data && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
-					if (cached.inputs.color !== inputs.color) {
-						paint(cached.data.canvas.getContext('2d'), inputs.color);
-						cached.inputs.color = inputs.color;
+				if (cached && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
+					if (cached.data) {
+						if (cached.inputs.color !== inputs.color) {
+							paint(cached.data.canvas.getContext('2d'), inputs.color);
+							cached.inputs.color = inputs.color;
+						}
+						return cached.data;
+					} else if (cached.promise) {
+						return cached.promise.then(data => {
+							if (cached.inputs.color !== inputs.color) {
+								paint(data.canvas.getContext('2d'), inputs.color);
+								cached.inputs.color = inputs.color;
+							}
+							return data;
+						});
 					}
-					return cached.data;
 				}
-				return await this.generateRenderData(index, inputs);
+
+				const promise = this.generateRenderData(index, inputs).then(data => {
+					this.renderingCache[index] = { inputs, data };
+					return data;
+				});
+				this.renderingCache[index] = { inputs, promise };
+				return await promise;
 			}
 
 			async generateRenderData(index, inputs) {
@@ -1320,9 +1336,7 @@ self.onmessage = function(e) {
 				}
 				if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
 
-				const data = { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
-				this.renderingCache[index] = { inputs, data };
-				return data;
+				return { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
 			}
 
 			updateSpacingLabels() {
