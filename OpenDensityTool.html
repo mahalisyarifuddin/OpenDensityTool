@@ -957,7 +957,7 @@ self.onmessage = function(e) {
 			}
 
 			swap() {
-				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache', 'visibility', 'solo'].forEach(key => {
+				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache', 'visibility', 'solo', 'offscreenCanvases', 'whiteCanvases'].forEach(key => {
 					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
 				});
 				['mute', 'solo'].forEach(key => {
@@ -1203,6 +1203,7 @@ self.onmessage = function(e) {
 					content: elements[`text${number}`].value,
 					fontSize: +elements[`size${number}`].value || 0,
 					letterSpacing: +elements[`spacing${number}`].value || 0,
+					spacingUnit: elements.spacingUnit.value,
 					color: elements[`color${number}`].value,
 					autospacing: elements[`autospacing${number}`].checked,
 					tightness: +elements[`tightness${number}`].value
@@ -1236,10 +1237,10 @@ self.onmessage = function(e) {
 			}
 
 			async generateRenderData(index, inputs) {
-				const { font, content, fontSize, letterSpacing, color } = inputs;
+				const { font, content, fontSize, letterSpacing, spacingUnit, color } = inputs;
 				const size = Math.min(Math.max(fontSize, 1), 2000);
 				const scale = size / font.unitsPerEm;
-				const unit = elements.spacingUnit.value;
+				const unit = spacingUnit;
 				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
 				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
 
@@ -1247,11 +1248,12 @@ self.onmessage = function(e) {
 				const tightness = +elements[`tightness${index + 1}`].value;
 				const cachedLayout = this.layoutCache[index];
 				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font &&
-				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness;
+				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness &&
+				             cachedLayout.advanceScale === advanceScale;
 				if (!hit) {
 					const run = font.layout(content);
 					if (asEnabled) await this.applyAutospacing(index, run, font, tightness, advanceScale);
-					this.layoutCache[index] = { content, font, run, asEnabled, tightness };
+					this.layoutCache[index] = { content, font, run, asEnabled, tightness, advanceScale };
 				}
 				const run = this.layoutCache[index].run;
 
