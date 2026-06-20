@@ -118,3 +118,73 @@ const path = require('path');
 
   await browser.close();
 })();
+// NEW TEST: Empty String Crash (Medic Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // upload font first
+  const fileInput = await page.$('#file1');
+  await fileInput.setInputFiles('roboto-regular-webfont.woff');
+  await page.waitForTimeout(500);
+
+  // Clear the text area 1
+  await page.fill('#text1', '');
+
+  // Wait a bit for debounced update
+  await page.waitForTimeout(500);
+
+  // See what is the result
+  const textContent = await page.textContent('#result1');
+  if (textContent.includes('Error')) {
+    console.error('Empty string test failed! Crash observed:', textContent);
+    process.exit(1);
+  }
+
+  console.log('Test passed: empty string does not cause a crash.');
+
+  await browser.close();
+})();
+
+// NEW TEST: AdvanceScale scaling percentage tracking with optical autospacing Crash (Medic Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // upload font first
+  const fileInput = await page.$('#file1');
+  await fileInput.setInputFiles('roboto-regular-webfont.woff');
+  await page.waitForTimeout(500);
+
+  // Switch to percent
+  await page.click('#openSettings');
+  await page.selectOption('#spacingUnit', 'percent');
+  await page.click('#closeSettings');
+  await page.waitForTimeout(100);
+
+  // Set tracking to 0%
+  await page.fill('#spacing1', '0');
+
+  // Enable autospacing
+  await page.check('#autospacing1');
+
+  await page.waitForTimeout(500);
+
+  const textContent = await page.textContent('#result1');
+  if (textContent.includes('Error')) {
+    console.error('AdvanceScale test failed! Crash observed:', textContent);
+    process.exit(1);
+  }
+
+  console.log('Test passed: AdvanceScale does not cause a crash.');
+
+  await browser.close();
+})();

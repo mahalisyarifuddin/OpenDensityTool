@@ -1287,9 +1287,11 @@ self.onmessage = function(e) {
 				const baseline = Math.ceil(metrics.ascent);
 				const height = Math.ceil(baseline + metrics.descent);
 				if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+				const safeWidth = width || 1;
+				const safeHeight = height || 1;
 
 				const whiteCanvas = this.whiteCanvases[index];
-				const whiteContext = prepareCanvas(whiteCanvas, width, height);
+				const whiteContext = prepareCanvas(whiteCanvas, safeWidth, safeHeight);
 				whiteContext.save();
 				whiteContext.translate(drawOffsetX, baseline);
 				whiteContext.scale(1, -1);
@@ -1308,22 +1310,22 @@ self.onmessage = function(e) {
 				whiteContext.restore();
 
 				const canvas = this.offscreenCanvases[index];
-				const context = prepareCanvas(canvas, width, height);
+				const context = prepareCanvas(canvas, safeWidth, safeHeight);
 				context.drawImage(whiteCanvas, 0, 0);
 				paint(context, color);
 
 				const scanYStart = Math.max(0, Math.floor(baseline - maxY * scale) - 1);
-				const scanYEnd = Math.min(height, Math.ceil(baseline - minY * scale) + 1);
+				const scanYEnd = Math.min(safeHeight, Math.ceil(baseline - minY * scale) + 1);
 				const scanXStart = Math.max(0, Math.floor(minX * scale + drawOffsetX) - 1);
-				const scanXEnd = Math.min(width, Math.ceil(maxX * scale + drawOffsetX) + 1);
+				const scanXEnd = Math.min(safeWidth, Math.ceil(maxX * scale + drawOffsetX) + 1);
 
 				if (![scanXStart, scanYStart, scanXEnd, scanYEnd].every(Number.isFinite) || scanXEnd <= scanXStart || scanYEnd <= scanYStart) {
-					return { densityByRow: new Float32Array(height), leftProfile: new Int32Array(height).fill(-1), rightProfile: new Int32Array(height).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1, graphPath: new Path2D(), ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+					return { densityByRow: new Float32Array(safeHeight), leftProfile: new Int32Array(safeHeight).fill(-1), rightProfile: new Int32Array(safeHeight).fill(-1), inkPixels: 0, minX: 0, maxX: 0, minY: 0, maxY: 0, maxDensity: 1, graphPath: new Path2D(), ...metrics, drawOffsetX, width: safeWidth, height: safeHeight, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
 				}
 
 				const { data: imageData } = context.getImageData(scanXStart, scanYStart, scanXEnd - scanXStart, scanYEnd - scanYStart);
 				const analysisData = await this.runWorker({
-					buffer: imageData.buffer, width, height, scanYStart, scanYEnd, scanXStart, scanXEnd
+					buffer: imageData.buffer, width: safeWidth, height: safeHeight, scanYStart, scanYEnd, scanXStart, scanXEnd
 				}, [imageData.buffer]);
 
 				const graphPath = new Path2D();

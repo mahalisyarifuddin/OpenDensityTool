@@ -27,3 +27,8 @@
 **Mode:** 🩺 Medic
 **Learning:** In `OpenDensityTool.html`, caching keys and internal arrays must be meticulously synced. First, `advanceScale` affected the layout (via tracking unit logic) but wasn't part of the `layoutCache` check, meaning optical spacing failed to recompute when tracking changed. Second, `spacingUnit` was read directly from the DOM inside `generateRenderData` rather than being part of the `inputs` cache key in `getRenderData`, causing unit changes (e.g. % to px) to falsely hit the cache. Finally, the `swap()` method missed `offscreenCanvases` and `whiteCanvases`, which led to cross-contamination of cached canvas contexts after swapping fonts.
 **Action:** 1. Ensure all inputs that alter an operation's output are part of its cache key. 2. When creating centralized input objects for async rendering, read all DOM states upfront. 3. When swapping composite states, explicitly enumerate all parallel internal arrays.
+
+## 2025-10-18 - [Canvas 0-Dimension & NaN Bounds Crashes]
+**Mode:** 🩺 Medic
+**Learning:** During edge cases such as empty strings or `advanceScale` dropping to 0 (e.g., 0% tracking), calculated glyph boundaries and advance widths drop to 0 or produce `NaN` (due to zero-division turning into `Infinity` and then `NaN`). Creating or extracting data from a `canvas` with `width <= 0` or `height <= 0` throws a critical `DOMException` error ("Failed to execute 'drawImage'").
+**Action:** Always provide a minimum non-zero fallback (`width || 1`) for computed canvas dimensions before creating `CanvasRenderingContext2D` contexts, and explicitly intercept execution flows with a safe empty-state return payload whenever valid dimensions or content cannot be established.
