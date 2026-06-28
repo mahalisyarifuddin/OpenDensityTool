@@ -639,9 +639,9 @@
 			if (canvas.width !== width || canvas.height !== height) {
 				canvas.width = width;
 				canvas.height = height;
-			} else {
-				canvas.getContext('2d', { willReadFrequently: true }).clearRect(0, 0, width, height);
+				return canvas.getContext('2d', { willReadFrequently: true });
 			}
+			canvas.getContext('2d', { willReadFrequently: true }).clearRect(0, 0, width, height);
 			return canvas.getContext('2d', { willReadFrequently: true });
 		};
 
@@ -944,16 +944,15 @@ self.onmessage = function(e) {
 				if (btn.dataset.confirming) {
 					actionFn();
 					clearTimeout(btn.confirmTimeout);
-					reset();
-				} else {
-					btn.dataset.confirming = 'true';
-					btn.dataset.originalText = btn.textContent;
-					btn.dataset.originalAria = btn.getAttribute('aria-label') || '';
-					btn.textContent = 'Confirm?';
-					btn.classList.add('confirm-danger');
-					btn.setAttribute('aria-label', 'Confirm ' + btn.dataset.originalText);
-					btn.confirmTimeout = setTimeout(reset, 3000);
+					return reset();
 				}
+				btn.dataset.confirming = 'true';
+				btn.dataset.originalText = btn.textContent;
+				btn.dataset.originalAria = btn.getAttribute('aria-label') || '';
+				btn.textContent = 'Confirm?';
+				btn.classList.add('confirm-danger');
+				btn.setAttribute('aria-label', 'Confirm ' + btn.dataset.originalText);
+				btn.confirmTimeout = setTimeout(reset, 3000);
 			}
 
 			swap() {
