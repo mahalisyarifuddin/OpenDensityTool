@@ -188,3 +188,32 @@ const path = require('path');
 
   await browser.close();
 })();
+
+// NEW TEST: Canvas Box Density Mode (Bolt Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // upload font first
+  const fileInput = await page.$('#file1');
+  await fileInput.setInputFiles('roboto-regular-webfont.woff');
+  await page.waitForTimeout(500);
+
+  // Change density mode to Canvas Box
+  await page.selectOption('#density', 'canvas');
+  await page.waitForTimeout(500);
+
+  const textContent = await page.textContent('#result1');
+  if (textContent.includes('Error') || !textContent.includes('Density')) {
+    console.error('Canvas Box test failed! Text content:', textContent);
+    process.exit(1);
+  }
+
+  console.log('Test passed: Canvas Box mode works correctly.');
+
+  await browser.close();
+})();
