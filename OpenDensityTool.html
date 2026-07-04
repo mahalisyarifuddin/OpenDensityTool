@@ -1357,27 +1357,48 @@ self.onmessage = function(e) {
 
 			async update() {
 				const updateId = ++this.updateId;
-				const baseData = await Promise.all([1,2].map(async(number,index)=>{
+				const baseData = await Promise.all([1, 2].map(async (number, index) => {
 					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
 					try {
 						const data = await this.getRenderData(index);
-						return data?{...data,baselineShift:+elements[`shift${number}`].value||0}:null;
-					} catch(error) { return {error:error.message}; }
+						return data ? { ...data, baselineShift: +elements[`shift${number}`].value || 0 } : null;
+					} catch (error) {
+						return { error: error.message };
+					}
 				}));
 				if (updateId !== this.updateId) return;
 
 				const mode = elements.density.value;
-				const valid = baseData.filter((a,i)=>a&&!a.error&&this.isFontVisible(i));
-				const canvasHeight = Math.ceil(Math.max(0,...valid.map(a=>a.baseline+a.baselineShift))+Math.max(0,...valid.map(a=>a.height-a.baseline-a.baselineShift)));
+				const validData = baseData.filter((data, index) => data && !data.error && this.isFontVisible(index));
 
-				this.analyses = baseData.map((data,index)=>(!data||data.error)?data:(()=>{
-					const hasInk = data.maxY>=data.minY;
-					const area = Math.max(1,mode==='ink'?(hasInk?(data.maxX-data.minX+1)*(data.maxY-data.minY+1):1):(mode==='em'?Math.max(1,data.advanceWidth)*(data.ascent+data.descent):Math.max(1,data.advanceWidth)*canvasHeight));
-					return {...data,density:((data.inkPixels/area)*100).toFixed(1),yMin:hasInk?Math.round(data.baseline-data.maxY):0,yMax:hasInk?Math.round(data.baseline-data.minY):0,inkHeight:hasInk?(data.maxY-data.minY+1):0};
-				})());
+				const maxBaseline = Math.max(0, ...validData.map(data => data.baseline + data.baselineShift));
+				const maxDescent = Math.max(0, ...validData.map(data => data.height - data.baseline - data.baselineShift));
+				const canvasHeight = Math.ceil(maxBaseline + maxDescent);
+
+				this.analyses = baseData.map(data => {
+					if (!data || data.error) return data;
+
+					const hasInk = data.maxY >= data.minY;
+
+					const areaModes = {
+						ink: hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1,
+						em: Math.max(1, data.advanceWidth) * (data.ascent + data.descent),
+						canvas: Math.max(1, data.advanceWidth) * canvasHeight
+					};
+
+					const area = Math.max(1, areaModes[mode] || 1);
+
+					return {
+						...data,
+						density: ((data.inkPixels / area) * 100).toFixed(1),
+						yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+						yMax: hasInk ? Math.round(data.baseline - data.minY) : 0,
+						inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0
+					};
+				});
 
 				this.draw();
-				[1,2].forEach((number,index)=>this.updateResult(number,index));
+				[1, 2].forEach((number, index) => this.updateResult(number, index));
 			}
 
 			draw() {
@@ -1504,18 +1525,51 @@ self.onmessage = function(e) {
 
 			updateResult(number, index) {
 				const analysis = this.analyses[index];
-				const error = this.loadErrors[index] || (analysis && analysis.error);
-				const message = error ? `Error: ${error}` : !this.fonts[index] ? 'Load font.' : !analysis ? 'Invalid settings.' : '';
-				const name = this.fonts[index] ? (this.fonts[index].fullName || `Font ${number}`) : `Font ${number}`;
+				const error = this.loadErrors[index] || analysis?.error;
+
+				let message = '';
+				if (error) {
+					message = `Error: ${error}`;
+				} else if (!this.fonts[index]) {
+					message = 'Load font.';
+				} else if (!analysis) {
+					message = 'Invalid settings.';
+				}
+
+				const name = this.fonts[index]?.fullName || `Font ${number}`;
 				elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 				elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
 				elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
 				elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
-				if (this.loading[index]) { elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>'; return; }
-				if (message) { elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`; return; }
+				if (this.loading[index]) {
+					elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
+					return;
+				}
 
-				elements[`result${number}`].innerHTML = `<div class="statisticGrid">${row('Density', analysis.density + '%')}<div class="statisticGroup"><div class="statisticTitle">Ink Bounds</div>${row('Max Y', analysis.yMax)}${row('Min Y', analysis.yMin)}${row('Height', analysis.inkHeight)}</div><div class="statisticGroup"><div class="statisticTitle">Metrics</div>${row('Ascent', Math.round(analysis.fontAscent))}${row('Cap Height', Math.round(analysis.fontCapHeight))}${row('x-Height', Math.round(analysis.fontXHeight))}${row('Descent', '-' + Math.round(analysis.fontDescent))}</div></div>`;
+				if (message) {
+					elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
+					return;
+				}
+
+				elements[`result${number}`].innerHTML = `
+					<div class="statisticGrid">
+						${row('Density', analysis.density + '%')}
+						<div class="statisticGroup">
+							<div class="statisticTitle">Ink Bounds</div>
+							${row('Max Y', analysis.yMax)}
+							${row('Min Y', analysis.yMin)}
+							${row('Height', analysis.inkHeight)}
+						</div>
+						<div class="statisticGroup">
+							<div class="statisticTitle">Metrics</div>
+							${row('Ascent', Math.round(analysis.fontAscent))}
+							${row('Cap Height', Math.round(analysis.fontCapHeight))}
+							${row('x-Height', Math.round(analysis.fontXHeight))}
+							${row('Descent', '-' + Math.round(analysis.fontDescent))}
+						</div>
+					</div>
+				`;
 			}
 		}
 		window.app = new DensityTool();
