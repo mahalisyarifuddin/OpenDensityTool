@@ -795,11 +795,8 @@ self.onmessage = function(e) {
 					[1, 2].forEach(number => {
 						INPUT_FIELDS.forEach(key => {
 							const input = elements[key + number], range = elements[key + 'Range' + number];
-							if (input.type === 'checkbox') {
-								input.checked = input.defaultChecked;
-							} else {
-								input.value = input.defaultValue;
-							}
+							const prop = input.type === 'checkbox' ? 'checked' : 'value';
+							input[prop] = input.type === 'checkbox' ? input.defaultChecked : input.defaultValue;
 							if (range) range.value = input.value;
 						});
 						elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
@@ -967,13 +964,10 @@ self.onmessage = function(e) {
 				});
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
-					if (input1.type === 'checkbox') {
-						[input1.checked, input2.checked] = [input2.checked, input1.checked];
-					} else {
-						[input1.value, input2.value] = [input2.value, input1.value];
-					}
+					const prop = input1.type === 'checkbox' ? 'checked' : 'value';
+					[input1[prop], input2[prop]] = [input2[prop], input1[prop]];
 					const range1 = elements[key + 'Range1'], range2 = elements[key + 'Range2'];
-					if (range1 && range2) { range1.value = elements[key + '1'].value; range2.value = elements[key + '2'].value; }
+					if (range1 && range2) { range1.value = input1.value; range2.value = input2.value; }
 				});
 				[1, 2].forEach(number => elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked);
 				const name1 = elements.fileName1, name2 = elements.fileName2;
@@ -1100,21 +1094,16 @@ self.onmessage = function(e) {
 					// spaced like capitals. We use toUpperCase() comparison when a
 					// codepoint is available, and fall back to the bbox heuristic only
 					// for glyphs with no codepoint (ligatures, symbols, etc.).
+					const isUpper = (ch, g) => ch ? ch === ch.toUpperCase() && ch !== ch.toLowerCase() : g.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3;
 					const cp1 = g1.codePoints?.[0], cp2 = g2.codePoints?.[0];
 					const ch1 = cp1 != null ? String.fromCodePoint(cp1) : '';
 					const ch2 = cp2 != null ? String.fromCodePoint(cp2) : '';
-					const isUpper1 = ch1
-						? (ch1 === ch1.toUpperCase() && ch1 !== ch1.toLowerCase())
-						: (g1.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
-					const isUpper2 = ch2
-						? (ch2 === ch2.toUpperCase() && ch2 !== ch2.toLowerCase())
-						: (g2.bbox.maxY > xHeight + (capHeight - xHeight) * 0.3);
+					const isUpper1 = isUpper(ch1, g1);
+					const isUpper2 = isUpper(ch2, g2);
 
 					// Cap–cap pairs get the most breathing room; mixed pairs get a
 					// little extra; lower–lower pairs use the base target unchanged.
-					let pairTarget = targetBase;
-					if (isUpper1 && isUpper2)      pairTarget *= 1.2;
-					else if (isUpper1 || isUpper2) pairTarget *= 1.1;
+					const pairTarget = targetBase * (isUpper1 && isUpper2 ? 1.2 : isUpper1 || isUpper2 ? 1.1 : 1);
 
 					const pos1 = run.positions[i], pos2 = run.positions[i + 1];
 
@@ -1527,32 +1516,19 @@ self.onmessage = function(e) {
 				const analysis = this.analyses[index];
 				const error = this.loadErrors[index] || analysis?.error;
 
-				let message = '';
-				if (error) {
-					message = `Error: ${error}`;
-				} else if (!this.fonts[index]) {
-					message = 'Load font.';
-				} else if (!analysis) {
-					message = 'Invalid settings.';
-				}
-
 				const name = this.fonts[index]?.fullName || `Font ${number}`;
 				elements[`name${number}`].textContent = elements[`name${number}`].title = name;
 				elements[`analysisName${number}`].textContent = elements[`analysisName${number}`].title = `${name} Analysis`;
 				elements[`color${number}`].setAttribute('aria-label', `${name} Color`);
 				elements[`analysisName${number}`].nextElementSibling.setAttribute('aria-label', `Copy ${name} analysis`);
 
-				if (this.loading[index]) {
-					elements[`result${number}`].innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-					return;
-				}
+				const res = elements[`result${number}`];
+				if (this.loading[index]) return res.innerHTML = '<div class="spinner" aria-label="Loading"></div>';
+				if (error) return res.innerHTML = `<div class="state-message">Error: ${error}</div>`;
+				if (!this.fonts[index]) return res.innerHTML = '<div class="state-message">Load font.</div>';
+				if (!analysis) return res.innerHTML = '<div class="state-message">Invalid settings.</div>';
 
-				if (message) {
-					elements[`result${number}`].innerHTML = `<div class="state-message">${message}</div>`;
-					return;
-				}
-
-				elements[`result${number}`].innerHTML = `
+				res.innerHTML = `
 					<div class="statisticGrid">
 						${row('Density', analysis.density + '%')}
 						<div class="statisticGroup">
