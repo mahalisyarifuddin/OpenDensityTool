@@ -1410,8 +1410,7 @@ self.onmessage = function(e) {
 				const contexts = this.isDark ? this.updateAuxiliaryCanvases(dimensions.width, dimensions.height) : null;
 				if (this.isDark) {
 					[contexts[0], contexts[1]].forEach(ctx => { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, dimensions.width, dimensions.height); });
-					contexts[5].clearRect(0, 0, dimensions.width, dimensions.height);
-				} else { this.compositeCanvas.width = dimensions.width; this.compositeCanvas.height = dimensions.height; }
+				} else { prepareCanvas(this.compositeCanvas, dimensions.width, dimensions.height); }
 
 				this.composeLayers(validItems, dimensions, contexts, sideMode);
 
@@ -1438,8 +1437,7 @@ self.onmessage = function(e) {
 			updateAuxiliaryCanvases(width, height) {
 				return ['maskCanvas', 'invInkCanvas', 'emissiveInkCanvas', 'invMaskCanvas', 'diffCanvas', 'lightCanvas', 'tempCanvas'].map(key => {
 					const canvas = this[key] || (this[key] = document.createElement('canvas'));
-					if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
-					return canvas.getContext('2d');
+					return prepareCanvas(canvas, width, height);
 				});
 			}
 

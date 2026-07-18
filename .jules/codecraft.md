@@ -32,3 +32,8 @@
 **Mode:** 🩺 Medic
 **Learning:** During edge cases such as empty strings or `advanceScale` dropping to 0 (e.g., 0% tracking), calculated glyph boundaries and advance widths drop to 0 or produce `NaN` (due to zero-division turning into `Infinity` and then `NaN`). Creating or extracting data from a `canvas` with `width <= 0` or `height <= 0` throws a critical `DOMException` error ("Failed to execute 'drawImage'").
 **Action:** Always provide a minimum non-zero fallback (`width || 1`) for computed canvas dimensions before creating `CanvasRenderingContext2D` contexts, and explicitly intercept execution flows with a safe empty-state return payload whenever valid dimensions or content cannot be established.
+
+## 2025-10-25 - [Canvas Dimensional Clear Bug]
+**Mode:** 🩺 Medic
+**Learning:** Reusing `canvas` instances and attempting to clear them by re-assigning `canvas.width = dimensions.width` fails to clear the buffer if the new dimensions are strictly equal to the old ones. This causes multiply blending operations to accumulate ink infinitely over successive repaints if the canvas layout does not shift (e.g., when toggling UI elements or swapping identical inputs).
+**Action:** Never rely on dimension assignment (`canvas.width = canvas.width`) to clear a canvas. Always use a helper function (like `prepareCanvas`) that strictly checks dimensions and falls back to `ctx.clearRect(0, 0, width, height)` when the dimensions have not changed.
