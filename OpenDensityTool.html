@@ -636,13 +636,13 @@
 		};
 
 		const prepareCanvas = (canvas, width, height) => {
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
 			if (canvas.width !== width || canvas.height !== height) {
-				canvas.width = width;
-				canvas.height = height;
-				return canvas.getContext('2d', { willReadFrequently: true });
+				Object.assign(canvas, { width, height });
+			} else {
+				ctx.clearRect(0, 0, width, height);
 			}
-			canvas.getContext('2d', { willReadFrequently: true }).clearRect(0, 0, width, height);
-			return canvas.getContext('2d', { willReadFrequently: true });
+			return ctx;
 		};
 
 		const WORKER_CODE = `
@@ -1199,21 +1199,14 @@ self.onmessage = function(e) {
 				if (!inputs.font || !inputs.fontSize) return null;
 				const cached = this.renderingCache[index];
 				if (cached && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
-					if (cached.data) {
+					const updateColor = data => {
 						if (cached.inputs.color !== inputs.color) {
-							paint(cached.data.canvas.getContext('2d'), inputs.color);
+							paint(data.canvas.getContext('2d'), inputs.color);
 							cached.inputs.color = inputs.color;
 						}
-						return cached.data;
-					} else if (cached.promise) {
-						return cached.promise.then(data => {
-							if (cached.inputs.color !== inputs.color) {
-								paint(data.canvas.getContext('2d'), inputs.color);
-								cached.inputs.color = inputs.color;
-							}
-							return data;
-						});
-					}
+						return data;
+					};
+					return cached.data ? updateColor(cached.data) : cached.promise?.then(updateColor);
 				}
 
 				const promise = this.generateRenderData(index, inputs).then(data => {
@@ -1477,20 +1470,21 @@ self.onmessage = function(e) {
 				});
 			}
 
-			drawGuides(dimensions, validItems) {
+			drawGuides({ baseline }, validItems) {
 				const guides = elements.guides.value;
+				const ctx = this.context;
 				if (['baseline', 'metrics'].includes(guides)) {
-					this.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-					this.context.fillRect(0, dimensions.baseline, this.context.canvas.width, 1);
+					ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+					ctx.fillRect(0, baseline, ctx.canvas.width, 1);
 				}
 				if (guides === 'metrics') {
 					validItems.forEach(({ analysis, index }) => {
-						const y = dimensions.baseline - analysis.baselineShift;
-						this.context.fillStyle = elements[`color${index + 1}`].value;
-						const line = (d, alpha) => { this.context.globalAlpha = alpha; this.context.fillRect(0, Math.floor(y + d), this.context.canvas.width, 1); };
+						const y = baseline - analysis.baselineShift;
+						ctx.fillStyle = elements[`color${index + 1}`].value;
+						const line = (d, alpha) => { ctx.globalAlpha = alpha; ctx.fillRect(0, Math.floor(y + d), ctx.canvas.width, 1); };
 						line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
 						line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
-						this.context.globalAlpha = 1.0;
+						ctx.globalAlpha = 1.0;
 					});
 				}
 			}
