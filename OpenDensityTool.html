@@ -712,7 +712,7 @@ self.onmessage = function(e) {
 				const makeCanvas = () => document.createElement('canvas');
 				Object.assign(this, {
 					fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
-					loading: [false, false], loadSequence: [0, 0], renderingCache: [],
+					loading: [false, false], loadSequence: [Symbol(), Symbol()], renderingCache: [],
 					profileCache: [new Map(), new Map()],
 					layoutCache: [null, null], analyses: [],
 					offscreenCanvases: [makeCanvas(), makeCanvas()],
@@ -992,7 +992,7 @@ self.onmessage = function(e) {
 			}
 
 			async loadFont(file, index) {
-				const sequence = ++this.loadSequence[index];
+				const sequence = this.loadSequence[index] = Symbol();
 				this.loadErrors[index] = this.fonts[index] = null;
 				this.profileCache[index].clear();
 				this.loading[index] = true;
@@ -1001,14 +1001,17 @@ self.onmessage = function(e) {
 					if (!file) return;
 					if (file.size > 3e7) throw new Error('File too large (max 30MB)');
 					const buffer = await file.arrayBuffer();
-					if (sequence !== this.loadSequence[index]) return;
+					const currentIndex = this.loadSequence.indexOf(sequence);
+					if (currentIndex === -1) return;
 					const font = fontkit.create(new Uint8Array(buffer));
 					if (!font.unitsPerEm) throw new Error('Invalid font');
-					this.fonts[index] = font;
+					this.fonts[currentIndex] = font;
 				} catch (error) {
-					if (sequence === this.loadSequence[index]) this.loadErrors[index] = error.message;
+					const currentIndex = this.loadSequence.indexOf(sequence);
+					if (currentIndex !== -1) this.loadErrors[currentIndex] = error.message;
 				} finally {
-					if (sequence === this.loadSequence[index]) { this.loading[index] = false; this.update(); }
+					const currentIndex = this.loadSequence.indexOf(sequence);
+					if (currentIndex !== -1) { this.loading[currentIndex] = false; this.update(); }
 				}
 			}
 

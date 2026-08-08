@@ -37,3 +37,8 @@
 **Mode:** 🩺 Medic
 **Learning:** Reusing `canvas` instances and attempting to clear them by re-assigning `canvas.width = dimensions.width` fails to clear the buffer if the new dimensions are strictly equal to the old ones. This causes multiply blending operations to accumulate ink infinitely over successive repaints if the canvas layout does not shift (e.g., when toggling UI elements or swapping identical inputs).
 **Action:** Never rely on dimension assignment (`canvas.width = canvas.width`) to clear a canvas. Always use a helper function (like `prepareCanvas`) that strictly checks dimensions and falls back to `ctx.clearRect(0, 0, width, height)` when the dimensions have not changed.
+
+## 2025-02-27 - [Fix async race condition on swap]
+**Mode:** Medic
+**Learning:** Using index closure variable (`this.loadSequence[index]`) inside `async` code leads to race condition if the arrays are mutated/swapped during execution.
+**Action:** Use unique `Symbol()` assignments for state flags, and resolve the index using `indexOf(symbol)` dynamically when async execution resumes to prevent state desync.
