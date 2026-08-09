@@ -217,3 +217,49 @@ const path = require('path');
 
   await browser.close();
 })();
+
+// NEW TEST: Async Swap Race Condition during File Load (Medic Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // Expose a function to trigger file input without awaiting
+  await page.evaluate(() => {
+    window.triggerUploadAndSwap = async () => {
+      // Mock file
+      const blob = new Blob(["dummy"], { type: 'font/woff' });
+      const file = new File([blob], "dummy.woff");
+
+      // Delay arrayBuffer to simulate slow network/large file
+      const origArrayBuffer = file.arrayBuffer.bind(file);
+      file.arrayBuffer = async () => {
+        return new Promise(resolve => {
+          setTimeout(() => resolve(origArrayBuffer()), 500);
+        });
+      };
+
+      app.loadFont(file, 0);
+      app.swap();
+    };
+  });
+
+  await page.evaluate(() => window.triggerUploadAndSwap());
+
+  await page.waitForTimeout(1000);
+
+  const loading = await page.evaluate(() => app.loading);
+  const loadErrors = await page.evaluate(() => app.loadErrors.map(e => !!e));
+
+  if (loading[0] || loading[1] || loadErrors[0] || !loadErrors[1]) {
+    console.error('Async Swap Race Condition test failed! Expected loading: [false, false] and loadErrors: [false, true]', loading, loadErrors);
+    process.exit(1);
+  }
+
+  console.log('Test passed: async swap race condition is handled correctly.');
+
+  await browser.close();
+})();
