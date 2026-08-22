@@ -1829,15 +1829,12 @@ self.onmessage = function(e) {
 					INPUT_FIELDS.forEach(key => {
 						const fn = /color|shift|tightness/.test(key) ? throttledUpdate : debouncedUpdate;
 						const input = elements[key + number], range = elements[key + 'Range' + number];
-						if (input.type === 'checkbox') {
-							input.onchange = () => {
-								if (key === 'autospacing') elements[`asControls${number}`].hidden = !input.checked;
-								fn();
-							};
-						} else {
-							input.oninput = () => { if (range) range.value = input.value; fn(); };
-							if (range) range.oninput = () => { input.value = range.value; fn(); };
-						}
+						input[input.type === 'checkbox' ? 'onchange' : 'oninput'] = () => {
+							key === 'autospacing' && (elements[`asControls${number}`].hidden = !input.checked);
+							range && (range.value = input.value);
+							fn();
+						};
+						if (range) range.oninput = () => { input.value = range.value; fn(); };
 					});
 
 					group.ondragover = event => { event.preventDefault(); group.classList.add('dragActive'); };
@@ -2093,10 +2090,11 @@ self.onmessage = function(e) {
 					const ch2 = cp2 != null ? String.fromCodePoint(cp2) : '';
 					const isUpper1 = isUpper(ch1, g1);
 					const isUpper2 = isUpper(ch2, g2);
+					const upperCount = Number(isUpper1) + Number(isUpper2);
 
 					// Cap–cap pairs get the most breathing room; mixed pairs get a
 					// little extra; lower–lower pairs use the base target unchanged.
-					const pairTarget = targetBase * (isUpper1 && isUpper2 ? 1.2 : isUpper1 || isUpper2 ? 1.1 : 1);
+					const pairTarget = targetBase * [1, 1.1, 1.2][upperCount];
 
 					const pos1 = run.positions[i], pos2 = run.positions[i + 1];
 
@@ -2157,9 +2155,7 @@ self.onmessage = function(e) {
 					// tightness=100, high-variance pairs maintain a small positive gap
 					// to prevent visual collision.
 					const variance  = Math.max(0, avgGap - minGap);
-					const airFactor = (isUpper1 && isUpper2) ? 0.20
-					                : (isUpper1 || isUpper2) ? 0.18
-					                :                          0.15;
+					const airFactor = [0.15, 0.18, 0.20][upperCount];
 					const effectiveTarget = pairTarget + variance * airFactor;
 
 					// ── Blend and apply ──────────────────────────────────────────────
@@ -2319,12 +2315,12 @@ self.onmessage = function(e) {
 
 			updateSpacingLabels() {
 				const unit = elements.spacingUnit.value;
-				const label = unit === 'percent' ? 'Tracking (%)' : unit === 'em' ? 'Letter Spacing (‰ em)' : 'Letter Spacing (px)';
-				const defaultValue = unit === 'percent' ? 100 : 0;
+				const lookup = { percent: { label: 'Tracking (%)', val: 100 }, em: { label: 'Letter Spacing (‰ em)', val: 0 }, px: { label: 'Letter Spacing (px)', val: 0 } };
+				const { label, val } = lookup[unit] || lookup.em;
 				[1, 2].forEach(number => {
 					elements[`spacingRange${number}`].setAttribute('aria-label', label);
 					elements[`spacing${number}`].parentElement.firstChild.textContent = label;
-					elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = defaultValue;
+					elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = val;
 				});
 			}
 
@@ -2465,21 +2461,19 @@ self.onmessage = function(e) {
 
 			drawGuides({ baseline }, validItems) {
 				const guides = elements.guides.value;
+				if (guides === 'none') return;
 				const ctx = this.context;
-				if (['baseline', 'metrics'].includes(guides)) {
-					ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-					ctx.fillRect(0, baseline, ctx.canvas.width, 1);
-				}
-				if (guides === 'metrics') {
-					validItems.forEach(({ analysis, index }) => {
-						const y = baseline - analysis.baselineShift;
-						ctx.fillStyle = elements[`color${index + 1}`].value;
-						const line = (d, alpha) => { ctx.globalAlpha = alpha; ctx.fillRect(0, Math.floor(y + d), ctx.canvas.width, 1); };
-						line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
-						line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
-						ctx.globalAlpha = 1.0;
-					});
-				}
+				ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+				ctx.fillRect(0, baseline, ctx.canvas.width, 1);
+				if (guides !== 'metrics') return;
+				validItems.forEach(({ analysis, index }) => {
+					const y = baseline - analysis.baselineShift;
+					ctx.fillStyle = elements[`color${index + 1}`].value;
+					const line = (d, alpha) => { ctx.globalAlpha = alpha; ctx.fillRect(0, Math.floor(y + d), ctx.canvas.width, 1); };
+					line(-analysis.fontAscent, 0.5); line(analysis.fontDescent, 0.5);
+					line(-analysis.fontCapHeight, 0.3); line(-analysis.fontXHeight, 0.3);
+					ctx.globalAlpha = 1.0;
+				});
 			}
 
 			updateScale() {

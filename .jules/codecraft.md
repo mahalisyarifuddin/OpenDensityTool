@@ -42,3 +42,8 @@
 **Mode:** Medic
 **Learning:** Using index closure variable (`this.loadSequence[index]`) inside `async` code leads to race condition if the arrays are mutated/swapped during execution.
 **Action:** Use unique `Symbol()` assignments for state flags, and resolve the index using `indexOf(symbol)` dynamically when async execution resumes to prevent state desync.
+
+## 2025-05-22 - [Refactor Validation and Playwright State]
+**Mode:** 🪒 Razor
+**Learning:** During the Razor refactor, creating arbitrary test scripts (`verify_ui.js`), `screenshot.png` test artifacts, and manipulating project dependency files (e.g. implicitly causing `pnpm-lock.yaml` changes) causes repository pollution that invalidates pull requests. Even if code correctness and styling are achieved, an out-of-sync or modified lockfile breaks CI expectations.
+**Action:** Always clean up temporary workspace scratchpads and evaluation scripts (e.g., `test*.js`, `verify_ui.js`) and test artifacts (e.g., `screenshot.png`) before committing or finalizing a pull request to maintain repository hygiene.
