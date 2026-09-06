@@ -2374,7 +2374,7 @@ self.onmessage = function(e) {
 
 			draw() {
 				const validItems = this.analyses.map((analysis, index) => ({ analysis, index })).filter(({ analysis, index }) => analysis && !analysis.error && this.isFontVisible(index));
-				if (!validItems.length) { this.context.canvas.height = 150; this.updateScale(); return; }
+				if (!validItems.length) { prepareCanvas(this.context.canvas, this.context.canvas.width || 1, 150); this.updateScale(); return; }
 
 				const sideMode = elements.render.value === 'side' && validItems.length > 1;
 				const max = fn => Math.max(0, ...validItems.map(({ analysis }) => fn(analysis)));
@@ -2384,8 +2384,7 @@ self.onmessage = function(e) {
 				const totalWidth = sideMode ? validItems.reduce((sum, { analysis }) => sum + analysis.width, 0) : maxOffsetX + max(analysis => analysis.width - analysis.drawOffsetX);
 				const dimensions = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 
-				this.context.canvas.width = dimensions.width;
-				this.context.canvas.height = dimensions.height;
+				prepareCanvas(this.context.canvas, dimensions.width, dimensions.height);
 				this.context.fillStyle = this.canvasBackgroundColor;
 				this.context.fillRect(0, 0, dimensions.width, dimensions.height);
 
