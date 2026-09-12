@@ -218,6 +218,91 @@ const path = require('path');
   await browser.close();
 })();
 
+// NEW TEST: Canvas Box Height Reference (Font 1 / Font 2 / Tallest)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // Same font in both slots at different sizes -> different canvas heights
+  await page.setInputFiles('#file1', 'roboto-regular-webfont.woff');
+  await page.setInputFiles('#file2', 'roboto-regular-webfont.woff');
+  await page.waitForFunction(() => app.fonts[0] && app.fonts[1] && !app.loading[0] && !app.loading[1]);
+  await page.fill('#size2', '50');
+  await page.waitForTimeout(500);
+
+  const readDensity = async n => parseFloat((await page.textContent(`#result${n}`)).match(/Density([\d.]+)%/)[1]);
+  const expected = (index, height) => page.evaluate(([i, h]) => {
+    const a = app.analyses[i];
+    return +((a.inkPixels / (Math.max(1, a.advanceWidth) * h)) * 100).toFixed(1);
+  }, [index, height]);
+
+  // The picker is only relevant in Canvas Box mode
+  let hidden = await page.evaluate(() => document.getElementById('canvasRef').hidden);
+  if (!hidden) {
+    console.error('Canvas Ref test failed! #canvasRef should be hidden outside Canvas Box mode');
+    process.exit(1);
+  }
+  await page.selectOption('#density', 'canvas');
+  await page.waitForTimeout(500);
+  hidden = await page.evaluate(() => document.getElementById('canvasRef').hidden);
+  if (hidden) {
+    console.error('Canvas Ref test failed! #canvasRef should be visible in Canvas Box mode');
+    process.exit(1);
+  }
+
+  const heights = await page.evaluate(() => app.analyses.map(a => a.height));
+  if (!(heights[0] > heights[1])) {
+    console.error('Canvas Ref test failed! Expected font 1 to be taller than font 2, got', heights);
+    process.exit(1);
+  }
+
+  for (const [ref, height] of [['1', heights[0]], ['2', heights[1]], ['auto', heights[0]]]) {
+    await page.selectOption('#canvasRef', ref);
+    await page.waitForTimeout(500);
+    for (const index of [0, 1]) {
+      const actual = await readDensity(index + 1);
+      const want = await expected(index, height);
+      if (actual !== want) {
+        console.error(`Canvas Ref test failed! ref=${ref} font ${index + 1}: expected ${want}%, got ${actual}%`);
+        process.exit(1);
+      }
+    }
+  }
+
+  // Swapping fonts keeps the reference pinned to the same font
+  await page.selectOption('#canvasRef', '2');
+  await page.waitForTimeout(500);
+  const before = [await readDensity(1), await readDensity(2)];
+  await page.click('#swapFonts');
+  await page.waitForTimeout(500);
+  const after = [await readDensity(1), await readDensity(2)];
+  const refAfter = await page.evaluate(() => document.getElementById('canvasRef').value);
+  if (refAfter !== '1' || after[0] !== before[1] || after[1] !== before[0]) {
+    console.error(`Canvas Ref test failed! After swap expected ref=1 and densities ${JSON.stringify([before[1], before[0]])}, got ref=${refAfter} ${JSON.stringify(after)}`);
+    process.exit(1);
+  }
+
+  // A pinned font that is cleared falls back to the tallest visible font (no crash).
+  // After the swap, slot 2 holds the larger font, so its own height is the fallback.
+  await page.click('#clear1');
+  await page.click('#clear1');
+  await page.waitForTimeout(500);
+  const fallback = await readDensity(2);
+  const fallbackWant = await expected(1, heights[0]);
+  if (fallback !== fallbackWant || (await page.textContent('#result2')).includes('Error')) {
+    console.error(`Canvas Ref test failed! Fallback expected ${fallbackWant}%, got ${fallback}%`);
+    process.exit(1);
+  }
+
+  console.log('Test passed: Canvas Box height reference normalises against the selected font.');
+
+  await browser.close();
+})();
+
 // NEW TEST: Async Swap Race Condition during File Load (Medic Mode)
 (async () => {
   const browser = await chromium.launch();

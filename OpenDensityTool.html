@@ -1349,6 +1349,7 @@
 					<select id="zoom" aria-label="Zoom level"><option value="fit">Fit to View</option><option value="100">100% Scale</option></select>
 					<select id="render" aria-label="Render mode"><option value="overlay">Overlay</option><option value="side">Side-by-side</option></select>
 					<select id="density" aria-label="Density calculation method"><option value="ink">Ink Box</option><option value="em">Em Box</option><option value="canvas">Canvas Box</option></select>
+					<select id="canvasRef" aria-label="Canvas box height reference" title="Which font's height defines the Canvas Box" hidden><option value="auto">Height: Tallest</option><option value="1">Height: Font 1</option><option value="2">Height: Font 2</option></select>
 					<select id="guides" aria-label="Guides"><option value="none">No Guides</option><option value="baseline">Show Baseline</option><option value="metrics">Show Metrics</option></select>
 				</div>
 				<button id="copyImage">Copy Image</button>
@@ -1758,7 +1759,11 @@ self.onmessage = function(e) {
 				}).map(([label, text]) => `<option value="${text}">${label}</option>`).join('');
 
 				elements.zoom.onchange = window.onresize = raf(() => this.updateScale());
-				['render', 'density', 'guides'].forEach(id => { elements[id].onchange = () => this.update(); });
+				['render', 'density', 'canvasRef', 'guides'].forEach(id => { elements[id].onchange = () => this.update(); });
+				// The height-reference picker only matters in Canvas Box mode.
+				const syncCanvasRef = () => elements.canvasRef.hidden = elements.density.value !== 'canvas';
+				elements.density.addEventListener('change', syncCanvasRef);
+				syncCanvasRef();
 
 				elements.export.onclick = () => this.handleButtonState(elements.export, async () => {
 					await new Promise(r => setTimeout(r, 50));
@@ -1966,6 +1971,9 @@ self.onmessage = function(e) {
 				[name1.textContent, name2.textContent] = [name2.textContent, name1.textContent];
 				[name1.title, name2.title] = [name1.textContent, name2.textContent];
 				elements.file1.value = elements.file2.value = '';
+				// A pinned Canvas Box height reference follows its font to the new slot.
+				const canvasRef = elements.canvasRef;
+				if (canvasRef.value !== 'auto') canvasRef.value = canvasRef.value === '1' ? '2' : '1';
 				this.update();
 			}
 
@@ -2344,7 +2352,14 @@ self.onmessage = function(e) {
 
 				const maxBaseline = Math.max(0, ...validData.map(data => data.baseline + data.baselineShift));
 				const maxDescent = Math.max(0, ...validData.map(data => data.height - data.baseline - data.baselineShift));
-				const canvasHeight = Math.ceil(maxBaseline + maxDescent);
+				// Canvas Box height. 'auto' follows the drawn canvas (union of the visible
+				// fonts' shifted extents); '1' / '2' pin it to that font's own full height
+				// (ascent + descent, including any ink overshoot) so both densities are
+				// normalised against the same reference box. A pinned font that is not
+				// available (not loaded, errored) falls back to the union.
+				const canvasRef = elements.canvasRef.value;
+				const refData = canvasRef === 'auto' ? null : baseData[canvasRef - 1];
+				const canvasHeight = refData && !refData.error ? refData.height : Math.ceil(maxBaseline + maxDescent);
 
 				this.analyses = baseData.map(data => {
 					if (!data || data.error) return data;

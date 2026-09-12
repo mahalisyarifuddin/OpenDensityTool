@@ -55,14 +55,16 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Baseline Shift: Nudge a font up/down to align optical baselines.
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
-- Normalize by: Choose the normalization method for the density calculation.
+- Normalize by: Choose the normalization method for the density calculation (Ink Box, Em Box, or Canvas Box).
+- Height (Canvas Box only): Choose which font defines the Canvas Box height — the tallest visible font (default), Font 1, or Font 2.
 - Guides: Toggle baseline and metrics visualization.
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
-- **Density**: Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in two ways:
+- **Density**: Share of the glyph area covered by "ink," where any pixel with an alpha value of 0.5 or greater is counted as ink. This provides a balance between ignoring faint anti-aliasing and capturing the true area of the letterform. This can be calculated in three ways:
   - **Ink Box**: Normalizes by the tightest possible box around the visible ink. This is useful for measuring the "blackness" of the glyphs themselves.
   - **Em box**: Normalizes by the full horizontal space the character occupies (advance width, including letter spacing) and the effective vertical extent. This is useful for judging the overall texture and color of a block of text.
+  - **Canvas Box**: Like Em Box horizontally, but both fonts share one vertical extent so their densities are directly comparable. By default the height follows the tallest visible font (including baseline shifts); use the **Height** selector to pin it to Font 1's or Font 2's own full height (ascent + descent) instead. If the pinned font is not loaded, the tallest font is used.
 - **Ink Bounds**:
   - **Max Y**: The highest point of the ink relative to the baseline (positive is up).
   - **Min Y**: The lowest point of the ink relative to the baseline (negative is down).
