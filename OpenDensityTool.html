@@ -2010,12 +2010,14 @@ self.onmessage = function(e) {
 				}
 			}
 
-			getGlyphProfile(index, glyph) {
-				const cache = this.profileCache[index];
+			getGlyphProfile(sequence, glyph) {
+				const currentIndex = this.loadSequence.indexOf(sequence);
+				if (currentIndex === -1) return null;
+				const cache = this.profileCache[currentIndex];
 				if (cache.has(glyph.id)) return cache.get(glyph.id);
 				const promise = (async () => {
 					const fontSize = 100;
-					const font = this.fonts[index];
+					const font = this.fonts[currentIndex];
 					const scale = fontSize / font.unitsPerEm;
 					const bbox = glyph.bbox;
 					if (!bbox) return null;
@@ -2046,7 +2048,7 @@ self.onmessage = function(e) {
 				return promise;
 			}
 
-			async applyAutospacing(index, run, font, tightness, advanceScale = 1) {
+			async applyAutospacing(sequence, run, font, tightness, advanceScale = 1) {
 				const upm = font.unitsPerEm;
 				const capHeight = font.capHeight || (font.ascent * 0.7);
 				const xHeight   = font.xHeight   || (font.ascent * 0.5);
@@ -2078,7 +2080,7 @@ self.onmessage = function(e) {
 					run.positions[i].xAdvance = glyph.advanceWidth;
 				});
 
-				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(index, g)));
+				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(sequence, g)));
 
 				for (let i = 0; i < run.glyphs.length - 1; i++) {
 					const p1 = profiles[i], p2 = profiles[i + 1];
@@ -2182,6 +2184,7 @@ self.onmessage = function(e) {
 			}
 
 			async getRenderData(index) {
+				const sequence = this.loadSequence[index];
 				const number = index + 1;
 				const inputs = {
 					font: this.fonts[index],
@@ -2206,34 +2209,39 @@ self.onmessage = function(e) {
 					return cached.data ? updateColor(cached.data) : cached.promise?.then(updateColor);
 				}
 
-				const promise = this.generateRenderData(index, inputs).then(data => {
-					this.renderingCache[index] = { inputs, data };
+				const promise = this.generateRenderData(sequence, inputs).then(data => {
+					const currentIndex = this.loadSequence.indexOf(sequence);
+					if (currentIndex !== -1) {
+						this.renderingCache[currentIndex] = { inputs, data };
+					}
 					return data;
 				});
 				this.renderingCache[index] = { inputs, promise };
 				return await promise;
 			}
 
-			async generateRenderData(index, inputs) {
-				const { font, content, fontSize, letterSpacing, spacingUnit, color } = inputs;
+			async generateRenderData(sequence, inputs) {
+				let currentIndex = this.loadSequence.indexOf(sequence);
+				if (currentIndex === -1) return null;
+				const { font, content, fontSize, letterSpacing, spacingUnit, color, autospacing: asEnabled, tightness } = inputs;
 				const size = Math.min(Math.max(fontSize, 1), 2000);
 				const scale = size / font.unitsPerEm;
 				const unit = spacingUnit;
 				const tracking = unit === 'percent' ? 0 : (letterSpacing / (unit === 'em' ? 1000 : size)) * font.unitsPerEm;
 				const advanceScale = unit === 'percent' ? (letterSpacing / 100) : 1;
 
-				const asEnabled = elements[`autospacing${index + 1}`].checked;
-				const tightness = +elements[`tightness${index + 1}`].value;
-				const cachedLayout = this.layoutCache[index];
+				const cachedLayout = this.layoutCache[currentIndex];
 				const hit = cachedLayout && cachedLayout.content === content && cachedLayout.font === font &&
 				             cachedLayout.asEnabled === asEnabled && cachedLayout.tightness === tightness &&
 				             cachedLayout.advanceScale === advanceScale;
 				if (!hit) {
 					const run = font.layout(content);
-					if (asEnabled) await this.applyAutospacing(index, run, font, tightness, advanceScale);
-					this.layoutCache[index] = { content, font, run, asEnabled, tightness, advanceScale };
+					if (asEnabled) await this.applyAutospacing(sequence, run, font, tightness, advanceScale);
+					currentIndex = this.loadSequence.indexOf(sequence);
+					if (currentIndex === -1) return null;
+					this.layoutCache[currentIndex] = { content, font, run, asEnabled, tightness, advanceScale };
 				}
-				const run = this.layoutCache[index].run;
+				const run = this.layoutCache[currentIndex].run;
 
 				let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, currentX = 0;
 				run.glyphs.forEach((glyph, index) => {
@@ -2268,7 +2276,7 @@ self.onmessage = function(e) {
 				const safeWidth = width || 1;
 				const safeHeight = height || 1;
 
-				const whiteCanvas = this.whiteCanvases[index];
+				const whiteCanvas = this.whiteCanvases[currentIndex];
 				const whiteContext = prepareCanvas(whiteCanvas, safeWidth, safeHeight);
 				whiteContext.save();
 				whiteContext.translate(drawOffsetX, baseline);
@@ -2287,7 +2295,7 @@ self.onmessage = function(e) {
 				});
 				whiteContext.restore();
 
-				const canvas = this.offscreenCanvases[index];
+				const canvas = this.offscreenCanvases[currentIndex];
 				const context = prepareCanvas(canvas, safeWidth, safeHeight);
 				context.drawImage(whiteCanvas, 0, 0);
 				paint(context, color);
@@ -2305,6 +2313,8 @@ self.onmessage = function(e) {
 				const analysisData = await this.runWorker({
 					buffer: imageData.buffer, width: safeWidth, height: safeHeight, scanYStart, scanYEnd, scanXStart, scanXEnd
 				}, [imageData.buffer]);
+				currentIndex = this.loadSequence.indexOf(sequence);
+				if (currentIndex === -1) return null;
 
 				const graphPath = new Path2D();
 				const graphScale = this.graphWidth / analysisData.maxDensity;
