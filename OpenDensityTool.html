@@ -1865,11 +1865,11 @@ self.onmessage = function(e) {
 					const containerRect = elements.container.getBoundingClientRect();
 					const inBounds = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
 					elements.cursorGuide.hidden = !inBounds;
-					if (inBounds) {
-						elements.cursorGuide.style.top = `${clientY - containerRect.top}px`;
-						elements.cursorGuide.style.left = `${rect.left - containerRect.left}px`;
-						elements.cursorGuide.style.width = `${rect.width}px`;
-					}
+					inBounds && Object.assign(elements.cursorGuide.style, {
+						top: `${clientY - containerRect.top}px`,
+						left: `${rect.left - containerRect.left}px`,
+						width: `${rect.width}px`
+					});
 
 					const x = (clientX - rect.left) * (elements.canvas.width / rect.width);
 					const y = (clientY - rect.top) * (elements.canvas.height / rect.height);
@@ -2508,9 +2508,7 @@ self.onmessage = function(e) {
 				// Nothing rendered yet -> collapse to the placeholder height.
 				const empty = !this.analyses.some((a, i) => a && !a.error && this.isFontVisible(i));
 				preview.classList.toggle('is-empty', empty);
-				if (empty) return;
-
-				if (elements.zoom.value !== 'fit' || !canvas.width) return;
+				if (empty || elements.zoom.value !== 'fit' || !canvas.width) return;
 				const style = getComputedStyle(container);
 				const paddingX = parseFloat(style.paddingLeft) * 2;
 				const paddingY = parseFloat(style.paddingTop) * 2;
