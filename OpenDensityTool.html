@@ -1852,7 +1852,7 @@ self.onmessage = function(e) {
 					const toggle = (key, property, invert) => elements[key + number].onclick = () => {
 						const value = this[property][index] = !this[property][index];
 						elements[key + number].setAttribute('aria-pressed', invert ? !value : value);
-						this.draw();
+						this.update();
 					};
 					toggle('mute', 'visibility', true);
 					toggle('solo', 'solo');
