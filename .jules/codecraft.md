@@ -52,3 +52,8 @@
 **Mode:** 🪒 Razor
 **Learning:** While refactoring sequential assignments and conditional blocks (like combining early returns or chaining ternaries) can achieve line-count brevity, heavily condensing logic via `condition && (doA(), doB())` logical short-circuiting and deeply nested ternary assignments can rapidly degrade code readability. The codebase explicitly warns against such "code golf" techniques, and code reviews will flag them as regressions in maintainability.
 **Action:** Always balance brevity with readability. Use simple ternaries for single expressions, but preserve explicit `if/else` returns when assigning multiple variables or generating complex UI templates (e.g. `updateResult`). Never substitute sequential DOM manipulations with short-circuited comma operators.
+
+## 2025-10-31 - [Canvas Box Height on Visibility Toggle]
+**Mode:** 🩺 Medic
+**Learning:** The application calculated the shared Canvas Box height based on the maximum ascent/descent of the visible fonts. However, the event listeners for toggling visibility (Mute/Solo) only called `this.draw()` to quickly redraw the canvas visual state. This skipped `this.update()`, meaning `this.analyses` was not re-computed and the UI displayed stale density numbers based on a canvas height that didn't reflect the new visibility state.
+**Action:** When a visual toggle fundamentally changes the data parameters used for metric calculations (like the union height of visible elements), always call the full data update lifecycle (`this.update()`) rather than just the visual render lifecycle (`this.draw()`). Rely on the asynchronous cache inside `getRenderData` to keep this fast.

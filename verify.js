@@ -348,3 +348,49 @@ const path = require('path');
 
   await browser.close();
 })();
+
+// NEW TEST: Canvas Box Height Mute/Solo Interaction (Medic Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  // Load fonts
+  await page.setInputFiles('#file1', 'roboto-regular-webfont.woff');
+  await page.setInputFiles('#file2', 'roboto-regular-webfont.woff');
+  await page.waitForFunction(() => app.fonts[0] && app.fonts[1] && !app.loading[0] && !app.loading[1]);
+
+  // Set different sizes
+  await page.fill('#size1', '200');
+  await page.fill('#size2', '100');
+
+  // Set to Canvas Box mode
+  await page.selectOption('#density', 'canvas');
+  await page.waitForTimeout(500);
+
+  // Read density of font 2
+  let textContent = await page.textContent('#result2');
+  let match = textContent.match(/Density([\d.]+)%/);
+  const densityBeforeMute = match ? match[1] : null;
+
+  // Mute font 1
+  await page.click('#mute1');
+  await page.waitForTimeout(500);
+
+  // Read density of font 2 again
+  textContent = await page.textContent('#result2');
+  match = textContent.match(/Density([\d.]+)%/);
+  const densityAfterMute = match ? match[1] : null;
+
+  if (densityBeforeMute === densityAfterMute) {
+    console.error(`Canvas Box Height Mute/Solo test failed! Density of Font 2 did not update after Font 1 was muted. Expected it to change from ${densityBeforeMute}, but it remained ${densityAfterMute}`);
+    process.exit(1);
+  }
+
+  console.log('Test passed: Canvas Box Height adjusts based on visible fonts.');
+
+  await browser.close();
+})();
