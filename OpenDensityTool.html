@@ -2049,6 +2049,7 @@ self.onmessage = function(e) {
 			}
 
 			async applyAutospacing(sequence, run, font, tightness, advanceScale = 1) {
+				if (advanceScale === 0) return;
 				const upm = font.unitsPerEm;
 				const capHeight = font.capHeight || (font.ascent * 0.7);
 				const xHeight   = font.xHeight   || (font.ascent * 0.5);
