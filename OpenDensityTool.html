@@ -2082,12 +2082,20 @@ self.onmessage = function(e) {
 				});
 
 				const profiles = await Promise.all(run.glyphs.map(g => this.getGlyphProfile(sequence, g)));
+				const pairCache = new Map();
 
 				for (let i = 0; i < run.glyphs.length - 1; i++) {
 					const p1 = profiles[i], p2 = profiles[i + 1];
 					if (!p1 || !p2) continue;
 
 					const g1 = run.glyphs[i], g2 = run.glyphs[i + 1];
+					const pos1 = run.positions[i], pos2 = run.positions[i + 1];
+
+					const cacheKey = `${g1.id}-${g2.id}-${pos1.yOffset}-${pos2.yOffset}`;
+					if (pairCache.has(cacheKey)) {
+						pos1.xAdvance += pairCache.get(cacheKey);
+						continue;
+					}
 
 					// ── Character class ──────────────────────────────────────────────
 					// Unicode case detection is more reliable than bbox height because
@@ -2106,8 +2114,6 @@ self.onmessage = function(e) {
 					// Cap–cap pairs get the most breathing room; mixed pairs get a
 					// little extra; lower–lower pairs use the base target unchanged.
 					const pairTarget = targetBase * [1, 1.1, 1.2][upperCount];
-
-					const pos1 = run.positions[i], pos2 = run.positions[i + 1];
 
 					// ── Vertical gap scan ────────────────────────────────────────────
 					// We sample the visible gap between right-ink-edge of glyph 1 and
@@ -2180,7 +2186,9 @@ self.onmessage = function(e) {
 
 					// Clamp so we never push ink closer together than MIN_GAP,
 					// regardless of how extreme the tightness setting is.
-					pos1.xAdvance += Math.max(delta, MIN_GAP - minGap) / advanceScale;
+					const advanceDelta = Math.max(delta, MIN_GAP - minGap) / advanceScale;
+					pos1.xAdvance += advanceDelta;
+					pairCache.set(cacheKey, advanceDelta);
 				}
 			}
 
