@@ -2220,7 +2220,7 @@ self.onmessage = function(e) {
 
 				const promise = this.generateRenderData(sequence, inputs).then(data => {
 					const currentIndex = this.loadSequence.indexOf(sequence);
-					if (currentIndex !== -1) {
+					if (currentIndex !== -1 && this.renderingCache[currentIndex]?.promise === promise) {
 						this.renderingCache[currentIndex] = { inputs, data };
 					}
 					return data;
