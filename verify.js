@@ -394,3 +394,49 @@ const path = require('path');
 
   await browser.close();
 })();
+
+// NEW TEST: Cache Poisoning with Old Inputs (Medic Mode)
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const filePath = `file://${path.resolve(__dirname, 'OpenDensityTool.html')}`;
+  await page.goto(filePath);
+  await page.waitForSelector('.group', { state: 'attached' });
+
+  await page.setInputFiles('#file1', 'roboto-regular-webfont.woff');
+  await page.waitForFunction(() => app.fonts[0] && !app.loading[0]);
+
+  const result = await page.evaluate(async () => {
+      const orig = app.generateRenderData.bind(app);
+      app.generateRenderData = async (seq, inputs) => {
+          if (inputs.letterSpacing === 10) {
+              await new Promise(r => setTimeout(r, 200));
+          } else {
+              await new Promise(r => setTimeout(r, 50));
+          }
+          return orig(seq, inputs);
+      };
+
+      document.getElementById('spacing1').value = 10;
+      app.update();
+
+      await new Promise(r => setTimeout(r, 10));
+
+      document.getElementById('spacing1').value = 20;
+      app.update();
+
+      await new Promise(r => setTimeout(r, 300));
+
+      const cached = app.renderingCache[0];
+      return cached.inputs.letterSpacing;
+  });
+
+  if (result === 10) {
+      console.error("Cache poison test failed! Cache is poisoned with old inputs!");
+      process.exit(1);
+  } else {
+      console.log('Test passed: Cache is fine, most recent inputs are retained.');
+  }
+
+  await browser.close();
+})();
