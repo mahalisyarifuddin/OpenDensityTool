@@ -1631,8 +1631,8 @@
 			return { r, g, b, a };
 		};
 
-		const prepareCanvas = (canvas, width, height) => {
-			const ctx = canvas.getContext('2d', { willReadFrequently: true });
+		const prepareCanvas = (canvas, width, height, readFrequently = false) => {
+			const ctx = canvas.getContext('2d', readFrequently ? { willReadFrequently: true } : undefined);
 			if (canvas.width !== width || canvas.height !== height) {
 				Object.assign(canvas, { width, height });
 			} else {
@@ -2027,7 +2027,7 @@ self.onmessage = function(e) {
 					const drawOffsetX = -Math.min(0, bbox.minX * scale) + 2;
 					if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
 					const canvas = this.glyphCanvas;
-					const ctx = prepareCanvas(canvas, width, height);
+					const ctx = prepareCanvas(canvas, width, height, true);
 					ctx.save();
 					ctx.translate(drawOffsetX, baseline);
 					ctx.scale(1, -1);
@@ -2305,7 +2305,7 @@ self.onmessage = function(e) {
 				whiteContext.restore();
 
 				const canvas = this.offscreenCanvases[currentIndex];
-				const context = prepareCanvas(canvas, safeWidth, safeHeight);
+				const context = prepareCanvas(canvas, safeWidth, safeHeight, true);
 				context.drawImage(whiteCanvas, 0, 0);
 				paint(context, color);
 
