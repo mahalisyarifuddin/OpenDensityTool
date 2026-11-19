@@ -22,13 +22,21 @@ All processing happens locally in your browser using **fontkit** (which supports
 ## Quick Start
 1. Download OpenDensityTool.html.
 2. Open it in any modern browser (Chrome, Edge, Firefox, Safari).
-3. Load two font files (OTF/TTF/WOFF/WOFF2).
+3. Load one or two font files (OTF/TTF/WOFF/WOFF2/TTC/OTC/DFONT). Select a face when a collection contains multiple fonts.
 4. Enter text, set sizes, and adjust baseline shift to align optical baselines.
 5. Customize the overlay colors as needed.
 6. Choose "Fit to View" or "100% Scale."
 7. Click "Export PNG" to save the visualization.
 
-Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline, you must host these files locally and update the script references.
+The page loads fontkit from esm.sh on demand. For offline use, put a browser-compatible bundled `fontkit.mjs` alongside the HTML and serve both files over HTTP; the app falls back to it when the CDN is unavailable. For example, using Node.js:
+
+```sh
+npm install --prefix /tmp/fontkit-bundle fontkit@2.0.4 esbuild@0.25.12
+/tmp/fontkit-bundle/node_modules/.bin/esbuild /tmp/fontkit-bundle/node_modules/fontkit/dist/browser-module.mjs --bundle --minify --format=esm --platform=browser --outfile=fontkit.mjs
+python3 -m http.server 8000
+```
+
+Open `http://localhost:8000/OpenDensityTool.html`. The local bundle is optional and is not included in the repository.
 
 ## Key Features
 - Dual‑font comparison (overlay or side-by-side) with multiply blending
@@ -45,19 +53,21 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - **Native WOFF2 Support**: Handles compressed web fonts seamlessly.
 
 ## Controls
-- Theme: Auto, Light, or Dark mode.
-- Font File: Load OTF/TTF/WOFF/WOFF2 (supports drag and drop).
+- Settings: Select Auto, Light, or Dark theme and the interface language.
+- Font File: Load OTF/TTF/WOFF/WOFF2 or TTC/OTC/DFONT collections (supports drag and drop); choose a collection face when offered.
 - Color: Choose a custom color for each font overlay.
 - Mute (M) / Solo (S): Toggle visibility of individual fonts.
 - Text: Enter the string to analyze (per font).
 - Size (px): Render size per font.
-- Letter Spacing: Adjust tracking (spacing between characters).
+- Letter Spacing: Adjust spacing in pixels or thousandths of an em; Tracking (%) scales advances (100% is normal).
+- Optical Spacing: Estimate gaps from glyph outlines; Tightness controls the desired spacing.
 - Baseline Shift: Nudge a font up/down to align optical baselines.
 - Display: Fit to View or 100% Scale.
 - Mode: Overlay or Side-by-side comparison.
 - Normalize by: Choose the normalization method for the density calculation (Ink Box, Em Box, or Canvas Box).
 - Height (Canvas Box only): Choose which font defines the Canvas Box height — the tallest visible font (default), Font 1, or Font 2.
-- Guides: Toggle baseline and metrics visualization.
+- Guides: Toggle baseline and metrics visualization. Hover over the graph to inspect scanline Y and density.
+- Shortcuts: 1/2 mute the corresponding font; Shift+1/2 solo it. Shortcuts are disabled while editing or in Settings.
 - Export PNG: Download the current canvas.
 
 ## Interpreting the Analysis
@@ -88,7 +98,7 @@ Note: The page loads fontkit and buffer from CDNs (esm.sh). To use fully offline
 - Performance: Very long strings, huge font sizes, or fonts with a large number of glyphs can be slow to process.
 
 ## Privacy & Data
-All processing is local. Fonts and text never leave your machine. The app fetches fontkit and buffer from CDNs; replace with local copies if you need completely offline use.
+All processing is local. Fonts and text never leave your machine. The app normally fetches fontkit from a CDN; use the local bundle described above for offline use.
 
 ## License
 MIT License. See LICENSE for details.
@@ -100,3 +110,13 @@ MIT License. See LICENSE for details.
 
 ## Contributions
 Contributions, issues, and suggestions are welcome. Please open an issue to discuss ideas or submit a PR.
+
+To run the browser checks, install Node.js and pnpm, then run:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+pnpm test
+```
+
+The tests normally load fontkit from the CDN. Set `FONTKIT_BUNDLE_PATH` to the absolute path of a browser bundle (as built above) for offline tests; `CHROMIUM_EXECUTABLE_PATH` can point to an existing Chromium executable. CI builds the bundle outside the repository and runs the same suite.

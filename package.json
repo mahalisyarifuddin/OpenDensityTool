@@ -1,0 +1,13 @@
+{
+  "name": "open-density-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Single-file browser utility for visualizing and comparing typographic ink density across fonts.",
+  "scripts": {
+    "test": "node verify.js"
+  },
+  "dependencies": {
+    "playwright": "^1.61.1"
+  },
+  "license": "MIT"
+}
