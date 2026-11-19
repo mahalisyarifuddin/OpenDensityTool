@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build local fontkit bundle for deterministic tests
+        run: |
+          npm install --prefix "$RUNNER_TEMP/fontkit" fontkit@2.0.4 esbuild@0.25.12
+          "$RUNNER_TEMP/fontkit/node_modules/.bin/esbuild" "$RUNNER_TEMP/fontkit/node_modules/fontkit/dist/browser-module.mjs" --bundle --minify --format=esm --platform=browser --outfile="$RUNNER_TEMP/fontkit.mjs"
+
+      - name: Run verification suite
+        run: pnpm test
+        env:
+          FONTKIT_BUNDLE_PATH: ${{ runner.temp }}/fontkit.mjs

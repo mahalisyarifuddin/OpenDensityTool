@@ -6,8 +6,8 @@
 	<title>Typographic Density Tool</title>
 	<style>
 		/* =====================================================================
-		   SHARED DESIGN CORE — identical in every app. Do not edit in place.
-		   Edit /core.css, then run sync_core.py to push it to all apps.
+		   DESIGN CORE — shared token & component baseline for this single-file app.
+		   Edit directly in OpenDensityTool.html when working in this repository.
 
 		   Order: 1) tokens  2) reset/base  3) app shell  4) components.
 		   App-specific rules go in the APP-SPECIFIC block below this one, so
@@ -1102,6 +1102,7 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+		.face-field { margin-bottom: var(--sp-3); }
 
 		/* Rules unique to this app that have no equivalent in the core.
 		   Anything here that turns out to be reusable belongs in core.css. */
@@ -1280,9 +1281,13 @@
 					<label for="file1" class="mb-0">Font File</label>
 					<button id="clear1" class="actionButton" aria-label="Clear Font 1" title="Clear font">Clear</button>
 				</div>
-				<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
+				<input type="file" id="file1" accept=".otf,.ttf,.woff,.woff2,.ttc,.otc,.dfont" class="sr-only" tabindex="-1">
 				<button type="button" id="uploadBtn1" class="file-upload-btn" aria-label="Upload Font 1"><svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2z"></path></svg> Choose Font File...</button>
 				<div id="fileName1" class="file-name-display"></div>
+				<div id="faceField1" class="face-field" hidden>
+					<label for="face1">Collection Face</label>
+					<select id="face1" aria-label="Font 1 Collection Face"></select>
+				</div>
 				<div class="text-group">
 					<div class="text-label-row">
 						<label for="text1" class="mb-0">Text</label>
@@ -1290,7 +1295,7 @@
 					</div>
 					<textarea id="text1" maxlength="1000">Idealogy</textarea>
 				</div>
-				<label>Size (px)<input type="number" id="size1" value="100" min="8" max="500"><input type="range" id="sizeRange1" value="100" min="6" max="500" aria-label="Size (px)"></label>
+				<label>Size (px)<input type="number" id="size1" value="100" min="6" max="500"><input type="range" id="sizeRange1" value="100" min="6" max="500" aria-label="Size (px)"></label>
 				<div class="row">
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing1" value="0" min="-500" max="500"><input type="range" id="spacingRange1" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift1" value="0" min="-200" max="200"><input type="range" id="shiftRange1" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
@@ -1317,9 +1322,13 @@
 					<label for="file2" class="mb-0">Font File</label>
 					<button id="clear2" class="actionButton" aria-label="Clear Font 2" title="Clear font">Clear</button>
 				</div>
-				<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2" class="sr-only" tabindex="-1">
+				<input type="file" id="file2" accept=".otf,.ttf,.woff,.woff2,.ttc,.otc,.dfont" class="sr-only" tabindex="-1">
 				<button type="button" id="uploadBtn2" class="file-upload-btn" aria-label="Upload Font 2"><svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2z"></path></svg> Choose Font File...</button>
 				<div id="fileName2" class="file-name-display"></div>
+				<div id="faceField2" class="face-field" hidden>
+					<label for="face2">Collection Face</label>
+					<select id="face2" aria-label="Font 2 Collection Face"></select>
+				</div>
 				<div class="text-group">
 					<div class="text-label-row">
 						<label for="text2" class="mb-0">Text</label>
@@ -1327,7 +1336,7 @@
 					</div>
 					<textarea id="text2" maxlength="1000">Идеология</textarea>
 				</div>
-				<label>Size (px)<input type="number" id="size2" value="100" min="8" max="500"><input type="range" id="sizeRange2" value="100" min="6" max="500" aria-label="Size (px)"></label>
+				<label>Size (px)<input type="number" id="size2" value="100" min="6" max="500"><input type="range" id="sizeRange2" value="100" min="6" max="500" aria-label="Size (px)"></label>
 				<div class="row">
 					<label>Letter Spacing (‰ em)<input type="number" id="spacing2" value="0" min="-500" max="500"><input type="range" id="spacingRange2" value="0" min="-500" max="500" aria-label="Letter Spacing (‰ em)"></label>
 					<label>Baseline Shift<input type="number" id="shift2" value="0" min="-200" max="200"><input type="range" id="shiftRange2" value="0" min="-200" max="200" aria-label="Baseline Shift"></label>
@@ -1383,18 +1392,11 @@
 	</main>
 	<script>
 		/* =====================================================================
-		   SHARED SETTINGS BEHAVIOUR — identical in every app. Do not edit here.
-		   Edit /shared-settings.js, then run sync_core.py.
+		   SETTINGS BEHAVIOUR — shared theme, language and settings sheet helper
+		   for this single-file app. Edit directly in OpenDensityTool.html.
 
-		   Owns theme, language and the settings dialog so all apps behave the
-		   same. Runs before app code, so window.AppSettings is ready by the time
-		   an app's constructor executes.
-
-		   An app is expected to:
-		     1. set AppSettings.strings = <its translation table>
-		     2. call AppSettings.detectLang(...) once to choose a start language
-		     3. delegate its own theme()/lang() to applyTheme()/applyLang()
-		   Persistence stays with the app; this layer never touches storage.
+		   Owns theme, language and the settings dialog. Runs before app code,
+		   so window.AppSettings is ready by the time DensityTool executes.
 		   ===================================================================== */
 		(function () {
 			const root = document.documentElement;
@@ -1414,17 +1416,20 @@
 				/* The app's table, shaped { en: ..., id: ... }. Assign it as soon as it
 				   is defined — renderSettings reads it on the first applyLang. */
 				strings: null,
+				_appliedTheme: null,
 				/* Applies a theme and returns the value actually used.
 				   'auto' clears both classes and defers to prefers-color-scheme.
 				   Idempotent; also syncs the #theme select and fires 'themechange' on
-				   <html> for canvas apps that must repaint. */
+				   <html> only when the theme actually changes. */
 				applyTheme(value) {
 					const v = (value === 'light' || value === 'dark') ? value : 'auto';
+					const changed = this._appliedTheme !== v;
+					this._appliedTheme = v;
 					root.classList.remove('light', 'dark');
 					if (v !== 'auto') root.classList.add(v);
 					const sel = $('theme');
 					if (sel && sel.value !== v) sel.value = v;
-					root.dispatchEvent(new CustomEvent('themechange', { detail: { theme: v } }));
+					if (changed) root.dispatchEvent(new CustomEvent('themechange', { detail: { theme: v } }));
 					return v;
 				},
 
@@ -1611,15 +1616,50 @@
 	</script>
 
 	<script type="module">
-		import * as fontkitModule from 'https://esm.sh/fontkit@2.0.4';
+		let fontkitPromise;
+		function ensureFontkit() {
+			if (!fontkitPromise) {
+				fontkitPromise = (async () => {
+					let lastError;
+					for (const url of [window.FONTKIT_URL, 'https://esm.sh/fontkit@2.0.4', './fontkit.mjs'].filter(Boolean)) {
+						try {
+							const module = await import(url);
+							const kit = module.default || module;
+							if (typeof kit.create !== 'function') throw new Error('Invalid fontkit module');
+							return kit;
+						} catch (error) { lastError = error; }
+					}
+					throw new Error('Unable to load fontkit. Check your connection or provide fontkit.mjs. ' + (lastError?.message || ''));
+				})().catch(error => { fontkitPromise = null; throw error; });
+			}
+			return fontkitPromise;
+		}
+		const MAX_CANVAS_DIM = 32767;
+		const MAX_CANVAS_AREA = 67108864;
 
-		const fontkit = fontkitModule.default || fontkitModule;
 		const elements = new Proxy({}, { get: (_, id) => document.getElementById(id) });
 		const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
-		const raf = (fn) => { let t; return (...args) => { cancelAnimationFrame(t); t = requestAnimationFrame(() => { fn(...args); t = null; }); }; };
+		const raf = (fn) => {
+			let t = null;
+			const wrapped = (...args) => {
+				if (t !== null) cancelAnimationFrame(t);
+				t = requestAnimationFrame(() => {
+					t = null;
+					fn(...args);
+				});
+			};
+			wrapped.cancel = () => {
+				if (t !== null) {
+					cancelAnimationFrame(t);
+					t = null;
+				}
+			};
+			return wrapped;
+		};
 		const paint = (ctx, color) => { ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over'; };
 		const INPUT_FIELDS = ['text', 'size', 'spacing', 'shift', 'color', 'autospacing', 'tightness'];
-		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${label}</span><span class="statisticValue">${value}</span></div>`;
+		const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+		const row = (label, value) => `<div class="statisticRow"><span class="statisticLabel">${escapeHtml(label)}</span><span class="statisticValue">${escapeHtml(value)}</span></div>`;
 
 		const parseColor = (color) => {
 			if (!color) return { r: 0, g: 0, b: 0, a: 0 };
@@ -1707,7 +1747,7 @@ self.onmessage = function(e) {
 			constructor() {
 				const makeCanvas = () => document.createElement('canvas');
 				Object.assign(this, {
-					fonts: [], loadErrors: [], visibility: [true, true], solo: [false, false],
+					fonts: [], collections: [], activeRenderInputs: [null, null], loadErrors: [], visibility: [true, true], solo: [false, false],
 					loading: [false, false], loadSequence: [Symbol(), Symbol()], renderingCache: [],
 					profileCache: [new Map(), new Map()],
 					layoutCache: [null, null], analyses: [],
@@ -1723,7 +1763,8 @@ self.onmessage = function(e) {
 				});
 
 				const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
-				this.worker = new Worker(URL.createObjectURL(blob));
+				const workerUrl = URL.createObjectURL(blob);
+				try { this.worker = new Worker(workerUrl); } finally { URL.revokeObjectURL(workerUrl); }
 				this.worker.onmessage = ({ data }) => {
 					const { id, result, error } = data;
 					if (this.workerResolvers.has(id)) {
@@ -1734,6 +1775,13 @@ self.onmessage = function(e) {
 					}
 				};
 
+				const failWorker = event => {
+					this.workerError = new Error(event.message || 'Analysis worker failed');
+					for (const { reject } of this.workerResolvers.values()) reject(this.workerError);
+					this.workerResolvers.clear();
+				};
+				this.worker.onerror = failWorker;
+				this.worker.onmessageerror = failWorker;
 				this.setup();
 				this.theme('auto');
 				this.update();
@@ -1741,9 +1789,10 @@ self.onmessage = function(e) {
 
 			runWorker(payload, transferables = []) {
 				return new Promise((resolve, reject) => {
+					if (this.workerError) return reject(this.workerError);
 					const id = this.workerId++;
 					this.workerResolvers.set(id, { resolve, reject });
-					this.worker.postMessage({ id, ...payload }, transferables);
+					try { this.worker.postMessage({ id, ...payload }, transferables); } catch (error) { this.workerResolvers.delete(id); reject(error); }
 				});
 			}
 
@@ -1769,7 +1818,7 @@ self.onmessage = function(e) {
 					await new Promise(r => setTimeout(r, 50));
 					const link = document.createElement('a');
 					link.href = elements.canvas.toDataURL();
-					const names = this.fonts.map((font, index) => font ? font.fullName.replace(/[^a-z0-9]/gi, '') : '').filter(Boolean);
+					const names = this.fonts.map((font, index) => font ? String(font.fullName || '').replace(/[^\p{L}\p{N}_-]+/gu, '') : '').filter(Boolean);
 					const namePart = names.length ? names.join('_vs_') : new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
 					link.download = `density_${namePart}.png`;
 					link.click();
@@ -1781,7 +1830,6 @@ self.onmessage = function(e) {
 					await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 				}, 'Copied!', 'Copying...');
 
-				elements.theme.onchange = event => this.theme(event.target.value);
 				// Repaint whenever the resolved theme changes (explicit or OS-driven).
 				document.documentElement.addEventListener('themechange', () => {
 					this.updateThemeColor();
@@ -1799,6 +1847,12 @@ self.onmessage = function(e) {
 							input[prop] = input.type === 'checkbox' ? input.defaultChecked : input.defaultValue;
 							if (range) range.value = input.value;
 						});
+						const spacing = this.getSpacingConfig();
+						elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = spacing.val;
+						this.visibility[number - 1] = true;
+						this.solo[number - 1] = false;
+						elements[`mute${number}`].setAttribute('aria-pressed', 'false');
+						elements[`solo${number}`].setAttribute('aria-pressed', 'false');
 						elements[`asControls${number}`].hidden = !elements[`autospacing${number}`].checked;
 					});
 					this.update();
@@ -1822,10 +1876,11 @@ self.onmessage = function(e) {
 					const handleFile = file => { updateFileName(file); this.loadFont(file, index); };
 
 					elements[`uploadBtn${number}`].onclick = () => fileInput.click();
-					fileInput.onchange = event => handleFile(event.target.files[0]);
+					fileInput.onchange = event => { if (event.target.files[0]) handleFile(event.target.files[0]); };
+					elements[`face${number}`].onchange = event => this.selectFace(index, +event.target.value);
 
 					elements[`clear${number}`].onclick = () => this.confirmAction(elements[`clear${number}`], () => {
-						this.fonts[index] = this.loadErrors[index] = null;
+						this.clearFont(index);
 						fileInput.value = '';
 						updateFileName(null);
 						this.update();
@@ -1858,7 +1913,7 @@ self.onmessage = function(e) {
 					toggle('solo', 'solo');
 				});
 
-				elements.canvas.onmousemove = raf(event => {
+				const handleMouseMove = elements.canvas.onmousemove = raf(event => {
 					const { clientX, clientY } = event;
 					if (!this.lastDimensions) return;
 					const rect = elements.canvas.getBoundingClientRect();
@@ -1885,7 +1940,7 @@ self.onmessage = function(e) {
 					}).filter(Boolean).join('\n');
 
 					if (!content) return elements.tooltip.hidden = true;
-					elements.tooltip.innerText = `Y: ${Math.round(this.lastDimensions.baseline - y)}\n${content}`;
+					elements.tooltip.innerText = `Y: ${Math.floor(this.lastDimensions.baseline - y)}\n${content}`;
 					elements.tooltip.hidden = false;
 
 					const tooltipRect = elements.tooltip.getBoundingClientRect();
@@ -1897,9 +1952,10 @@ self.onmessage = function(e) {
 					elements.tooltip.style.left = `${Math.max(0, left)}px`;
 					elements.tooltip.style.top = `${Math.max(0, top)}px`;
 				});
-				elements.canvas.onmouseleave = () => { elements.tooltip.hidden = true; elements.cursorGuide.hidden = true; };
+				elements.canvas.onmouseleave = () => { handleMouseMove.cancel(); elements.tooltip.hidden = true; elements.cursorGuide.hidden = true; };
 
 				document.addEventListener('keydown', event => {
+					if (event.ctrlKey || event.metaKey || event.altKey || elements.preferencesDialog.open) return;
 					if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
 					if (event.code === 'Digit1') { event.preventDefault(); event.shiftKey ? elements.solo1.click() : elements.mute1.click(); }
 					if (event.code === 'Digit2') { event.preventDefault(); event.shiftKey ? elements.solo2.click() : elements.mute2.click(); }
@@ -1950,7 +2006,7 @@ self.onmessage = function(e) {
 			}
 
 			swap() {
-				['fonts', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache', 'visibility', 'solo', 'offscreenCanvases', 'whiteCanvases'].forEach(key => {
+				['fonts', 'collections', 'activeRenderInputs', 'loadErrors', 'loading', 'loadSequence', 'renderingCache', 'layoutCache', 'profileCache', 'visibility', 'solo', 'offscreenCanvases', 'whiteCanvases'].forEach(key => {
 					[this[key][0], this[key][1]] = [this[key][1], this[key][0]];
 				});
 				['mute', 'solo'].forEach(key => {
@@ -1959,6 +2015,7 @@ self.onmessage = function(e) {
 					btn1.setAttribute('aria-pressed', btn2.getAttribute('aria-pressed'));
 					btn2.setAttribute('aria-pressed', pressed1);
 				});
+				[1, 2].forEach(number => this.updateFaceSelector(number - 1));
 				INPUT_FIELDS.forEach(key => {
 					const input1 = elements[key + '1'], input2 = elements[key + '2'];
 					const prop = input1.type === 'checkbox' ? 'checked' : 'value';
@@ -1986,7 +2043,39 @@ self.onmessage = function(e) {
 				this.isDark = (mix('r') * 0.299 + mix('g') * 0.587 + mix('b') * 0.114) < 128;
 			}
 
+			clearFont(index) {
+				this.loadSequence[index] = Symbol();
+				this.loading[index] = false;
+				this.activeRenderInputs[index] = null;
+				this.fonts[index] = this.collections[index] = this.loadErrors[index] = null;
+				this.renderingCache[index] = this.layoutCache[index] = null;
+				this.profileCache[index].clear();
+				for (const canvas of [this.offscreenCanvases[index], this.whiteCanvases[index]]) { canvas.width = canvas.height = 1; }
+				this.updateFaceSelector(index);
+			}
+
+			updateFaceSelector(index) {
+				const collection = this.collections[index];
+				const select = elements[`face${index + 1}`];
+				select.replaceChildren();
+				if (collection) collection.forEach((font, i) => select.add(new Option(font.fullName || font.postscriptName || `Face ${i + 1}`, String(i))));
+				select.value = String(Math.max(0, collection?.indexOf(this.fonts[index]) ?? 0));
+				elements[`faceField${index + 1}`].hidden = !collection || collection.length < 2;
+			}
+
+			selectFace(index, face) {
+				const font = this.collections[index]?.[face];
+				if (!font) return;
+				this.loadSequence[index] = Symbol();
+				this.activeRenderInputs[index] = null;
+				this.fonts[index] = font;
+				this.renderingCache[index] = this.layoutCache[index] = null;
+				this.profileCache[index].clear();
+				this.update();
+			}
+
 			async loadFont(file, index) {
+				this.clearFont(index);
 				const sequence = this.loadSequence[index] = Symbol();
 				this.loadErrors[index] = this.fonts[index] = null;
 				this.profileCache[index].clear();
@@ -1995,12 +2084,16 @@ self.onmessage = function(e) {
 				try {
 					if (!file) return;
 					if (file.size > 3e7) throw new Error('File too large (max 30MB)');
-					const buffer = await file.arrayBuffer();
+					const [buffer, fontkit] = await Promise.all([file.arrayBuffer(), ensureFontkit()]);
 					const currentIndex = this.loadSequence.indexOf(sequence);
 					if (currentIndex === -1) return;
-					const font = fontkit.create(new Uint8Array(buffer));
-					if (!font.unitsPerEm) throw new Error('Invalid font');
+					const parsed = fontkit.create(new Uint8Array(buffer));
+					const collection = parsed.fonts || null;
+					const font = collection ? collection[0] : parsed;
+					if (!font?.unitsPerEm) throw new Error('Invalid font');
 					this.fonts[currentIndex] = font;
+					this.collections[currentIndex] = collection;
+					this.updateFaceSelector(currentIndex);
 				} catch (error) {
 					const currentIndex = this.loadSequence.indexOf(sequence);
 					if (currentIndex !== -1) this.loadErrors[currentIndex] = error.message;
@@ -2045,11 +2138,12 @@ self.onmessage = function(e) {
 					};
 				})();
 				cache.set(glyph.id, promise);
+				promise.catch(() => { if (cache.get(glyph.id) === promise) cache.delete(glyph.id); });
 				return promise;
 			}
 
 			async applyAutospacing(sequence, run, font, tightness, advanceScale = 1) {
-				if (advanceScale === 0) return;
+				if (advanceScale <= 0) return;
 				const upm = font.unitsPerEm;
 				const capHeight = font.capHeight || (font.ascent * 0.7);
 				const xHeight   = font.xHeight   || (font.ascent * 0.5);
@@ -2197,18 +2291,19 @@ self.onmessage = function(e) {
 				const number = index + 1;
 				const inputs = {
 					font: this.fonts[index],
-					content: elements[`text${number}`].value,
+					content: elements[`text${number}`].value.replace(/^[\r\n]+|[\r\n]+$/g, '').replace(/[\r\n\t]+/g, ' ').replace(/[\x00-\x1f\x7f]/g, ''),
 					fontSize: +elements[`size${number}`].value || 0,
 					letterSpacing: +elements[`spacing${number}`].value || 0,
 					spacingUnit: elements.spacingUnit.value,
 					color: elements[`color${number}`].value,
 					autospacing: elements[`autospacing${number}`].checked,
-					tightness: +elements[`tightness${number}`].value
+					tightness: Math.max(0, Math.min(100, +elements[`tightness${number}`].value || 0))
 				};
-				if (!inputs.font || !inputs.fontSize) return null;
+				if (!inputs.font || !inputs.fontSize) { this.activeRenderInputs[index] = null; return null; }
 				const cached = this.renderingCache[index];
 				if (cached && Object.keys(inputs).every(key => key === 'color' || cached.inputs[key] === inputs[key])) {
 					const updateColor = data => {
+						if (!data) return null;
 						if (cached.inputs.color !== inputs.color) {
 							paint(data.canvas.getContext('2d'), inputs.color);
 							cached.inputs.color = inputs.color;
@@ -2218,6 +2313,7 @@ self.onmessage = function(e) {
 					return cached.data ? updateColor(cached.data) : cached.promise?.then(updateColor);
 				}
 
+				this.activeRenderInputs[index] = inputs;
 				const promise = this.generateRenderData(sequence, inputs).then(data => {
 					const currentIndex = this.loadSequence.indexOf(sequence);
 					if (currentIndex !== -1 && this.renderingCache[currentIndex]?.promise === promise) {
@@ -2231,7 +2327,7 @@ self.onmessage = function(e) {
 
 			async generateRenderData(sequence, inputs) {
 				let currentIndex = this.loadSequence.indexOf(sequence);
-				if (currentIndex === -1) return null;
+				if (currentIndex === -1 || this.activeRenderInputs[currentIndex] !== inputs) return null;
 				const { font, content, fontSize, letterSpacing, spacingUnit, color, autospacing: asEnabled, tightness } = inputs;
 				const size = Math.min(Math.max(fontSize, 1), 2000);
 				const scale = size / font.unitsPerEm;
@@ -2247,7 +2343,7 @@ self.onmessage = function(e) {
 					const run = font.layout(content);
 					if (asEnabled) await this.applyAutospacing(sequence, run, font, tightness, advanceScale);
 					currentIndex = this.loadSequence.indexOf(sequence);
-					if (currentIndex === -1) return null;
+					if (currentIndex === -1 || this.activeRenderInputs[currentIndex] !== inputs) return null;
 					this.layoutCache[currentIndex] = { content, font, run, asEnabled, tightness, advanceScale };
 				}
 				const run = this.layoutCache[currentIndex].run;
@@ -2275,13 +2371,13 @@ self.onmessage = function(e) {
 					fontDescent: Math.abs(scaled(font.descent)),
 					fontCapHeight: scaled(font.capHeight),
 					fontXHeight: scaled(font.xHeight),
-					advanceWidth: Math.ceil(currentX * scale)
+					advanceWidth: Math.ceil((currentX > 0 ? currentX : Math.max(Math.abs(currentX), maxX - minX)) * scale)
 				};
 				const drawOffsetX = -Math.min(0, minX * scale);
 				const width = Math.ceil(Math.max(metrics.advanceWidth, maxX * scale) + drawOffsetX);
 				const baseline = Math.ceil(metrics.ascent);
 				const height = Math.ceil(baseline + metrics.descent);
-				if (width > 32767 || height > 32767) throw new Error('Canvas dimensions too large');
+				if (width > MAX_CANVAS_DIM || height > MAX_CANVAS_DIM || width * height > MAX_CANVAS_AREA) throw new Error('Canvas dimensions too large');
 				const safeWidth = width || 1;
 				const safeHeight = height || 1;
 
@@ -2323,7 +2419,7 @@ self.onmessage = function(e) {
 					buffer: imageData.buffer, width: safeWidth, height: safeHeight, scanYStart, scanYEnd, scanXStart, scanXEnd
 				}, [imageData.buffer]);
 				currentIndex = this.loadSequence.indexOf(sequence);
-				if (currentIndex === -1) return null;
+				if (currentIndex === -1 || this.activeRenderInputs[currentIndex] !== inputs) return null;
 
 				const graphPath = new Path2D();
 				const graphScale = this.graphWidth / analysisData.maxDensity;
@@ -2337,15 +2433,19 @@ self.onmessage = function(e) {
 				}
 				if (currentGraphWidth > 0) graphPath.rect(this.graphWidth - currentGraphWidth, startGraphY, currentGraphWidth, analysisData.densityByRow.length - startGraphY);
 
-				return { ...analysisData, graphPath, ...metrics, drawOffsetX, width, height, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+				return { ...analysisData, graphPath, ...metrics, drawOffsetX, width: safeWidth, height: safeHeight, canvas, whiteCanvas, baseline, letterSpacing, fontSize: size, font };
+			}
+
+			getSpacingConfig() {
+				const configs = { percent: { label: 'Tracking (%)', val: 100, min: 0, max: 500 }, em: { label: 'Letter Spacing (‰ em)', val: 0, min: -500, max: 500 }, px: { label: 'Letter Spacing (px)', val: 0, min: -500, max: 500 } };
+				return configs[elements.spacingUnit.value] || configs.em;
 			}
 
 			updateSpacingLabels() {
-				const unit = elements.spacingUnit.value;
-				const lookup = { percent: { label: 'Tracking (%)', val: 100 }, em: { label: 'Letter Spacing (‰ em)', val: 0 }, px: { label: 'Letter Spacing (px)', val: 0 } };
-				const { label, val } = lookup[unit] || lookup.em;
+				const { label, val, min, max } = this.getSpacingConfig();
 				[1, 2].forEach(number => {
 					elements[`spacingRange${number}`].setAttribute('aria-label', label);
+					for (const input of [elements[`spacing${number}`], elements[`spacingRange${number}`]]) { input.min = min; input.max = max; }
 					elements[`spacing${number}`].parentElement.firstChild.textContent = label;
 					elements[`spacing${number}`].value = elements[`spacingRange${number}`].value = val;
 				});
@@ -2359,7 +2459,7 @@ self.onmessage = function(e) {
 					elements[`dot${number}`].style.backgroundColor = elements[`color${number}`].value;
 					try {
 						const data = await this.getRenderData(index);
-						return data ? { ...data, baselineShift: +elements[`shift${number}`].value || 0 } : null;
+						return data ? { ...data, baselineShift: Math.max(-2000, Math.min(2000, +elements[`shift${number}`].value || 0)) } : null;
 					} catch (error) {
 						return { error: error.message };
 					}
@@ -2383,7 +2483,7 @@ self.onmessage = function(e) {
 				this.analyses = baseData.map(data => {
 					if (!data || data.error) return data;
 
-					const hasInk = data.maxY >= data.minY;
+					const hasInk = data.inkPixels > 0 && data.maxY >= data.minY;
 
 					const areaModes = {
 						ink: hasInk ? (data.maxX - data.minX + 1) * (data.maxY - data.minY + 1) : 1,
@@ -2396,7 +2496,7 @@ self.onmessage = function(e) {
 					return {
 						...data,
 						density: ((data.inkPixels / area) * 100).toFixed(1),
-						yMin: hasInk ? Math.round(data.baseline - data.maxY) : 0,
+						yMin: hasInk ? Math.round(data.baseline - data.maxY - 1) : 0,
 						yMax: hasInk ? Math.round(data.baseline - data.minY) : 0,
 						inkHeight: hasInk ? (data.maxY - data.minY + 1) : 0
 					};
@@ -2408,7 +2508,7 @@ self.onmessage = function(e) {
 
 			draw() {
 				const validItems = this.analyses.map((analysis, index) => ({ analysis, index })).filter(({ analysis, index }) => analysis && !analysis.error && this.isFontVisible(index));
-				if (!validItems.length) { prepareCanvas(this.context.canvas, this.context.canvas.width || 1, 150); this.updateScale(); return; }
+				if (!validItems.length) { elements.canvas.onmousemove.cancel(); elements.tooltip.hidden = elements.cursorGuide.hidden = true; this.lastDimensions = null; prepareCanvas(this.context.canvas, this.context.canvas.width || 1, 150); this.updateScale(); return; }
 
 				const sideMode = elements.render.value === 'side' && validItems.length > 1;
 				const max = fn => Math.max(0, ...validItems.map(({ analysis }) => fn(analysis)));
@@ -2418,6 +2518,12 @@ self.onmessage = function(e) {
 				const totalWidth = sideMode ? validItems.reduce((sum, { analysis }) => sum + analysis.width, 0) : maxOffsetX + max(analysis => analysis.width - analysis.drawOffsetX);
 				const dimensions = this.lastDimensions = { width: Math.ceil(this.graphWidth + this.graphPadding + totalWidth), height: Math.ceil(maxAscent + maxDescent), baseline: Math.ceil(maxAscent), maxDrawOffsetX: maxOffsetX };
 
+				if (dimensions.width > MAX_CANVAS_DIM || dimensions.height > MAX_CANVAS_DIM || dimensions.width * dimensions.height > MAX_CANVAS_AREA) {
+					this.lastDimensions = null;
+					for (const { index } of validItems) this.analyses[index] = { error: 'Composite canvas dimensions too large' };
+					this.draw();
+					return;
+				}
 				prepareCanvas(this.context.canvas, dimensions.width, dimensions.height);
 				this.context.fillStyle = this.canvasBackgroundColor;
 				this.context.fillRect(0, 0, dimensions.width, dimensions.height);
@@ -2540,7 +2646,7 @@ self.onmessage = function(e) {
 
 				const res = elements[`result${number}`];
 				if (this.loading[index]) return res.innerHTML = '<div class="spinner" aria-label="Loading"></div>';
-				if (error) return res.innerHTML = `<div class="state-message">Error: ${error}</div>`;
+				if (error) { const message = document.createElement('div'); message.className = 'state-message'; message.textContent = `Error: ${error}`; res.replaceChildren(message); return; }
 				if (!this.fonts[index]) return res.innerHTML = '<div class="state-message">Load font.</div>';
 				if (!analysis) return res.innerHTML = '<div class="state-message">Invalid settings.</div>';
 
